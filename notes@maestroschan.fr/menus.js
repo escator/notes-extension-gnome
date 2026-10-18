@@ -9,22 +9,12 @@ const Signals = imports.signals;
 const Util = imports.misc.util;
 
 const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
+
+const Common = Me.imports.common;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
-
-const PRESET_COLORS = {
-	'red': [200, 0, 0],
-	'green': [0, 150, 0],
-	'blue': [0, 0, 180],
-
-	'magenta': [255, 50, 255],
-	'yellow': [255, 255, 50],
-	'cyan': [0, 255, 255],
-
-	'white': [255, 255, 255],
-	'black': [50, 50, 50]
-};
 
 //------------------------------------------------------------------------------
 
@@ -74,10 +64,10 @@ class NoteOptionsMenu {
 			style_class: null,
 			can_focus: false
 		});
-		this._addColorButton('red', 1);
-		this._addColorButton('green', 1);
-		this._addColorButton('blue', 1);
-		this._addColorButton('black', 1);
+		this._addColorButton('peach', 1);
+		this._addColorButton('cream', 1);
+		this._addColorButton('mint', 1);
+		this._addColorButton('sky', 1);
 		this.super_menu.addMenuItem(this.color1_item);
 
 		this.color2_item = new PopupMenu.PopupBaseMenuItem({
@@ -87,10 +77,10 @@ class NoteOptionsMenu {
 			style_class: null,
 			can_focus: false
 		});
-		this._addColorButton('cyan', 2);
-		this._addColorButton('magenta', 2);
-		this._addColorButton('yellow', 2);
-		this._addColorButton('white', 2);
+		this._addColorButton('lavender', 2);
+		this._addColorButton('pink', 2);
+		this._addColorButton('sage', 2);
+		this._addColorButton('beige', 2);
 		this.super_menu.addMenuItem(this.color2_item);
 
 		let colorSubmenuItem = new PopupMenu.PopupSubMenuMenuItem(_("Custom color"));
@@ -178,12 +168,19 @@ class NoteOptionsMenu {
 	}
 
 	_addColorButton (color, line) {
-		let rgb = PRESET_COLORS[color];
+		let preset = Common.PRESET_COLORS[color];
+		let rgb = preset.rgb;
+		let style = 'background-color: rgb(' + rgb[0] + ','
+		                                + rgb[1] + ','
+		                                + rgb[2] + ');';
+		// The swatch of the color currently applied to the note gets the
+		// ring that matches it (COLOR.md §4.2)
+		if (this._source._note.customColor === rgb.join(',')) {
+			style += 'border-color: ' + preset.ring + '; border-width: 2px;';
+		}
 		let btn = new St.Button({
 			style_class: 'notesCircleButton',
-			style: 'background-color: rgb(' + rgb[0] + ','
-			                                + rgb[1] + ','
-			                                + rgb[2] + ');',
+			style: style,
 			x_expand: true,
 			x_align: Clutter.ActorAlign.CENTER,
 		});
@@ -220,7 +217,7 @@ class NoteOptionsMenu {
 	}
 
 	_onApply (color, button) {
-		let rgb = PRESET_COLORS[color];
+		let rgb = Common.PRESET_COLORS[color].rgb;
 		this._source._note.applyColorAndSave(rgb[0], rgb[1], rgb[2]);
 	}
 

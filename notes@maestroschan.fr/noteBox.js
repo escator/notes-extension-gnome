@@ -50,9 +50,9 @@ var NoteBox = class NoteBox {
 			this.customColor = color;
 		} else {
 			let c = this._manager.settings.get_strv('first-note-rgb');
-			c[0] = c[0] * 255;
-			c[1] = c[1] * 255;
-			c[2] = c[2] * 255;
+			c[0] = Math.round(c[0] * 255);
+			c[1] = Math.round(c[1] * 255);
+			c[2] = Math.round(c[2] * 255);
 			this.customColor = c.toString();
 		}
 		this._buildNote();
@@ -121,7 +121,6 @@ var NoteBox = class NoteBox {
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
 			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		}
-		this.actor.connect('notify::hover', this._applyActorStyle.bind(this));
 
 		//----------------------------------------------------------------------
 
@@ -337,13 +336,8 @@ var NoteBox = class NoteBox {
 
 	_applyActorStyle () {
 		if (this.actor == null) { return; }
-		let is_hovered = this.actor.hover;
-		let temp;
-		if (is_hovered) {
-			temp = 'background-color: rgba(' + this.customColor + ', 0.8);';
-		} else {
-			temp = 'background-color: rgba(' + this.customColor + ', 0.6);';
-		}
+		let temp = 'background-color: rgb(' + this.customColor + ');'
+			+ 'border: 1px solid ' + this._getBorderColor() + ';';
 		if(this._fontColor != '') {
 			temp += 'color: ' + this._fontColor + ';';
 		}
@@ -351,7 +345,7 @@ var NoteBox = class NoteBox {
 	}
 
 	_applyNoteStyle () {
-		let temp = 'background-color: rgba(' + this.customColor + ', 0.8);';
+		let temp = 'background-color: transparent;';
 		if(this._fontColor != '') {
 			temp += 'color: ' + this._fontColor + ';';
 		}
@@ -359,6 +353,38 @@ var NoteBox = class NoteBox {
 			temp += 'font-size: ' + this._fontSize + 'px;';
 		}
 		this.noteEntry.style = temp;
+	}
+
+	/*
+	 * Border matching the note's background: the palette's own border when the
+	 * color is one of the presets (COLOR.md §2), else the background darkened
+	 * by ~10%, which is how the palette's borders relate to their backgrounds.
+	 */
+	_getBorderColor () {
+		let presets = Common.PRESET_COLORS;
+		for (let name in presets) {
+			if (presets[name].rgb.join(',') === this.customColor) {
+				return presets[name].border;
+			}
+		}
+		let rgb = this.customColor.split(',').map(Number);
+		return 'rgb(' + Math.round(rgb[0] * 0.9) + ','
+			+ Math.round(rgb[1] * 0.9) + ','
+			+ Math.round(rgb[2] * 0.9) + ')';
+	}
+
+	/*
+	 * WCAG relative luminance (0 = black, 1 = white). The pivot 0.18 is
+	 * mid-gray: lighter backgrounds get the light theme's dark text token,
+	 * darker ones get the dark theme's light text token.
+	 */
+	_getLuminance (r, g, b) {
+		let channel = function (c) {
+			c = c / 255;
+			if (c <= 0.03928) { return c / 12.92; }
+			return Math.pow((c + 0.055) / 1.055, 2.4);
+		};
+		return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 	}
 
 	_getKeyFocus () {
@@ -498,14 +524,16 @@ var NoteBox = class NoteBox {
 		if (Number.isNaN(r)) r = 255;
 		if (Number.isNaN(g)) g = 255;
 		if (Number.isNaN(b)) b = 255;
-		r = Math.min(Math.max(0, r), 255);
-		g = Math.min(Math.max(0, g), 255);
-		b = Math.min(Math.max(0, b), 255);
+		// rounding also normalizes float values coming from the settings
+		// (stored as 0..1 doubles) or from legacy state files
+		r = Math.round(Math.min(Math.max(0, r), 255));
+		g = Math.round(Math.min(Math.max(0, g), 255));
+		b = Math.round(Math.min(Math.max(0, b), 255));
 		this.customColor = r.toString() + ',' + g.toString() + ',' + b.toString();
-		if (r + g + b > 250) {
-			this._fontColor = '#000000';
+		if (this._getLuminance(r, g, b) > 0.18) {
+			this._fontColor = Common.TEXT_COLORS.primary;
 		} else {
-			this._fontColor = '#ffffff';
+			this._fontColor = Common.TEXT_COLORS.primaryDark;
 		}
 		this._applyNoteStyle();
 		this._applyActorStyle();

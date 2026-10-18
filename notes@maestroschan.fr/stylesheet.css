@@ -1,18 +1,27 @@
+/* Light-theme palette from .agent/COLOR.md. GNOME Shell's CSS engine has no
+   var() support, so the tokens are inlined here and mirrored by the JS side
+   in common.js (PRESET_COLORS / TEXT_COLORS). */
+
 /* Notes' "body" **************************************************************/
 
 .noteBoxStyle {
 	padding: 0px;
 	margin: 0px;
+	background-color: #F5EFE6; /* warm beige: default note background */
+	border: 1px solid #DDD7CF;
 }
 
 .noteBoxStyle:hover {
 	box-shadow: 0px 0px 10px #000;
 }
 
+/* Inherits the background of .noteBoxStyle; must not paint its own */
 .notesTextField {
 	border-width: 0px;
 	border-radius: 0px;
 	box-shadow: none;
+	background-color: transparent;
+	color: #2E2E2E;
 }
 
 .notesBackground {
@@ -30,6 +39,7 @@
 
 .notesTitleButton {
 	text-align: center;
+	color: #2E2E2E;
 }
 
 .notesCircleButton {
@@ -38,13 +48,13 @@
 	height: 28px;
 	width: 28px;
 	border-style: solid;
-	border-color: black;
+	border-color: #2E2E2E;
 }
 
 /* Intended to be used with notesCircleButton */
 .notesHeaderboxButton {
 	border-style: solid;
-	border-color: grey; /* TODO should be the same as the note's text */
+	border-color: #5C5C5C; /* same as the note's secondary text (COLOR.md §5) */
 }
 
 .notesCircleButton:hover, .notesCircleButton:active {
@@ -52,9 +62,13 @@
 	border-radius: 10px;
 	height: 26px;
 	width: 26px;
+	border-color: #4F6BED;
 }
 
 /* Modal dialogs (delete confirmation, edit title) ****************************/
+/* No palette text colors here: the dialog surface belongs to the shell theme,
+   which is dark in the default theme — the light text tokens would be
+   unreadable on it. */
 
 .notesDialogTitle {
 	font-weight: bold;
@@ -79,4 +93,3 @@
 .notesCustomColorEntryR { background-color: #BB3322; color: #FFFFFF; }
 .notesCustomColorEntryG { background-color: #22BB33; color: #FFFFFF; }
 .notesCustomColorEntryB { background-color: #2233BB; color: #FFFFFF; }
-
