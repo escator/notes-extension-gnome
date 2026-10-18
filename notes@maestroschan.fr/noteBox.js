@@ -5,7 +5,6 @@
 const { Clutter, St, GLib, Gio } = imports.gi;
 const Main = imports.ui.main;
 const ShellEntry = imports.ui.shellEntry;
-const GrabHelper = imports.ui.grabHelper;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -114,14 +113,15 @@ var NoteBox = class NoteBox {
 
 		//----------------------------------------------------------------------
 
-		this._grabHelper = new GrabHelper.GrabHelper(this.noteEntry)
+		// The entry takes the key focus when hovered (autoFocus) or pressed, so
+		// the user can keep typing without an extra click. The focus is taken
+		// directly: GrabHelper's modal grab would swallow the first click
+		// happening outside the entry (on the header buttons).
 		if (this._manager.autoFocus) { // TODO dynamically update this setting
 			this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		} else {
 			this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		}
 
 		// Notes are displayed read-only by default; clicking the edit button is
@@ -252,7 +252,7 @@ var NoteBox = class NoteBox {
 		if (editing) {
 			this.noteEntry.grab_key_focus();
 		} else {
-			this._leaveKeyFocus();
+			global.stage.set_key_focus(null);
 			// the text is saved when leaving the editing mode, but the initial
 			// call happening before _loadText must not wipe the saved file
 			if (this._textLoaded) {
@@ -429,14 +429,9 @@ var NoteBox = class NoteBox {
 
 	_getKeyFocus () {
 		if (this._editing) {
-			this._grabHelper.grab({ actor: this.noteEntry });
 			this.noteEntry.grab_key_focus();
 		}
 		this._redraw();
-	}
-
-	_leaveKeyFocus () {
-		this._grabHelper.ungrab({ actor: this.noteEntry });
 	}
 
 	_redraw () {
