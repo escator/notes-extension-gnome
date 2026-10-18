@@ -147,8 +147,7 @@ var NoteBox = class NoteBox {
 	/*
 	 * The headerbar contains the UI controls to manage the note:
 	 * - The 'edit' button toggles the note between the read-only mode (the
-	 *   default) and the editing mode; in read-only mode it is the only
-	 *   enabled button of the headerbar.
+	 *   default) and the editing mode.
 	 * - The 'copy' button copies the note's text to the clipboard.
 	 * - The 'delete' button asks the user to confirm if they really wants to
 	 *   delete the note (see `dialog.js`), and if yes the object is destroyed,
@@ -229,9 +228,8 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
-	 * Toggles between the read-only and editing modes. In editing mode the
-	 * entry is editable and all the headerbar buttons are enabled; in
-	 * read-only mode only the edit button is.
+	 * Toggles between the read-only and editing modes: the entry is editable
+	 * only in the editing mode; all the headerbar buttons work in both modes.
 	 */
 	_toggleEditMode () {
 		this.setEditMode(!this._editing);
@@ -250,10 +248,6 @@ var NoteBox = class NoteBox {
 		this._btnEdit._setIcon(editing
 			? 'object-select-symbolic' // the "done" checkmark from the theme
 			: Common.getCustomIcon(Me.dir, 'edit'));
-		this._btnCopy.setEnabled(editing);
-		this._btnDelete.setEnabled(editing);
-		this._btnOptions.setEnabled(editing);
-		this._btnResize.setEnabled(editing);
 
 		if (editing) {
 			this.noteEntry.grab_key_focus();

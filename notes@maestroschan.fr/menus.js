@@ -262,16 +262,6 @@ var NoteRoundButton = class NoteRoundButton {
 		}
 	}
 
-	/*
-	 * Read-only mode disables everything but the edit button; disabling the
-	 * reactive property also prevents the options menu from opening.
-	 */
-	setEnabled (enabled) {
-		this.actor.reactive = enabled;
-		this.actor.can_focus = enabled;
-		this.actor.opacity = enabled ? 255 : 100;
-	}
-
 	//----------------------- If the button has a menu -------------------------
 
 	addMenu () {
