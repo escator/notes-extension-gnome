@@ -88,8 +88,9 @@ var NoteBox = class NoteBox {
 		this.noteEntry = new St.Entry({
 			name: 'noteEntry',
 			can_focus: true,
-			hint_text: _("Type here…"),
 			track_hover: true,
+			x_align: Clutter.ActorAlign.START,
+			y_align: Clutter.ActorAlign.START,
 			x_expand: true,
 			style_class: 'notesTextField',
 		});
@@ -103,7 +104,8 @@ var NoteBox = class NoteBox {
 			reactive: true,
 			x_expand: true,
 			y_expand: true,
-			visible: this.entry_is_visible,
+			x_align: Clutter.ActorAlign.START,
+			y_align: Clutter.ActorAlign.START,
 		});
 
 		this._entryBox.add_child(this.noteEntry);
@@ -122,6 +124,11 @@ var NoteBox = class NoteBox {
 			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		}
 
+		// Notes are displayed read-only by default; clicking the edit button is
+		// the only way to change this (the state isn't saved across sessions)
+		this._editing = false;
+		this._setEditMode(false);
+
 		//----------------------------------------------------------------------
 
 		// Each note sets its own actor where it should be. This isn't a problem
@@ -139,8 +146,10 @@ var NoteBox = class NoteBox {
 
 	/*
 	 * The headerbar contains the UI controls to manage the note:
-	 * - The 'new note' button creates a note with the same color and font size,
-	 *   but with random coordinates, an empty text, and an harcoded size.
+	 * - The 'edit' button toggles the note between the read-only mode (the
+	 *   default) and the editing mode; in read-only mode it is the only
+	 *   enabled button of the headerbar.
+	 * - The 'copy' button copies the note's text to the clipboard.
 	 * - The 'delete' button asks the user to confirm if they really wants to
 	 *   delete the note (see `dialog.js`), and if yes the object is destroyed,
 	 *   and a method from the NotesManager is called to correctly delete the
@@ -162,21 +171,29 @@ var NoteBox = class NoteBox {
 			style_class: 'noteHeaderStyle',
 		});
 
-		let btnNew = new Menus.NoteRoundButton(
+		this._btnEdit = new Menus.NoteRoundButton(
 			this,
-			'list-add-symbolic',
-			_("New")
+			Common.getCustomIcon(Me.dir, 'edit'),
+			_("Edit")
 		);
-		btnNew.actor.connect('clicked', this._createNote.bind(this));
-		this._buttonsBox.add_child(btnNew.actor);
+		this._btnEdit.actor.connect('clicked', this._toggleEditMode.bind(this));
+		this._buttonsBox.add_child(this._btnEdit.actor);
 
-		let btnDelete = new Menus.NoteRoundButton(
+		this._btnCopy = new Menus.NoteRoundButton(
+			this,
+			Common.getCustomIcon(Me.dir, 'copy-to-buf'),
+			_("Copy to clipboard")
+		);
+		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
+		this._buttonsBox.add_child(this._btnCopy.actor);
+
+		this._btnDelete = new Menus.NoteRoundButton(
 			this,
 			'user-trash-symbolic',
 			_("Delete")
 		);
-		btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
-		this._buttonsBox.add_child(btnDelete.actor);
+		this._btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
+		this._buttonsBox.add_child(this._btnDelete.actor);
 
 		this.moveBox = new St.Button({
 			x_expand: true,
@@ -185,30 +202,72 @@ var NoteBox = class NoteBox {
 		});
 		this._buttonsBox.add_child(this.moveBox);
 
-		let btnOptions = new Menus.NoteRoundButton(
+		this._btnOptions = new Menus.NoteRoundButton(
 			this,
 			'view-more-symbolic',
 			_("Note options")
 		);
-		btnOptions.addMenu();
-		this._buttonsBox.add_child(btnOptions.actor);
+		this._btnOptions.addMenu();
+		this._buttonsBox.add_child(this._btnOptions.actor);
 
-		let ctrlButton = new Menus.NoteRoundButton(
+		this._btnResize = new Menus.NoteRoundButton(
 			this,
 			'view-fullscreen-symbolic',
 			_("Resize")
 		);
-		this._buttonsBox.add_child(ctrlButton.actor);
+		this._buttonsBox.add_child(this._btnResize.actor);
 
 		this.moveBox.connect('button-press-event', this._onMovePress.bind(this));
 		this.moveBox.connect('motion-event', this._onMoveMotion.bind(this));
 		this.moveBox.connect('button-release-event', this._onRelease.bind(this));
 
-		ctrlButton.actor.connect('button-press-event', this._onResizePress.bind(this));
-		ctrlButton.actor.connect('motion-event', this._onResizeMotion.bind(this));
-		ctrlButton.actor.connect('button-release-event', this._onRelease.bind(this));
+		this._btnResize.actor.connect('button-press-event', this._onResizePress.bind(this));
+		this._btnResize.actor.connect('motion-event', this._onResizeMotion.bind(this));
+		this._btnResize.actor.connect('button-release-event', this._onRelease.bind(this));
 
 		this.actor.add_child(this._buttonsBox);
+	}
+
+	/*
+	 * Toggles between the read-only and editing modes. In editing mode the
+	 * entry is editable and all the headerbar buttons are enabled; in
+	 * read-only mode only the edit button is.
+	 */
+	_toggleEditMode () {
+		this._setEditMode(!this._editing);
+	}
+
+	_setEditMode (editing) {
+		this._editing = editing;
+		let clutterText = this.noteEntry.get_clutter_text();
+		clutterText.set_editable(editing);
+		this.noteEntry.hint_text = editing ? _("Type here…") : '';
+
+		this._btnEdit._setIcon(editing
+			? 'object-select-symbolic' // the "done" checkmark from the theme
+			: Common.getCustomIcon(Me.dir, 'edit'));
+		this._btnCopy.setEnabled(editing);
+		this._btnDelete.setEnabled(editing);
+		this._btnOptions.setEnabled(editing);
+		this._btnResize.setEnabled(editing);
+
+		if (editing) {
+			this.noteEntry.grab_key_focus();
+		} else {
+			this._leaveKeyFocus();
+			// the text is saved when leaving the editing mode, but the initial
+			// call happening before _loadText must not wipe the saved file
+			if (this._textLoaded) {
+				this._saveText();
+			}
+		}
+	}
+
+	_copyToClipboard () {
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			this.noteEntry.get_text()
+		);
 	}
 
 	_openDeleteDialog () {
@@ -272,36 +331,19 @@ var NoteBox = class NoteBox {
 	}
 
 	loadIntoCorrectLayer () {
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.addChrome(this.actor, {
-				affectsInputRegion: true
-			});
-		} else {
-			Main.layoutManager._backgroundGroup.add_child(this.actor);
-		}
-	}
-
-	removeFromCorrectLayer () {
-		if (this._manager.notesNeedChromeTracking()) {
-//			Main.layoutManager.untrackChrome(this.actor);
-			Main.layoutManager.removeChrome(this.actor);
-		} else {
-			Main.layoutManager._backgroundGroup.remove_actor(this.actor);
-		}
+		Main.layoutManager.addChrome(this.actor, {
+			affectsInputRegion: true
+		});
 	}
 
 	show () {
 		this.actor.visible = true;
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.trackChrome(this.actor);
-		}
+		Main.layoutManager.trackChrome(this.actor);
 	}
 
 	onlyHide () {
 		this.actor.visible = false;
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.untrackChrome(this.actor);
-		}
+		Main.layoutManager.untrackChrome(this.actor);
 	}
 
 	onlySave (withMetadata=true) {
@@ -388,7 +430,7 @@ var NoteBox = class NoteBox {
 	}
 
 	_getKeyFocus () {
-		if (this.entry_is_visible) {
+		if (this._editing) {
 			this._grabHelper.grab({ actor: this.noteEntry });
 			this.noteEntry.grab_key_focus();
 		}
@@ -417,11 +459,6 @@ var NoteBox = class NoteBox {
 	}
 
 	_onMovePress (actor, event) {
-		let mouseButton = event.get_button();
-		if (mouseButton == 3) {
-			this._entryBox.visible = !this._entryBox.visible;
-			this.entry_is_visible = this._entryBox.visible;
-		}
 		this._onPressCommon(event);
 		this._isMoving = true;
 		this._isResizing = false;
@@ -510,10 +547,6 @@ var NoteBox = class NoteBox {
 
 	//--------------------------------------------------------------------------
 
-	_createNote () {
-		this._manager.createNote(this.customColor, this._fontSize);
-	}
-
 	/*
 	 * This applies the color, from the menu (`applyColorAndSave`) or the
 	 * constructor (direct call). It requires some string manipulations since
@@ -553,6 +586,7 @@ var NoteBox = class NoteBox {
 		let content = stringFromArray(contents);
 
 		this.noteEntry.set_text(content);
+		this._textLoaded = true;
 	}
 
 	_saveText () {
@@ -589,7 +623,7 @@ var NoteBox = class NoteBox {
 		let defaultContent = defaultPosition[0].toString() + ';'
 		                   + defaultPosition[1].toString() + ';'
 		                   + this.customColor + ';250;180;'
-		                   + this._fontSize + ';true;'
+		                   + this._fontSize + ';'
 		GLib.file_set_contents(fileName, defaultContent);
 		return defaultContent;
 	}
@@ -618,7 +652,8 @@ var NoteBox = class NoteBox {
 		this.actor.width = Number(state[3]);
 		this.actor.height = Number(state[4]);
 		this._fontSize = Number(state[5]);
-		this.entry_is_visible = (state[6] == 'true');
+		// Old state files have a legacy 7th field ('entry_is_visible'), which
+		// isn't used anymore: notes always open read-only.
 	}
 
 	_saveState () {
@@ -629,7 +664,6 @@ var NoteBox = class NoteBox {
 		noteState += this.actor.width.toString() + ';';
 		noteState += this.actor.height.toString() + ';';
 		noteState += this._fontSize.toString() + ';';
-		noteState += this.entry_is_visible.toString() + ';';
 
 		//log('_saveState | ' + this.id.toString() + ' | ' + noteState);
 		let file = GLib.build_filenamev([PATH, this.id.toString() + '_state']);

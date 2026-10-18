@@ -9,6 +9,7 @@
 	margin: 0px;
 	background-color: #E8D5B8; /* warm beige: default note background */
 	border: 1px solid #D1C0A6;
+	border-radius: 10px;
 }
 
 .noteBoxStyle:hover {

@@ -6,7 +6,6 @@ const { Clutter, St } = imports.gi;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 const Signals = imports.signals;
-const Util = imports.misc.util;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -88,8 +87,6 @@ class NoteOptionsMenu {
 		this._buildCustomColorMenu(colorSubmenuItem.menu);
 
 		this._appendSeparator(); //---------------------------------------------
-
-		this.super_menu.addAction(_("Settings"), this._onSettings.bind(this));
 	}
 
 	_buildCustomColorMenu (colorSubmenu) {
@@ -203,15 +200,6 @@ class NoteOptionsMenu {
 		this._source._note.applyColorAndSave(r, g, b);
 	}
 
-	_onSettings () {
-		if (typeof ExtensionUtils.openPrefs === 'function') {
-			ExtensionUtils.openPrefs();
-		} else {
-			Util.spawn(['gnome-shell-extension-prefs', 'notes@maestroschan.fr']);
-		}
-		this._source._note.manager.hideNotes();
-	}
-
 	_onEditTitle () {
 		this._source._note.openEditTitleDialog();
 	}
@@ -239,17 +227,23 @@ Signals.addSignalMethods(NoteOptionsMenu.prototype);
 //------------------------------------------------------------------------------
 
 var NoteRoundButton = class NoteRoundButton {
+	/*
+	 * The icon argument is either an icon theme name, or a Gio.Icon (as
+	 * returned by Common.getCustomIcon) for the SVGs bundled with the
+	 * extension, which icon_name can't reach.
+	 */
 	constructor (note, icon, accessibleName) {
 		this._note = note;
+		this._iconActor = new St.Icon({
+			icon_size: 16,
+			style_class: 'system-status-icon',
+			x_expand: true,
+			y_expand: true,
+			y_align: Clutter.ActorAlign.CENTER,
+		});
+		this._setIcon(icon);
 		this.actor = new St.Button({
-			child: new St.Icon({
-				icon_name: icon,
-				icon_size: 16,
-				style_class: 'system-status-icon',
-				x_expand: true,
-				y_expand: true,
-				y_align: Clutter.ActorAlign.CENTER,
-			}),
+			child: this._iconActor,
 			accessible_name: accessibleName,
 			y_align: Clutter.ActorAlign.CENTER,
 			style_class: 'notesCircleButton notesHeaderboxButton',
@@ -258,6 +252,24 @@ var NoteRoundButton = class NoteRoundButton {
 			track_hover: true,
 			y_expand: false,
 		});
+	}
+
+	_setIcon (icon) {
+		if (typeof icon === 'string') {
+			this._iconActor.icon_name = icon;
+		} else {
+			this._iconActor.gicon = icon;
+		}
+	}
+
+	/*
+	 * Read-only mode disables everything but the edit button; disabling the
+	 * reactive property also prevents the options menu from opening.
+	 */
+	setEnabled (enabled) {
+		this.actor.reactive = enabled;
+		this.actor.can_focus = enabled;
+		this.actor.opacity = enabled ? 255 : 100;
 	}
 
 	//----------------------- If the button has a menu -------------------------

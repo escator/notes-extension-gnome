@@ -80,7 +80,6 @@ class NotesManager {
 		// Initialisation of the notes themselves
 		this._allNotes = new Array();
 		this._notesAreVisible = false;
-		this._updateLayerSetting(); // it inits this._layerSetting
 
 		this._notesLoaded = false; // this will tell the toggleState method that
 		// notes need to be loaded first, thus doing the actual initialisation
@@ -173,10 +172,6 @@ class NotesManager {
 		return areaIsFree;
 	}
 
-	notesNeedChromeTracking () {
-		return this._layerId == 'above-all';
-	}
-
 	/*
 	 * Called by the note options menu when the user opens the preferences
 	 * window: the notes then have to disappear from the desktop.
@@ -237,39 +232,12 @@ class NotesManager {
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
-		// log('_toggleNotes');
-
-		let preventReshowing = false;
-		if(this._layerSetting === 'cycle-layers') {
-			this._allNotes.forEach(function (n) {
-				n.removeFromCorrectLayer();
-			});
-
-			// the notes' visibility will be inverted later
-			if(!this._notesAreVisible) {
-				this._layerId = 'on-background';
-				this._notesAreVisible = false;
-			} else if(this._layerId === 'on-background') {
-				this._layerId = 'above-all';
-				this._notesAreVisible = false;
-				preventReshowing = true;
-			} else if(this._layerId === 'above-all') {
-				this._layerId = 'above-all';
-				this._notesAreVisible = true;
-			}
-
-			this._allNotes.forEach(function (n) {
-				n.loadIntoCorrectLayer();
-			});
-		}
 
 		if(this._allNotes.length == 0) {
 			this.createNote('', 16);
 			this._showNotes();
 		} else if (this._notesAreVisible) {
 			this._hideNotes();
-		} else if (preventReshowing) {
-			this._notesAreVisible = true;
 		} else {
 			this._showNotes();
 		}
@@ -292,9 +260,11 @@ class NotesManager {
 		Main.uiGroup.add_actor(this._menu.actor);
 		this._menu.actor.hide();
 
-		this._menu.addAction(_("New note"), this._onMenuNewNote.bind(this));
-		this._menu.addAction(_("Settings"), this._onMenuSettings.bind(this));
 		this._menu.addAction(_("Quit"), this._onMenuQuit.bind(this));
+		this._addIconAction(_("New note"), Common.getCustomIcon(Me.dir, 'new-note'),
+			this._onMenuNewNote.bind(this));
+		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
+			this._onMenuSettings.bind(this));
 
 		this._menuManager = new PopupMenu.PopupMenuManager(this.panel_button);
 		this._menuManager.addMenu(this._menu);
@@ -306,6 +276,21 @@ class NotesManager {
 				this.panel_button.remove_style_pseudo_class('active');
 			}
 		});
+	}
+
+	/*
+	 * Same as PopupMenu.addAction, but with a bundled SVG (as a Gio.Icon)
+	 * displayed before the label. The icon is inserted at index 1, that is
+	 * right after the ornament container, before the label.
+	 */
+	_addIconAction (label, icon, callback) {
+		let menuItem = this._menu.addAction(label, callback);
+		let iconActor = new St.Icon({
+			gicon: icon,
+			icon_size: 16,
+			style_class: 'popup-menu-icon',
+		});
+		menuItem.actor.insert_child_at_index(iconActor, 1);
 	}
 
 	_onMenuNewNote () {
@@ -337,10 +322,6 @@ class NotesManager {
 	_connectAllSignals () {
 		this._settingsSignals = {};
 
-		this._settingsSignals['layout'] = this._settings.connect(
-			'changed::layout-position',
-			this._updateLayerSetting.bind(this)
-		);
 		this._settingsSignals['bring-back'] = this._settings.connect(
 			'changed::ugly-hack',
 			this._bringToPrimaryMonitorOnly.bind(this)
@@ -389,35 +370,9 @@ class NotesManager {
 		});
 	}
 
-	/*
-	 * Remove all the notes from where they are, and add them to the layer that
-	 * is actually set by the user. Possible values for the layers can be
-	 * 'above-all', 'on-background' or 'cycle-layers'.
-	 */
-	_updateLayerSetting () {
-		this._allNotes.forEach(function (n) {
-			n.removeFromCorrectLayer();
-		});
-
-		this._layerSetting = this._settings.get_string('layout-position');
-		this._layerId = (this._layerSetting == 'on-background')
-			? 'on-background'
-			: 'above-all'
-		;
-
-		this._allNotes.forEach(function (n) {
-			n.loadIntoCorrectLayer();
-		});
-
-		if(!this._notesAreVisible) {
-			this._onlyHideNotes();
-		}
-	}
-
 	//--------------------------------------------------------------------------
 
 	destroy() {
-		this._settings.disconnect(this._settingsSignals['layout']);
 		this._settings.disconnect(this._settingsSignals['bring-back']);
 		this._settings.disconnect(this._settingsSignals['hide-icon']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
