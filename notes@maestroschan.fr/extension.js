@@ -269,7 +269,6 @@ class NotesManager {
 			this._onMenuNewNote.bind(this));
 		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
 			this._onMenuSettings.bind(this));
-		this._menu.addAction(_("Quit"), this._onMenuQuit.bind(this));
 
 		this._menuManager = new PopupMenu.PopupMenuManager(this.panel_button);
 		this._menuManager.addMenu(this._menu);
@@ -313,11 +312,6 @@ class NotesManager {
 		} else {
 			Util.spawn(['gnome-shell-extension-prefs', Me.uuid]);
 		}
-		this.hideNotes();
-	}
-
-	_onMenuQuit () {
-		this._menu.close();
 		this.hideNotes();
 	}
 
