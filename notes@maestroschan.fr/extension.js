@@ -190,6 +190,11 @@ class NotesManager {
 	}
 
 	_hideNotes () {
+		// A note left in the editing mode gets back to the read-only mode, so
+		// that every note is read-only the next time the notes are shown
+		this._allNotes.forEach(function (n) {
+			n.setEditMode(false);
+		});
 		this._onlyHideNotes();
 		this._timeout_id = Mainloop.timeout_add(10, () => {
 			this._timeout_id = null;
@@ -260,11 +265,11 @@ class NotesManager {
 		Main.uiGroup.add_actor(this._menu.actor);
 		this._menu.actor.hide();
 
-		this._menu.addAction(_("Quit"), this._onMenuQuit.bind(this));
 		this._addIconAction(_("New note"), Common.getCustomIcon(Me.dir, 'new-note'),
 			this._onMenuNewNote.bind(this));
 		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
 			this._onMenuSettings.bind(this));
+		this._menu.addAction(_("Quit"), this._onMenuQuit.bind(this));
 
 		this._menuManager = new PopupMenu.PopupMenuManager(this.panel_button);
 		this._menuManager.addMenu(this._menu);

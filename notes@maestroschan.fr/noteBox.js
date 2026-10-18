@@ -127,7 +127,7 @@ var NoteBox = class NoteBox {
 		// Notes are displayed read-only by default; clicking the edit button is
 		// the only way to change this (the state isn't saved across sessions)
 		this._editing = false;
-		this._setEditMode(false);
+		this.setEditMode(false);
 
 		//----------------------------------------------------------------------
 
@@ -234,10 +234,14 @@ var NoteBox = class NoteBox {
 	 * read-only mode only the edit button is.
 	 */
 	_toggleEditMode () {
-		this._setEditMode(!this._editing);
+		this.setEditMode(!this._editing);
 	}
 
-	_setEditMode (editing) {
+	/*
+	 * Also called by the NotesManager when the notes get hidden, so that they
+	 * are always displayed read-only the next time they show up.
+	 */
+	setEditMode (editing) {
 		this._editing = editing;
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
