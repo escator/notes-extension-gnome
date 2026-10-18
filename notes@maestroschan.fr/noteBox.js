@@ -10,15 +10,15 @@ const GrabHelper = imports.ui.grabHelper;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
+const Common = Me.imports.common;
 const Menus = Me.imports.menus;
-const Extension = Me.imports.extension;
 const Dialog = Me.imports.dialog;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
 
 // ~/.local/share/notes@maestroschan.fr
-const PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
+const PATH = Common.DATA_PATH;
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
@@ -42,13 +42,14 @@ function stringFromArray(data){
  * interact with the NotesManager singleton.
  */
 var NoteBox = class NoteBox {
-	constructor (id, color, fontSize) {
+	constructor (manager, id, color, fontSize) {
+		this._manager = manager;
 		this.id = id;
 		this._fontSize = fontSize;
 		if (color.split(',').length == 3) {
 			this.customColor = color;
 		} else {
-			let c = Extension.SETTINGS.get_strv('first-note-rgb');
+			let c = this._manager.settings.get_strv('first-note-rgb');
 			c[0] = c[0] * 255;
 			c[1] = c[1] * 255;
 			c[2] = c[2] * 255;
@@ -112,7 +113,7 @@ var NoteBox = class NoteBox {
 		//----------------------------------------------------------------------
 
 		this._grabHelper = new GrabHelper.GrabHelper(this.noteEntry)
-		if (Extension.AUTO_FOCUS) { // TODO dynamically update this setting
+		if (this._manager.autoFocus) { // TODO dynamically update this setting
 			this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
 			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		} else {
@@ -125,8 +126,8 @@ var NoteBox = class NoteBox {
 		//----------------------------------------------------------------------
 
 		// Each note sets its own actor where it should be. This isn't a problem
-		// since the related setting isn't directly accessed, but is stored in
-		// 'Extension.NOTES_MANAGER' instead, which prevents inconsistencies.
+		// since the related setting isn't directly accessed, but is stored by
+		// the notes manager instead, which prevents inconsistencies.
 		this.loadIntoCorrectLayer();
 		this._setNotePosition();
 		this._loadText();
@@ -224,7 +225,7 @@ var NoteBox = class NoteBox {
 		}
 
 		let description_label = new St.Label({
-			style: 'padding-top: 16px;',
+			style_class: 'notesDialogDescription',
 			x_align: Clutter.ActorAlign.CENTER,
 			text: noteText,
 		});
@@ -267,8 +268,12 @@ var NoteBox = class NoteBox {
 	//--------------------------------------------------------------------------
 	// "Public" methods called by NotesManager ---------------------------------
 
+	get manager () {
+		return this._manager;
+	}
+
 	loadIntoCorrectLayer () {
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
+		if (this._manager.notesNeedChromeTracking()) {
 			Main.layoutManager.addChrome(this.actor, {
 				affectsInputRegion: true
 			});
@@ -278,7 +283,7 @@ var NoteBox = class NoteBox {
 	}
 
 	removeFromCorrectLayer () {
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
+		if (this._manager.notesNeedChromeTracking()) {
 //			Main.layoutManager.untrackChrome(this.actor);
 			Main.layoutManager.removeChrome(this.actor);
 		} else {
@@ -288,14 +293,14 @@ var NoteBox = class NoteBox {
 
 	show () {
 		this.actor.visible = true;
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
+		if (this._manager.notesNeedChromeTracking()) {
 			Main.layoutManager.trackChrome(this.actor);
 		}
 	}
 
 	onlyHide () {
 		this.actor.visible = false;
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
+		if (this._manager.notesNeedChromeTracking()) {
 			Main.layoutManager.untrackChrome(this.actor);
 		}
 	}
@@ -480,7 +485,7 @@ var NoteBox = class NoteBox {
 	//--------------------------------------------------------------------------
 
 	_createNote () {
-		Extension.NOTES_MANAGER.createNote(this.customColor, this._fontSize);
+		this._manager.createNote(this.customColor, this._fontSize);
 	}
 
 	/*
@@ -544,7 +549,7 @@ var NoteBox = class NoteBox {
 			x = Math.random() * (Main.layoutManager.primaryMonitor.width - 300);
 			y = Math.random() * (Main.layoutManager.primaryMonitor.height - 100);
 
-			if (Extension.NOTES_MANAGER.areCoordsUsable(x, y)) {
+			if (this._manager.areCoordsUsable(x, y)) {
 				return [x, y];
 			}
 		}
@@ -608,7 +613,7 @@ var NoteBox = class NoteBox {
 	_deleteNoteObject () {
 		let noteId = this.id;
 		this.destroy();
-		Extension.NOTES_MANAGER.postDelete(noteId);
+		this._manager.postDelete(noteId);
 	}
 
 	destroy () {

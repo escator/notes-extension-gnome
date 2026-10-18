@@ -5,13 +5,10 @@
 const { Clutter, St } = imports.gi;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
-const ShellEntry = imports.ui.shellEntry;
 const Signals = imports.signals;
 const Util = imports.misc.util;
 
 const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Extension = Me.imports.extension;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
@@ -102,22 +99,22 @@ class NoteOptionsMenu {
 
 		this._appendSeparator(); //---------------------------------------------
 
-		this.super_menu.addAction(_("Settings"), this._onSettings);
+		this.super_menu.addAction(_("Settings"), this._onSettings.bind(this));
 	}
 
 	_buildCustomColorMenu (colorSubmenu) {
 		this._customColorEntries = [];
 		let rgb = this._source._note.customColor.split(',');
-		this._addCustomColorEntry('#BB3322', rgb[0], colorSubmenu);
-		this._addCustomColorEntry('#22BB33', rgb[1], colorSubmenu);
-		this._addCustomColorEntry('#2233BB', rgb[2], colorSubmenu);
+		this._addCustomColorEntry('notesCustomColorEntryR', rgb[0], colorSubmenu);
+		this._addCustomColorEntry('notesCustomColorEntryG', rgb[1], colorSubmenu);
+		this._addCustomColorEntry('notesCustomColorEntryB', rgb[2], colorSubmenu);
 
 		let applyMenuItem = new PopupMenu.PopupMenuItem(_("Apply"));
 		applyMenuItem.connect('activate', this._onApplyCustom.bind(this));
 		colorSubmenu.addMenuItem(applyMenuItem);
 	}
 
-	_addCustomColorEntry (bgColorCSS, textContent, colorSubmenu) {
+	_addCustomColorEntry (cssClass, textContent, colorSubmenu) {
 		let colorMenuItem = new PopupMenu.PopupBaseMenuItem({
 			reactive: false,
 			activate: false,
@@ -129,10 +126,10 @@ class NoteOptionsMenu {
 		let colorEntry = new St.Entry({
 			can_focus: true,
 			track_hover: true,
-			x_expand: true
+			x_expand: true,
+			style_class: cssClass
 		});
 		colorEntry.set_text(textContent);
-		colorEntry.style = 'background-color: ' + bgColorCSS + '; color: #FFFFFF';
 
 		colorMenuItem.actor.add_child(colorEntry);
 		this._customColorEntries.push(colorEntry);
@@ -148,8 +145,7 @@ class NoteOptionsMenu {
 		});
 
 		let bigger = new St.Button({
-			style_class: 'button',
-			style: 'margin: 0px; padding-left: 8px; padding-right: 8px;',
+			style_class: 'button notesMenuSizeButton',
 			child: new St.Icon({
 				icon_name: 'zoom-in-symbolic',
 				icon_size: 16,
@@ -161,8 +157,7 @@ class NoteOptionsMenu {
 			}),
 		});
 		let smaller = new St.Button({
-			style_class: 'button',
-			style: 'margin: 0px; padding-left: 8px; padding-right: 8px;',
+			style_class: 'button notesMenuSizeButton',
 			child: new St.Icon({
 				icon_name: 'zoom-out-symbolic',
 				icon_size: 16,
@@ -217,7 +212,7 @@ class NoteOptionsMenu {
 		} else {
 			Util.spawn(['gnome-shell-extension-prefs', 'notes@maestroschan.fr']);
 		}
-		Extension.NOTES_MANAGER._hideNotes();
+		this._source._note.manager.hideNotes();
 	}
 
 	_onEditTitle () {

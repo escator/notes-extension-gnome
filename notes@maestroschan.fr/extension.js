@@ -2,15 +2,18 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { St, Shell, GLib, Gio, Meta } = imports.gi;
+const { St, Shell, GLib, Gio, Meta, Clutter } = imports.gi;
 const PanelMenu = imports.ui.panelMenu;
 const Panel = imports.ui.panel;
 const Main = imports.ui.main;
 const Mainloop = imports.mainloop;
+const PopupMenu = imports.ui.popupMenu;
 
 const ExtensionUtils = imports.misc.extensionUtils;
+const Util = imports.misc.util;
 const Me = ExtensionUtils.getCurrentExtension();
 
+const Common = Me.imports.common;
 const NoteBox = Me.imports.noteBox;
 
 const Gettext = imports.gettext.domain('notes-extension');
@@ -18,13 +21,9 @@ const _ = Gettext.gettext;
 
 //------------------------------------------------------------------------------
 
-const PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
-// which is usually ~/.local/share/notes@maestroschan.fr
+const PATH = Common.DATA_PATH;
 
 var NOTES_MANAGER;
-var SETTINGS;
-var LAYER_SETTING;
-var AUTO_FOCUS;
 
 function init() {
 	ExtensionUtils.initTranslations();
@@ -36,26 +35,15 @@ function init() {
 	} catch (e) {
 		log(e.message);
 	}
-	LAYER_SETTING = '';
 }
 
 function enable() {
-	SETTINGS = ExtensionUtils.getSettings();
-	AUTO_FOCUS = SETTINGS.get_boolean('auto-focus'); // XXX crado
-
-	NOTES_MANAGER = new NotesManager();
+	NOTES_MANAGER = new NotesManager(ExtensionUtils.getSettings());
 }
 
 function disable() {
 	NOTES_MANAGER.destroy();
-
-	if (NOTES_MANAGER) {
-		NOTES_MANAGER = null;
-	}
-
-	if (SETTINGS) {
-		SETTINGS = null;
-	}
+	NOTES_MANAGER = null;
 }
 
 //------------------------------------------------------------------------------
@@ -69,14 +57,18 @@ function disable() {
  * new one.
  */
 class NotesManager {
-	constructor() {
+	constructor(settings) {
+		this._settings = settings;
+		this._autoFocus = settings.get_boolean('auto-focus');
+
 		// Initialisation of the button in the top panel
-		this.panel_button = new PanelMenu.Button(0.0, _("Show notes"), false);
+		this.panel_button = new PanelMenu.Button(0.0, _("Show notes"), true);
 		let icon = new St.Icon({
 			icon_name: 'document-edit-symbolic',
 			style_class: 'system-status-icon'
 		});
 		this.panel_button.add_child(icon);
+		this._buildPanelMenu();
 		this.panel_button.connect(
 			'button-press-event',
 			this._onButtonPressed.bind(this)
@@ -88,7 +80,7 @@ class NotesManager {
 		// Initialisation of the notes themselves
 		this._allNotes = new Array();
 		this._notesAreVisible = false;
-		this._updateLayerSetting(); // it inits LAYER_SETTING
+		this._updateLayerSetting(); // it inits this._layerSetting
 
 		this._notesLoaded = false; // this will tell the toggleState method that
 		// notes need to be loaded first, thus doing the actual initialisation
@@ -98,12 +90,21 @@ class NotesManager {
 		this._connectAllSignals();
 	}
 
+	// Read-only accessors for the NoteBox objects
+	get settings () {
+		return this._settings;
+	}
+
+	get autoFocus () {
+		return this._autoFocus;
+	}
+
 	_bindKeyboardShortcut () {
-		this._useKeyboardShortcut = SETTINGS.get_boolean('use-shortcut');
+		this._useKeyboardShortcut = this._settings.get_boolean('use-shortcut');
 		if (this._useKeyboardShortcut) {
 			Main.wm.addKeybinding(
 				'notes-kb-shortcut',
-				SETTINGS,
+				this._settings,
 				Meta.KeyBindingFlags.NONE,
 				Shell.ActionMode.ALL,
 				this._onButtonPressed.bind(this)
@@ -133,7 +134,7 @@ class NotesManager {
 	createNote (colorString, fontSize) {
 		let nextId = this._allNotes.length;
 		try {
-			this._allNotes.push(new NoteBox.NoteBox(nextId, colorString, fontSize));
+			this._allNotes.push(new NoteBox.NoteBox(this, nextId, colorString, fontSize));
 		} catch (e) {
 			Main.notify(_("Notes extension error: failed to load a note"));
 			log('failed to create note n°' + nextId.toString());
@@ -176,6 +177,14 @@ class NotesManager {
 		return this._layerId == 'above-all';
 	}
 
+	/*
+	 * Called by the note options menu when the user opens the preferences
+	 * window: the notes then have to disappear from the desktop.
+	 */
+	hideNotes () {
+		this._hideNotes();
+	}
+
 	//--------------------------------------------------------------------------
 
 	_showNotes () {
@@ -213,14 +222,25 @@ class NotesManager {
 		statefile.delete(null); // may not do anything
 	}
 
-	_onButtonPressed () {
+	_onButtonPressed (actor, event) {
+		// the keyboard shortcut arrives without any Clutter event
+		if (event && typeof event.get_button === 'function') {
+			if (event.get_button() === Clutter.BUTTON_SECONDARY) {
+				this._menu.toggle();
+				return;
+			}
+		}
+		this._toggleNotes();
+	}
+
+	_toggleNotes () {
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
-		// log('_onButtonPressed');
+		// log('_toggleNotes');
 
 		let preventReshowing = false;
-		if(LAYER_SETTING === 'cycle-layers') {
+		if(this._layerSetting === 'cycle-layers') {
 			this._allNotes.forEach(function (n) {
 				n.removeFromCorrectLayer();
 			});
@@ -256,32 +276,88 @@ class NotesManager {
 	}
 
 	//--------------------------------------------------------------------------
+	// Context menu of the panel button, opened on right-click -----------------
+
+	/*
+	 * The button is created with dontCreateMenu=true: the shell would else
+	 * open its (empty) menu on every click. We thus build and manage our own
+	 * PopupMenu (same pattern as NoteRoundButton in menus.js), so that the
+	 * left-click keeps toggling the notes, and the right-click opens this
+	 * menu. The 'active' pseudo-class highlighting is done here too, since
+	 * it is normally handled by PanelMenu.Button.setMenu.
+	 */
+	_buildPanelMenu () {
+		this._menu = new PopupMenu.PopupMenu(this.panel_button, 0.0, St.Side.TOP);
+		this._menu.actor.add_style_class_name('panel-menu');
+		Main.uiGroup.add_actor(this._menu.actor);
+		this._menu.actor.hide();
+
+		this._menu.addAction(_("New note"), this._onMenuNewNote.bind(this));
+		this._menu.addAction(_("Settings"), this._onMenuSettings.bind(this));
+		this._menu.addAction(_("Quit"), this._onMenuQuit.bind(this));
+
+		this._menuManager = new PopupMenu.PopupMenuManager(this.panel_button);
+		this._menuManager.addMenu(this._menu);
+
+		this._menu.connect('open-state-changed', (menu, open) => {
+			if (open) {
+				this.panel_button.add_style_pseudo_class('active');
+			} else {
+				this.panel_button.remove_style_pseudo_class('active');
+			}
+		});
+	}
+
+	_onMenuNewNote () {
+		this._menu.close();
+		if(!this._notesLoaded) {
+			this._loadAllNotes();
+		}
+		this.createNote('', 16);
+	}
+
+	_onMenuSettings () {
+		this._menu.close();
+		if (typeof ExtensionUtils.openPrefs === 'function') {
+			ExtensionUtils.openPrefs();
+		} else {
+			Util.spawn(['gnome-shell-extension-prefs', Me.uuid]);
+		}
+		this.hideNotes();
+	}
+
+	_onMenuQuit () {
+		this._menu.close();
+		this.hideNotes();
+	}
+
+	//--------------------------------------------------------------------------
 	// Watch the gsettings values and update the extension if they change ------
 
 	_connectAllSignals () {
 		this._settingsSignals = {};
 
-		this._settingsSignals['layout'] = SETTINGS.connect(
+		this._settingsSignals['layout'] = this._settings.connect(
 			'changed::layout-position',
 			this._updateLayerSetting.bind(this)
 		);
-		this._settingsSignals['bring-back'] = SETTINGS.connect(
+		this._settingsSignals['bring-back'] = this._settings.connect(
 			'changed::ugly-hack',
 			this._bringToPrimaryMonitorOnly.bind(this)
 		);
-		this._settingsSignals['hide-icon'] = SETTINGS.connect(
+		this._settingsSignals['hide-icon'] = this._settings.connect(
 			'changed::hide-icon',
 			this._updateIconVisibility.bind(this)
 		);
-		this._settingsSignals['kb-shortcut-1'] = SETTINGS.connect(
+		this._settingsSignals['kb-shortcut-1'] = this._settings.connect(
 			'changed::use-shortcut',
 			this._updateShortcut.bind(this)
 		);
-		this._settingsSignals['kb-shortcut-2'] = SETTINGS.connect(
+		this._settingsSignals['kb-shortcut-2'] = this._settings.connect(
 			'changed::notes-kb-shortcut',
 			this._updateShortcut.bind(this)
 		);
-		this._settingsSignals['auto-focus'] = SETTINGS.connect(
+		this._settingsSignals['auto-focus'] = this._settings.connect(
 			'changed::auto-focus',
 			this._updateFocusSetting.bind(this)
 		);
@@ -303,7 +379,7 @@ class NotesManager {
 	}
 
 	_updateIconVisibility () {
-		let now_visible = !SETTINGS.get_boolean('hide-icon');
+		let now_visible = !this._settings.get_boolean('hide-icon');
 		this.panel_button.visible = now_visible;
 	}
 
@@ -323,8 +399,8 @@ class NotesManager {
 			n.removeFromCorrectLayer();
 		});
 
-		LAYER_SETTING = SETTINGS.get_string('layout-position');
-		this._layerId = (LAYER_SETTING == 'on-background')
+		this._layerSetting = this._settings.get_string('layout-position');
+		this._layerId = (this._layerSetting == 'on-background')
 			? 'on-background'
 			: 'above-all'
 		;
@@ -341,12 +417,12 @@ class NotesManager {
 	//--------------------------------------------------------------------------
 
 	destroy() {
-		SETTINGS.disconnect(this._settingsSignals['layout']);
-		SETTINGS.disconnect(this._settingsSignals['bring-back']);
-		SETTINGS.disconnect(this._settingsSignals['hide-icon']);
-		SETTINGS.disconnect(this._settingsSignals['kb-shortcut-1']);
-		SETTINGS.disconnect(this._settingsSignals['kb-shortcut-2']);
-		SETTINGS.disconnect(this._settingsSignals['auto-focus']);
+		this._settings.disconnect(this._settingsSignals['layout']);
+		this._settings.disconnect(this._settingsSignals['bring-back']);
+		this._settings.disconnect(this._settingsSignals['hide-icon']);
+		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
+		this._settings.disconnect(this._settingsSignals['kb-shortcut-2']);
+		this._settings.disconnect(this._settingsSignals['auto-focus']);
 
 		this._allNotes.forEach(function (n) {
 			n.onlySave(false);
@@ -357,6 +433,7 @@ class NotesManager {
 			Main.wm.removeKeybinding('notes-kb-shortcut');
 		}
 
+		this._menu.destroy();
 		this.panel_button.destroy();
 
 		if (this._timeout_id) {

@@ -54,4 +54,29 @@
 	width: 26px;
 }
 
+/* Modal dialogs (delete confirmation, edit title) ****************************/
+
+.notesDialogTitle {
+	font-weight: bold;
+	padding-bottom: 16px;
+	width: 400px;
+}
+
+.notesDialogDescription {
+	padding-top: 16px;
+}
+
+/* Note options menu **********************************************************/
+
+.notesMenuSizeButton {
+	margin: 0px;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+/* Placeholder colors hinting the R, G and B values of the custom color submenu */
+
+.notesCustomColorEntryR { background-color: #BB3322; color: #FFFFFF; }
+.notesCustomColorEntryG { background-color: #22BB33; color: #FFFFFF; }
+.notesCustomColorEntryB { background-color: #2233BB; color: #FFFFFF; }
 
