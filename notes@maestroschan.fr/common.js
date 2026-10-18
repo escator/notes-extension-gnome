@@ -24,14 +24,14 @@ var DATA_PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestros
  * wired yet.
  */
 var PRESET_COLORS = {
-	'peach':    { rgb: [255, 241, 230], border: '#E6D9CF', ring: '#E8A87C' },
-	'cream':    { rgb: [255, 249, 219], border: '#E6E0C5', ring: '#D9C86A' },
-	'mint':     { rgb: [230, 244, 234], border: '#CFDBD3', ring: '#6FBF8B' },
-	'sky':      { rgb: [231, 241, 250], border: '#D0D9E1', ring: '#6FA8DC' },
-	'lavender': { rgb: [240, 234, 251], border: '#D8D3E2', ring: '#A48FD8' },
-	'pink':     { rgb: [251, 233, 240], border: '#E2D2D8', ring: '#E08FB0' },
-	'sage':     { rgb: [234, 242, 230], border: '#D3DACF', ring: '#8FB08A' },
-	'beige':    { rgb: [245, 239, 230], border: '#DDD7CF', ring: '#C9B79A' }
+	'peach':    { rgb: [255, 217, 191], border: '#E6C3AC', ring: '#E89A66' },
+	'cream':    { rgb: [255, 240, 168], border: '#E6D897', ring: '#D9B84D' },
+	'mint':     { rgb: [184, 230, 201], border: '#A6CFB5', ring: '#5FB87C' },
+	'sky':      { rgb: [184, 217, 242], border: '#A6C3DA', ring: '#5F9AD6' },
+	'lavender': { rgb: [212, 198, 242], border: '#BFB2DA', ring: '#9A80D6' },
+	'pink':     { rgb: [247, 198, 217], border: '#DEB2C3', ring: '#E07AA6' },
+	'sage':     { rgb: [198, 221, 184], border: '#B2C7A6', ring: '#82A87C' },
+	'beige':    { rgb: [232, 213, 184], border: '#D1C0A6', ring: '#C4A87F' }
 };
 
 /*
