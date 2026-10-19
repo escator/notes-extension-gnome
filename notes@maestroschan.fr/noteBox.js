@@ -125,6 +125,10 @@ var NoteBox = class NoteBox {
 			this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
 		}
+		// runs before the entry's own key handling (bubbling from the text or
+		// on the entry itself), so a paste attempt on a read-only note can
+		// still be redirected to the editing mode
+		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
 
 		// Notes are displayed read-only by default; clicking the edit button is
 		// the only way to change this (the state isn't saved across sessions)
@@ -269,6 +273,23 @@ var NoteBox = class NoteBox {
 			St.ClipboardType.CLIPBOARD,
 			this.noteEntry.get_text()
 		);
+	}
+
+	/*
+	 * A paste attempt on a read-only note silently did nothing, which is easy
+	 * to mistake for a broken clipboard: switch to the editing mode first and
+	 * paste from there.
+	 */
+	_onKeyPress (actor, event) {
+		if (this._editing) { return false; }
+		if (!(event.get_state() & Clutter.ModifierType.CONTROL_MASK)) { return false; }
+		let key = event.get_key_symbol();
+		if (key != Clutter.KEY_v && key != Clutter.KEY_V && key != Clutter.KEY_Paste) {
+			return false;
+		}
+		this.setEditMode(true);
+		this.noteEntry.get_clutter_text().paste_clipboard();
+		return true;
 	}
 
 	_openDeleteDialog () {
