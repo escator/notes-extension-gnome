@@ -98,6 +98,9 @@ var NoteBox = class NoteBox {
 		clutterText.set_activatable(false); // we can press Enter
 		clutterText.set_line_wrap(true);
 		clutterText.set_line_wrap_mode(imports.gi.Pango.WrapMode.WORD_CHAR);
+		// a non-editable ClutterText only answers Ctrl+C / Ctrl+A when it is
+		// selectable, and notes are read-only by default
+		clutterText.set_selectable(true);
 
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
@@ -243,6 +246,7 @@ var NoteBox = class NoteBox {
 		this._editing = editing;
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
+		clutterText.set_cursor_visible(editing);
 		this.noteEntry.hint_text = editing ? _("Type here…") : '';
 
 		this._btnEdit._setIcon(editing
