@@ -101,9 +101,9 @@ const NotesSettingsWidget = new GObject.Class({
 		// matching it, like in the shell-side palette (COLOR.md §4.2)
 		let presetsBox = builder.get_object('preset_colors_box');
 
-		let css = '.notes-preset { border-radius: 12px; border-width: 2px;'
-			+ ' border-color: transparent; padding: 0; box-shadow: none;'
-			+ ' min-width: 20px; min-height: 20px; }\n';
+		let css = '.notes-preset { border-radius: 12px; border-style: solid;'
+			+ ' border-width: 2px; border-color: transparent; padding: 0;'
+			+ ' box-shadow: none; min-width: 20px; min-height: 20px; }\n';
 		for (let name in Common.PRESET_COLORS) {
 			let preset = Common.PRESET_COLORS[name];
 			css += '.notes-preset-' + name + ' { background-image: none;'
