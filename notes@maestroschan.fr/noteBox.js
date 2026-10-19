@@ -41,7 +41,7 @@ function stringFromArray(data){
  * interact with the NotesManager singleton.
  */
 var NoteBox = class NoteBox {
-	constructor (manager, id, color, fontSize) {
+	constructor (manager, id, color, fontSize, startInEditMode = false) {
 		this._manager = manager;
 		this.id = id;
 		this._fontSize = fontSize;
@@ -54,10 +54,10 @@ var NoteBox = class NoteBox {
 			c[2] = Math.round(c[2] * 255);
 			this.customColor = c.toString();
 		}
-		this._buildNote();
+		this._buildNote(startInEditMode);
 	}
 
-	_buildNote () {
+	_buildNote (startInEditMode) {
 		this.actor = new St.BoxLayout({
 			reactive: true,
 			vertical: true,
@@ -145,6 +145,12 @@ var NoteBox = class NoteBox {
 		this._loadText();
 		// ShellEntry.addContextMenu(this.noteEntry); // FIXME doesn't work
 		this._initStyle();
+		// a newly created note opens straight into the editing mode; done
+		// after _loadText so the initial setEditMode(false) in the middle of
+		// this method keeps its "don't wipe the file" guarantee
+		if (startInEditMode) {
+			this.setEditMode(true);
+		}
 
 		this.grabX = this._x + 100;
 		this.grabY = this._y + 10;

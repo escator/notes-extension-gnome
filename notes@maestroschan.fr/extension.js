@@ -130,10 +130,10 @@ class NotesManager {
 	//--------------------------------------------------------------------------
 	// "Public" methods, accessed by the NoteBox objects -----------------------
 
-	createNote (colorString, fontSize) {
+	createNote (colorString, fontSize, startInEditMode = false) {
 		let nextId = this._allNotes.length;
 		try {
-			this._allNotes.push(new NoteBox.NoteBox(this, nextId, colorString, fontSize));
+			this._allNotes.push(new NoteBox.NoteBox(this, nextId, colorString, fontSize, startInEditMode));
 		} catch (e) {
 			Main.notify(_("Notes extension error: failed to load a note"));
 			log('failed to create note n°' + nextId.toString());
@@ -239,7 +239,7 @@ class NotesManager {
 		}
 
 		if(this._allNotes.length == 0) {
-			this.createNote('', 16);
+			this.createNote('', 16, true);
 			this._showNotes();
 		} else if (this._notesAreVisible) {
 			this._hideNotes();
@@ -302,7 +302,7 @@ class NotesManager {
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
-		this.createNote('', 16);
+		this.createNote('', 16, true);
 	}
 
 	_onMenuSettings () {
