@@ -82,45 +82,7 @@ class NoteOptionsMenu {
 		this._addColorButton('beige', 2);
 		this.super_menu.addMenuItem(this.color2_item);
 
-		let colorSubmenuItem = new PopupMenu.PopupSubMenuMenuItem(_("Custom color"));
-		this.super_menu.addMenuItem(colorSubmenuItem);
-		this._buildCustomColorMenu(colorSubmenuItem.menu);
-
 		this._appendSeparator(); //---------------------------------------------
-	}
-
-	_buildCustomColorMenu (colorSubmenu) {
-		this._customColorEntries = [];
-		let rgb = this._source._note.customColor.split(',');
-		this._addCustomColorEntry('notesCustomColorEntryR', rgb[0], colorSubmenu);
-		this._addCustomColorEntry('notesCustomColorEntryG', rgb[1], colorSubmenu);
-		this._addCustomColorEntry('notesCustomColorEntryB', rgb[2], colorSubmenu);
-
-		let applyMenuItem = new PopupMenu.PopupMenuItem(_("Apply"));
-		applyMenuItem.connect('activate', this._onApplyCustom.bind(this));
-		colorSubmenu.addMenuItem(applyMenuItem);
-	}
-
-	_addCustomColorEntry (cssClass, textContent, colorSubmenu) {
-		let colorMenuItem = new PopupMenu.PopupBaseMenuItem({
-			reactive: false,
-			activate: false,
-			hover: false,
-			style_class: null,
-			can_focus: false
-		});
-
-		let colorEntry = new St.Entry({
-			can_focus: true,
-			track_hover: true,
-			x_expand: true,
-			style_class: cssClass
-		});
-		colorEntry.set_text(textContent);
-
-		colorMenuItem.actor.add_child(colorEntry);
-		this._customColorEntries.push(colorEntry);
-		colorSubmenu.addMenuItem(colorMenuItem);
 	}
 
 	_buildSizeItem () {
@@ -191,13 +153,6 @@ class NoteOptionsMenu {
 
 	_appendSeparator () {
 		this.super_menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-	}
-
-	_onApplyCustom () {
-		let r = Number(this._customColorEntries[0].get_text());
-		let g = Number(this._customColorEntries[1].get_text());
-		let b = Number(this._customColorEntries[2].get_text());
-		this._source._note.applyColorAndSave(r, g, b);
 	}
 
 	_onEditTitle () {
