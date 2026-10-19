@@ -59,7 +59,8 @@ function disable() {
 class NotesManager {
 	constructor(settings) {
 		this._settings = settings;
-		this._autoFocus = settings.get_boolean('auto-focus');
+		// The "Automatic focus" option is disabled for now (see noteBox.js)
+		//this._autoFocus = settings.get_boolean('auto-focus');
 
 		// Initialisation of the button in the top panel
 		this.panel_button = new PanelMenu.Button(0.0, _("Show notes"), true);
@@ -94,9 +95,9 @@ class NotesManager {
 		return this._settings;
 	}
 
-	get autoFocus () {
-		return this._autoFocus;
-	}
+	//get autoFocus () {
+	//	return this._autoFocus;
+	//}
 
 	_bindKeyboardShortcut () {
 		this._useKeyboardShortcut = this._settings.get_boolean('use-shortcut');
@@ -337,10 +338,10 @@ class NotesManager {
 			'changed::notes-kb-shortcut',
 			this._updateShortcut.bind(this)
 		);
-		this._settingsSignals['auto-focus'] = this._settings.connect(
-			'changed::auto-focus',
-			this._updateFocusSetting.bind(this)
-		);
+		//this._settingsSignals['auto-focus'] = this._settings.connect(
+		//	'changed::auto-focus',
+		//	this._updateFocusSetting.bind(this)
+		//);
 	}
 
 	_updateShortcut () {
@@ -350,13 +351,13 @@ class NotesManager {
 		this._bindKeyboardShortcut();
 	}
 
-	_updateFocusSetting () {
-		// XXX currently not very user-friendly
-		Main.notify(
-			_("Notes"),
-			_("Restart the extension to apply the changes")
-		);
-	}
+	//_updateFocusSetting () {
+	//	// XXX currently not very user-friendly
+	//	Main.notify(
+	//		_("Notes"),
+	//		_("Restart the extension to apply the changes")
+	//	);
+	//}
 
 	_updateIconVisibility () {
 		let now_visible = !this._settings.get_boolean('hide-icon');
@@ -376,7 +377,7 @@ class NotesManager {
 		this._settings.disconnect(this._settingsSignals['hide-icon']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-2']);
-		this._settings.disconnect(this._settingsSignals['auto-focus']);
+		//this._settings.disconnect(this._settingsSignals['auto-focus']);
 
 		this._allNotes.forEach(function (n) {
 			n.onlySave(false);

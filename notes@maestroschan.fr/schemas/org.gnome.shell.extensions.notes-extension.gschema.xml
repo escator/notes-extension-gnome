@@ -3,6 +3,7 @@
   <schema id="org.gnome.shell.extensions.notes-extension"
           path="/org/gnome/shell/extensions/notes-extension/">
 
+    <!-- The "Automatic focus" option is disabled for now (see noteBox.js)
     <key type="b" name="auto-focus">
       <default>false</default>
       <summary>Automatic focus</summary>
@@ -11,6 +12,7 @@
         the cursor. Otherwise a click is needed.
       </description>
     </key>
+    -->
 
     <key type="s" name="layout-position">
       <default>"above-all"</default>

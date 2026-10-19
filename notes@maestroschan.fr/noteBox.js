@@ -119,12 +119,16 @@ var NoteBox = class NoteBox {
 		// the user can keep typing without an extra click. The focus is taken
 		// directly: GrabHelper's modal grab would swallow the first click
 		// happening outside the entry (on the header buttons).
-		if (this._manager.autoFocus) { // TODO dynamically update this setting
-			this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
-		} else {
+		//
+		// The "Automatic focus" option is disabled for now: the notes always
+		// take the key focus when pressed (the former setting defaulted to
+		// false anyway, and updating it dynamically was never implemented).
+		//if (this._manager.autoFocus) { // TODO dynamically update this setting
+		//	this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
+		//} else {
 			this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
-		}
+		//}
 		// runs before the entry's own key handling (bubbling from the text or
 		// on the entry itself), so a paste attempt on a read-only note can
 		// still be redirected to the editing mode
