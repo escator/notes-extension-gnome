@@ -702,6 +702,14 @@ var NoteBox = class NoteBox {
 	}
 
 	destroy () {
+		// Clutter doesn't drop the stage's key focus when the focused actor
+		// is destroyed: the shell-side focus trackers (SearchController,
+		// modal dialogs) would then be handed a disposed Clutter.Text, log
+		// errors, and can even crash the whole shell
+		let focus = global.stage.get_key_focus();
+		if (focus != null && this.actor.contains(focus)) {
+			global.stage.set_key_focus(null);
+		}
 		this.actor.destroy_all_children();
 		this.actor.destroy();
 		this.actor = null;
