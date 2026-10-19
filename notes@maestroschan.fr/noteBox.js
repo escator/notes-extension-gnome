@@ -88,9 +88,10 @@ var NoteBox = class NoteBox {
 			name: 'noteEntry',
 			can_focus: true,
 			track_hover: true,
-			x_align: Clutter.ActorAlign.START,
-			y_align: Clutter.ActorAlign.START,
 			x_expand: true,
+			// the entry must fill the scroll view: its natural height is a
+			// single text line and is not reliably recomputed when the text
+			// auto-wraps, so aligning to it clips every wrapped line
 			style_class: 'notesTextField',
 		});
 		let clutterText = this.noteEntry.get_clutter_text();
@@ -106,8 +107,6 @@ var NoteBox = class NoteBox {
 			reactive: true,
 			x_expand: true,
 			y_expand: true,
-			x_align: Clutter.ActorAlign.START,
-			y_align: Clutter.ActorAlign.START,
 		});
 
 		this._entryBox.add_child(this.noteEntry);
