@@ -96,24 +96,64 @@ const NotesSettingsWidget = new GObject.Class({
 
 		//----------------------------------------------------------------------
 
-		// The default color of the very first note
-		let color_btn = builder.get_object('default_rgb_btn');
-		let colorArray = SETTINGS.get_strv('first-note-rgb');
-		let rgba = new Gdk.RGBA();
-		rgba.red = parseFloat(colorArray[0]);
-		rgba.green = parseFloat(colorArray[1]);
-		rgba.blue = parseFloat(colorArray[2]);
-		rgba.alpha = 1.0;
-		color_btn.set_rgba(rgba);
+		// The default color of the very first note, chosen among the preset
+		// colors (Common.PRESET_COLORS); the chosen swatch gets the ring
+		// matching it, like in the shell-side palette (COLOR.md §4.2)
+		let presetsBox = builder.get_object('preset_colors_box');
 
-		color_btn.connect('color-set', (widget) => {
-			rgba = widget.get_rgba();
-			SETTINGS.set_strv('first-note-rgb', [
-				rgba.red.toString(),
-				rgba.green.toString(),
-				rgba.blue.toString()
-			]);
-		});
+		let css = '.notes-preset { border-radius: 12px; border-width: 2px;'
+			+ ' border-color: transparent; padding: 0; box-shadow: none;'
+			+ ' min-width: 20px; min-height: 20px; }\n';
+		for (let name in Common.PRESET_COLORS) {
+			let preset = Common.PRESET_COLORS[name];
+			css += '.notes-preset-' + name + ' { background-image: none;'
+				+ ' background-color: rgb(' + preset.rgb.join(',') + '); }\n';
+			css += '.notes-preset-' + name + '.notes-preset-selected'
+				+ ' { border-color: ' + preset.ring + '; }\n';
+		}
+		let provider = new Gtk.CssProvider();
+		provider.load_from_data(css);
+		Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
+			provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+		// first-note-rgb stores the color as 0..1 values, as set_strv()ed
+		// here and read in noteBox.js
+		let stored = SETTINGS.get_strv('first-note-rgb');
+		let storedRgb = stored.map((c) => Math.round(parseFloat(c) * 255)).join(',');
+		this._presetButtons = {};
+		for (let name in Common.PRESET_COLORS) {
+			let preset = Common.PRESET_COLORS[name];
+			let btn = new Gtk.Button();
+			btn.set_size_request(24, 24);
+			btn.set_tooltip_text(name);
+			btn.add_css_class('notes-preset');
+			btn.add_css_class('notes-preset-' + name);
+			btn.connect('clicked', () => {
+				SETTINGS.set_strv('first-note-rgb', [
+					(preset.rgb[0] / 255).toString(),
+					(preset.rgb[1] / 255).toString(),
+					(preset.rgb[2] / 255).toString()
+				]);
+				this._selectPresetColor(name);
+			});
+			presetsBox.append(btn);
+			this._presetButtons[name] = btn;
+			if (preset.rgb.join(',') === storedRgb) {
+				this._selectedPreset = name;
+			}
+		}
+		this._selectPresetColor(this._selectedPreset);
+	},
+
+	_selectPresetColor (selectedName) {
+		for (let name in this._presetButtons) {
+			let btn = this._presetButtons[name];
+			if (name === selectedName) {
+				btn.add_css_class('notes-preset-selected');
+			} else {
+				btn.remove_css_class('notes-preset-selected');
+			}
+		}
 	},
 
 	//--------------------------------------------------------------------------
