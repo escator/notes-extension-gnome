@@ -5,7 +5,6 @@
 const { Clutter, St, GLib, Gio } = imports.gi;
 const Main = imports.ui.main;
 const ShellEntry = imports.ui.shellEntry;
-const GrabHelper = imports.ui.grabHelper;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -42,7 +41,7 @@ function stringFromArray(data){
  * interact with the NotesManager singleton.
  */
 var NoteBox = class NoteBox {
-	constructor (manager, id, color, fontSize) {
+	constructor (manager, id, color, fontSize, startInEditMode = false) {
 		this._manager = manager;
 		this.id = id;
 		this._fontSize = fontSize;
@@ -55,10 +54,10 @@ var NoteBox = class NoteBox {
 			c[2] = Math.round(c[2] * 255);
 			this.customColor = c.toString();
 		}
-		this._buildNote();
+		this._buildNote(startInEditMode);
 	}
 
-	_buildNote () {
+	_buildNote (startInEditMode) {
 		this.actor = new St.BoxLayout({
 			reactive: true,
 			vertical: true,
@@ -88,9 +87,11 @@ var NoteBox = class NoteBox {
 		this.noteEntry = new St.Entry({
 			name: 'noteEntry',
 			can_focus: true,
-			hint_text: _("Type here…"),
 			track_hover: true,
 			x_expand: true,
+			// the entry must fill the scroll view: its natural height is a
+			// single text line and is not reliably recomputed when the text
+			// auto-wraps, so aligning to it clips every wrapped line
 			style_class: 'notesTextField',
 		});
 		let clutterText = this.noteEntry.get_clutter_text();
@@ -98,12 +99,14 @@ var NoteBox = class NoteBox {
 		clutterText.set_activatable(false); // we can press Enter
 		clutterText.set_line_wrap(true);
 		clutterText.set_line_wrap_mode(imports.gi.Pango.WrapMode.WORD_CHAR);
+		// a non-editable ClutterText only answers Ctrl+C / Ctrl+A when it is
+		// selectable, and notes are read-only by default
+		clutterText.set_selectable(true);
 
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
 			x_expand: true,
 			y_expand: true,
-			visible: this.entry_is_visible,
 		});
 
 		this._entryBox.add_child(this.noteEntry);
@@ -112,15 +115,25 @@ var NoteBox = class NoteBox {
 
 		//----------------------------------------------------------------------
 
-		this._grabHelper = new GrabHelper.GrabHelper(this.noteEntry)
+		// The entry takes the key focus when hovered (autoFocus) or pressed, so
+		// the user can keep typing without an extra click. The focus is taken
+		// directly: GrabHelper's modal grab would swallow the first click
+		// happening outside the entry (on the header buttons).
 		if (this._manager.autoFocus) { // TODO dynamically update this setting
 			this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		} else {
 			this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
 		}
+		// runs before the entry's own key handling (bubbling from the text or
+		// on the entry itself), so a paste attempt on a read-only note can
+		// still be redirected to the editing mode
+		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
+
+		// Notes are displayed read-only by default; clicking the edit button is
+		// the only way to change this (the state isn't saved across sessions)
+		this._editing = false;
+		this.setEditMode(false);
 
 		//----------------------------------------------------------------------
 
@@ -132,6 +145,12 @@ var NoteBox = class NoteBox {
 		this._loadText();
 		// ShellEntry.addContextMenu(this.noteEntry); // FIXME doesn't work
 		this._initStyle();
+		// a newly created note opens straight into the editing mode; done
+		// after _loadText so the initial setEditMode(false) in the middle of
+		// this method keeps its "don't wipe the file" guarantee
+		if (startInEditMode) {
+			this.setEditMode(true);
+		}
 
 		this.grabX = this._x + 100;
 		this.grabY = this._y + 10;
@@ -139,8 +158,9 @@ var NoteBox = class NoteBox {
 
 	/*
 	 * The headerbar contains the UI controls to manage the note:
-	 * - The 'new note' button creates a note with the same color and font size,
-	 *   but with random coordinates, an empty text, and an harcoded size.
+	 * - The 'edit' button toggles the note between the read-only mode (the
+	 *   default) and the editing mode.
+	 * - The 'copy' button copies the note's text to the clipboard.
 	 * - The 'delete' button asks the user to confirm if they really wants to
 	 *   delete the note (see `dialog.js`), and if yes the object is destroyed,
 	 *   and a method from the NotesManager is called to correctly delete the
@@ -162,21 +182,29 @@ var NoteBox = class NoteBox {
 			style_class: 'noteHeaderStyle',
 		});
 
-		let btnNew = new Menus.NoteRoundButton(
+		this._btnEdit = new Menus.NoteRoundButton(
 			this,
-			'list-add-symbolic',
-			_("New")
+			Common.getCustomIcon(Me.dir, 'edit'),
+			_("Edit")
 		);
-		btnNew.actor.connect('clicked', this._createNote.bind(this));
-		this._buttonsBox.add_child(btnNew.actor);
+		this._btnEdit.actor.connect('clicked', this._toggleEditMode.bind(this));
+		this._buttonsBox.add_child(this._btnEdit.actor);
 
-		let btnDelete = new Menus.NoteRoundButton(
+		this._btnCopy = new Menus.NoteRoundButton(
+			this,
+			Common.getCustomIcon(Me.dir, 'copy-to-buf'),
+			_("Copy to clipboard")
+		);
+		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
+		this._buttonsBox.add_child(this._btnCopy.actor);
+
+		this._btnDelete = new Menus.NoteRoundButton(
 			this,
 			'user-trash-symbolic',
 			_("Delete")
 		);
-		btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
-		this._buttonsBox.add_child(btnDelete.actor);
+		this._btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
+		this._buttonsBox.add_child(this._btnDelete.actor);
 
 		this.moveBox = new St.Button({
 			x_expand: true,
@@ -185,30 +213,89 @@ var NoteBox = class NoteBox {
 		});
 		this._buttonsBox.add_child(this.moveBox);
 
-		let btnOptions = new Menus.NoteRoundButton(
+		this._btnOptions = new Menus.NoteRoundButton(
 			this,
 			'view-more-symbolic',
 			_("Note options")
 		);
-		btnOptions.addMenu();
-		this._buttonsBox.add_child(btnOptions.actor);
+		this._btnOptions.addMenu();
+		this._buttonsBox.add_child(this._btnOptions.actor);
 
-		let ctrlButton = new Menus.NoteRoundButton(
+		this._btnResize = new Menus.NoteRoundButton(
 			this,
 			'view-fullscreen-symbolic',
 			_("Resize")
 		);
-		this._buttonsBox.add_child(ctrlButton.actor);
+		this._buttonsBox.add_child(this._btnResize.actor);
 
 		this.moveBox.connect('button-press-event', this._onMovePress.bind(this));
 		this.moveBox.connect('motion-event', this._onMoveMotion.bind(this));
 		this.moveBox.connect('button-release-event', this._onRelease.bind(this));
 
-		ctrlButton.actor.connect('button-press-event', this._onResizePress.bind(this));
-		ctrlButton.actor.connect('motion-event', this._onResizeMotion.bind(this));
-		ctrlButton.actor.connect('button-release-event', this._onRelease.bind(this));
+		this._btnResize.actor.connect('button-press-event', this._onResizePress.bind(this));
+		this._btnResize.actor.connect('motion-event', this._onResizeMotion.bind(this));
+		this._btnResize.actor.connect('button-release-event', this._onRelease.bind(this));
 
 		this.actor.add_child(this._buttonsBox);
+	}
+
+	/*
+	 * Toggles between the read-only and editing modes: the entry is editable
+	 * only in the editing mode; all the headerbar buttons work in both modes.
+	 */
+	_toggleEditMode () {
+		this.setEditMode(!this._editing);
+	}
+
+	/*
+	 * Also called by the NotesManager when the notes get hidden, so that they
+	 * are always displayed read-only the next time they show up.
+	 */
+	setEditMode (editing) {
+		this._editing = editing;
+		let clutterText = this.noteEntry.get_clutter_text();
+		clutterText.set_editable(editing);
+		clutterText.set_cursor_visible(editing);
+		this.noteEntry.hint_text = editing ? _("Type here…") : '';
+
+		this._btnEdit._setIcon(editing
+			? 'object-select-symbolic' // the "done" checkmark from the theme
+			: Common.getCustomIcon(Me.dir, 'edit'));
+
+		if (editing) {
+			this.noteEntry.grab_key_focus();
+		} else {
+			global.stage.set_key_focus(null);
+			// the text is saved when leaving the editing mode, but the initial
+			// call happening before _loadText must not wipe the saved file
+			if (this._textLoaded) {
+				this._saveText();
+			}
+		}
+	}
+
+	_copyToClipboard () {
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			this.noteEntry.get_text()
+		);
+	}
+
+	/*
+	 * A paste attempt on a read-only note silently did nothing, which is easy
+	 * to mistake for a broken clipboard: switch to the editing mode first and
+	 * paste from there.
+	 */
+	_onKeyPress (actor, event) {
+		if (this._editing) { return false; }
+		if (!(event.get_state() & Clutter.ModifierType.CONTROL_MASK)) { return false; }
+		let key = event.get_key_symbol();
+		if (key != Clutter.KEY_v && key != Clutter.KEY_V && key != Clutter.KEY_Paste) {
+			return false;
+		}
+		this.setEditMode(true);
+		this.noteEntry.get_clutter_text().paste_clipboard();
+		return true;
 	}
 
 	_openDeleteDialog () {
@@ -272,36 +359,19 @@ var NoteBox = class NoteBox {
 	}
 
 	loadIntoCorrectLayer () {
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.addChrome(this.actor, {
-				affectsInputRegion: true
-			});
-		} else {
-			Main.layoutManager._backgroundGroup.add_child(this.actor);
-		}
-	}
-
-	removeFromCorrectLayer () {
-		if (this._manager.notesNeedChromeTracking()) {
-//			Main.layoutManager.untrackChrome(this.actor);
-			Main.layoutManager.removeChrome(this.actor);
-		} else {
-			Main.layoutManager._backgroundGroup.remove_actor(this.actor);
-		}
+		Main.layoutManager.addChrome(this.actor, {
+			affectsInputRegion: true
+		});
 	}
 
 	show () {
 		this.actor.visible = true;
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.trackChrome(this.actor);
-		}
+		Main.layoutManager.trackChrome(this.actor);
 	}
 
 	onlyHide () {
 		this.actor.visible = false;
-		if (this._manager.notesNeedChromeTracking()) {
-			Main.layoutManager.untrackChrome(this.actor);
-		}
+		Main.layoutManager.untrackChrome(this.actor);
 	}
 
 	onlySave (withMetadata=true) {
@@ -388,15 +458,10 @@ var NoteBox = class NoteBox {
 	}
 
 	_getKeyFocus () {
-		if (this.entry_is_visible) {
-			this._grabHelper.grab({ actor: this.noteEntry });
+		if (this._editing) {
 			this.noteEntry.grab_key_focus();
 		}
 		this._redraw();
-	}
-
-	_leaveKeyFocus () {
-		this._grabHelper.ungrab({ actor: this.noteEntry });
 	}
 
 	_redraw () {
@@ -417,11 +482,6 @@ var NoteBox = class NoteBox {
 	}
 
 	_onMovePress (actor, event) {
-		let mouseButton = event.get_button();
-		if (mouseButton == 3) {
-			this._entryBox.visible = !this._entryBox.visible;
-			this.entry_is_visible = this._entryBox.visible;
-		}
 		this._onPressCommon(event);
 		this._isMoving = true;
 		this._isResizing = false;
@@ -510,10 +570,6 @@ var NoteBox = class NoteBox {
 
 	//--------------------------------------------------------------------------
 
-	_createNote () {
-		this._manager.createNote(this.customColor, this._fontSize);
-	}
-
 	/*
 	 * This applies the color, from the menu (`applyColorAndSave`) or the
 	 * constructor (direct call). It requires some string manipulations since
@@ -553,6 +609,7 @@ var NoteBox = class NoteBox {
 		let content = stringFromArray(contents);
 
 		this.noteEntry.set_text(content);
+		this._textLoaded = true;
 	}
 
 	_saveText () {
@@ -589,7 +646,7 @@ var NoteBox = class NoteBox {
 		let defaultContent = defaultPosition[0].toString() + ';'
 		                   + defaultPosition[1].toString() + ';'
 		                   + this.customColor + ';250;180;'
-		                   + this._fontSize + ';true;'
+		                   + this._fontSize + ';'
 		GLib.file_set_contents(fileName, defaultContent);
 		return defaultContent;
 	}
@@ -618,7 +675,8 @@ var NoteBox = class NoteBox {
 		this.actor.width = Number(state[3]);
 		this.actor.height = Number(state[4]);
 		this._fontSize = Number(state[5]);
-		this.entry_is_visible = (state[6] == 'true');
+		// Old state files have a legacy 7th field ('entry_is_visible'), which
+		// isn't used anymore: notes always open read-only.
 	}
 
 	_saveState () {
@@ -629,7 +687,6 @@ var NoteBox = class NoteBox {
 		noteState += this.actor.width.toString() + ';';
 		noteState += this.actor.height.toString() + ';';
 		noteState += this._fontSize.toString() + ';';
-		noteState += this.entry_is_visible.toString() + ';';
 
 		//log('_saveState | ' + this.id.toString() + ' | ' + noteState);
 		let file = GLib.build_filenamev([PATH, this.id.toString() + '_state']);
@@ -645,6 +702,14 @@ var NoteBox = class NoteBox {
 	}
 
 	destroy () {
+		// Clutter doesn't drop the stage's key focus when the focused actor
+		// is destroyed: the shell-side focus trackers (SearchController,
+		// modal dialogs) would then be handed a disposed Clutter.Text, log
+		// errors, and can even crash the whole shell
+		let focus = global.stage.get_key_focus();
+		if (focus != null && this.actor.contains(focus)) {
+			global.stage.set_key_focus(null);
+		}
 		this.actor.destroy_all_children();
 		this.actor.destroy();
 		this.actor = null;

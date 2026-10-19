@@ -40,26 +40,6 @@ const NotesSettingsWidget = new GObject.Class({
 	_buildSettingsPage (builder) {
 		let RELOAD_TEXT = _("Modifications will be effective after reloading the extension.");
 
-		// Position of the notes (layer)
-		let radioBtn1 = builder.get_object('radio1');
-		let radioBtn2 = builder.get_object('radio2');
-		let radioBtn3 = builder.get_object('radio3');
-		switch (SETTINGS.get_string('layout-position')) {
-			case 'above-all':
-				radioBtn1.set_active(true);
-			break;
-			case 'on-background':
-				radioBtn2.set_active(true);
-			break;
-			case 'cycle-layers':
-				radioBtn3.set_active(true);
-			break;
-			default: break;
-		}
-		this._connectRadioBtn('above-all', radioBtn1);
-		this._connectRadioBtn('on-background', radioBtn2);
-		this._connectRadioBtn('cycle-layers', radioBtn3);
-
 		//----------------------------------------------------------------------
 
 		let focus_switch = builder.get_object('focus_switch');
@@ -133,12 +113,6 @@ const NotesSettingsWidget = new GObject.Class({
 				rgba.green.toString(),
 				rgba.blue.toString()
 			]);
-		});
-	},
-
-	_connectRadioBtn(strId, widget) {
-		widget.connect('toggled', (widget) => {
-			SETTINGS.set_string('layout-position', strId);
 		});
 	},
 

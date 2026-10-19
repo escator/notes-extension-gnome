@@ -1,7 +1,7 @@
 // notes@maestroschan.fr/common.js
 // GPL v3
 
-const { GLib } = imports.gi;
+const { GLib, Gio } = imports.gi;
 
 /*
  * Shared constants, imported by extension.js, noteBox.js and prefs.js. This
@@ -44,4 +44,19 @@ var TEXT_COLORS = {
 	secondary: '#5C5C5C',
 	primaryDark: '#EDEDED',
 	secondaryDark: '#A8A8A8'
+};
+
+/*
+ * SVG icons bundled with the extension live in icons/, one file per icon
+ * named "<name>-symbolic.svg". This returns a Gio.FileIcon to be used as the
+ * `gicon` property of a St.Icon (icon_name can't find them, as they aren't
+ * part of the system icon theme). Returns null when the icon doesn't exist.
+ */
+var CUSTOM_ICONS = ['copy-to-buf', 'edit', 'new-note', 'setting'];
+
+var getCustomIcon = function (extensionDir, name) {
+	let file = Gio.File.new_for_path(GLib.build_filenamev([
+		extensionDir.get_path(), 'icons', name + '-symbolic.svg'
+	]));
+	return file.query_exists(null) ? Gio.FileIcon.new(file) : null;
 };
