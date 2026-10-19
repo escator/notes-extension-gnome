@@ -26,6 +26,8 @@
           </object>
         </child>
 
+        <!-- The "Automatic focus" option is disabled for now; the notes take
+             the key focus when pressed (see noteBox.js)
         <child>
           <object class="GtkLabel">
             <property name="halign">end</property>
@@ -47,6 +49,7 @@
             </layout>
           </object>
         </child>
+        -->
 
         <child>
           <object class="GtkSeparator">

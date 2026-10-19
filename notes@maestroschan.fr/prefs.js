@@ -42,11 +42,12 @@ const NotesSettingsWidget = new GObject.Class({
 
 		//----------------------------------------------------------------------
 
-		let focus_switch = builder.get_object('focus_switch');
-		focus_switch.set_state(SETTINGS.get_boolean('auto-focus'));
-		focus_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('auto-focus', widget.active);
-		});
+		// The "Automatic focus" option is disabled for now (see prefs.ui)
+		//let focus_switch = builder.get_object('focus_switch');
+		//focus_switch.set_state(SETTINGS.get_boolean('auto-focus'));
+		//focus_switch.connect('notify::active', (widget) => {
+		//	SETTINGS.set_boolean('auto-focus', widget.active);
+		//});
 
 		//----------------------------------------------------------------------
 
