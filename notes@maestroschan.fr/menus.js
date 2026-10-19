@@ -207,6 +207,7 @@ class NoteOptionsMenu {
 	_onApply (color, button) {
 		let rgb = Common.PRESET_COLORS[color].rgb;
 		this._source._note.applyColorAndSave(rgb[0], rgb[1], rgb[2]);
+		this.super_menu.close();
 	}
 
 	popup (activatingButton) {
