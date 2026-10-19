@@ -173,10 +173,9 @@
           </object>
         </child>
         <child>
-          <object class="GtkColorButton" id="default_rgb_btn">
-            <property name="hexpand">False</property>
-            <property name="use-alpha">False</property>
+          <object class="GtkBox" id="preset_colors_box">
             <property name="halign">start</property>
+            <property name="spacing">6</property>
             <layout>
               <property name="column">1</property>
               <property name="row">22</property>
