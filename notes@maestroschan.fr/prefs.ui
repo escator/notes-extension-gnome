@@ -226,7 +226,7 @@
           <object class="GtkLabel">
             <property name="wrap">True</property>
             <property name="use-markup">True</property>
-            <property name="label" translatable="yes">Files ending with "_state" contain the color and position of your notes</property>
+            <property name="label" translatable="yes">The "layouts.json" file contains the color and position of your notes for each monitor configuration</property>
             <style>
               <class name="dim-label"/>
             </style>
