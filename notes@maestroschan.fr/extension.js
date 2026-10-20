@@ -14,6 +14,7 @@ const Util = imports.misc.util;
 const Me = ExtensionUtils.getCurrentExtension();
 
 const Common = Me.imports.common;
+const Layouts = Me.imports.layouts;
 const NoteBox = Me.imports.noteBox;
 
 const Gettext = imports.gettext.domain('notes-extension');
@@ -22,6 +23,10 @@ const _ = Gettext.gettext;
 //------------------------------------------------------------------------------
 
 const PATH = Common.DATA_PATH;
+
+// A display reconfiguration storms 'monitors-changed'; the layout is applied
+// once, after things settle, for the final configuration
+const MONITORS_DEBOUNCE_MS = 1000;
 
 var NOTES_MANAGER;
 
@@ -85,6 +90,16 @@ class NotesManager {
 		this._notesLoaded = false; // this will tell the toggleState method that
 		// notes need to be loaded first, thus doing the actual initialisation
 
+		// The layout registry (task 001 / ADR-0001) owns the stable note ids,
+		// the monitor-independent note attributes (color, font size) and one
+		// saved layout per monitor configuration. It is initialized lazily,
+		// together with the notes: the legacy code deferred everything to the
+		// first toggle too, and this keeps enable() free of any dependence on
+		// the layout manager being ready.
+		this._store = null;
+		this._currentKey = null;
+		this._monitorsDebounceId = null;
+
 		// Initialisation of the signals connections
 		this._bindKeyboardShortcut();
 		this._connectAllSignals();
@@ -93,6 +108,32 @@ class NotesManager {
 	// Read-only accessors for the NoteBox objects
 	get settings () {
 		return this._settings;
+	}
+
+	/*
+	 * Creates the layout registry and loads it; a missing (or unusable)
+	 * registry triggers the one-time migration from the legacy per-note
+	 * `N_state` files, whose coordinates were relative to the primary monitor.
+	 */
+	_ensureStore () {
+		if (this._store) { return; }
+		this._store = new Layouts.LayoutStore(
+			GLib.build_filenamev([PATH, 'layouts.json']), Common.MAX_LAYOUTS
+		);
+		if (!this._store.load()) {
+			let primary = Main.layoutManager.primaryMonitor;
+			this._store.migrateFromStateFiles(PATH,
+				{ x: primary.x, y: primary.y },
+				Layouts.signature(this._monitorRects())
+			);
+		}
+	}
+
+	/* Logical monitor geometries, in the shape layouts.js expects. */
+	_monitorRects () {
+		return Main.layoutManager.monitors.map(function (m) {
+			return { x: m.x, y: m.y, width: m.width, height: m.height };
+		});
 	}
 
 	//get autoFocus () {
@@ -113,64 +154,221 @@ class NotesManager {
 	}
 
 	_loadAllNotes () {
-		let i = 0;
-		let ended = false;
-		while(!ended) {
-			let file2 = GLib.build_filenamev([PATH, i.toString() + '_state']);
-			if (GLib.file_test(file2, GLib.FileTest.EXISTS)) {
-				this.createNote('', 16);
-			} else {
-				ended = true;
-			}
-			i++;
+		this._ensureStore();
+
+		this._currentKey = Layouts.signature(this._monitorRects());
+		let layout = this._store.layoutFor(this._currentKey);
+		let positions = layout ? layout.positions : {};
+
+		// Notes without a saved position in this configuration (first run
+		// after the migration to another configuration, or a note created
+		// while another configuration was active) get a deterministic fold
+		// slot on the primary monitor; clamping is a safety net for positions
+		// saved for a geometry that overlaps the current one
+		let ids = this._store.noteIds();
+		let missing = ids.filter(function (id) {
+			return !positions[id];
+		}).map(function (id) {
+			return { id: id, w: Layouts.DEFAULT_WIDTH, h: Layouts.DEFAULT_HEIGHT };
+		});
+		if (missing.length > 0) {
+			let occupied = ids.filter(function (id) {
+				return !!positions[id];
+			}).map(function (id) {
+				return positions[id];
+			});
+			let folded = Layouts.foldInto(
+				Main.layoutManager.primaryMonitor, missing, occupied
+			);
+			Object.keys(folded).forEach(function (id) {
+				positions[id] = folded[id];
+			});
 		}
+
+		ids.forEach((id) => {
+			let attrs = this._store.getNoteAttrs(id)
+				|| { color: '', fontSize: Layouts.DEFAULT_FONT_SIZE };
+			let p = Layouts.clampRect(positions[id], this._monitorRects());
+			this._createNoteBox(id, attrs.color, attrs.fontSize,
+				p.x, p.y, p.w, p.h, false);
+		});
+
 		this._onlyHideNotes();
 		this._notesLoaded = true;
+		// the folded/clamped positions become the saved layout of this
+		// configuration (this also refreshes its LRU recency)
+		this.saveLayout();
 	}
 
 	//--------------------------------------------------------------------------
 	// "Public" methods, accessed by the NoteBox objects -----------------------
 
 	createNote (colorString, fontSize, startInEditMode = false) {
-		let nextId = this._allNotes.length;
+		this._ensureStore();
+		let id = this._store.nextId();
+		// brand-new notes go into a fold slot avoiding the existing notes'
+		// rectangles (the deterministic replacement of the former random
+		// placement); the 250x180 default size mirrors the legacy behavior
+		let occupied = this._allNotes.map(function (n) {
+			return { x: n._x, y: n._y, w: n.actor.width, h: n.actor.height };
+		});
+		let slot = Layouts.foldInto(
+			Main.layoutManager.primaryMonitor,
+			[{ id: id, w: Layouts.DEFAULT_WIDTH, h: Layouts.DEFAULT_HEIGHT }],
+			occupied
+		)[id];
+		this._createNoteBox(id, colorString, fontSize,
+			slot.x, slot.y, slot.w, slot.h, startInEditMode);
+		this.saveLayout();
+	}
+
+	_createNoteBox (id, colorString, fontSize, x, y, w, h, startInEditMode) {
 		try {
-			this._allNotes.push(new NoteBox.NoteBox(this, nextId, colorString, fontSize, startInEditMode));
+			let note = new NoteBox.NoteBox(this, {
+				id: id,
+				color: colorString,
+				fontSize: fontSize,
+				x: x, y: y, w: w, h: h,
+				startInEditMode: startInEditMode
+			});
+			this._allNotes.push(note);
 		} catch (e) {
 			Main.notify(_("Notes extension error: failed to load a note"));
-			log('failed to create note n°' + nextId.toString());
+			log('failed to create note n°' + id.toString());
 			log(e);
 		}
 	}
 
 	/*
-	 * When a NoteBox object deletes itself, it calls this method to ensure the
-	 * files go from 0 to (this._allNotes.length - 1) without any "gap" in the
-	 * numerotation.
+	 * When a NoteBox object deletes itself, it calls this method: the note is
+	 * dropped from the registry (its attributes and its position in every
+	 * saved layout), and only its text file is removed. Ids are never
+	 * reused, so the other saved layouts stay valid.
 	 */
 	postDelete (deletedNoteId) {
-		let lastNote = this._allNotes.pop();
-		if (deletedNoteId < this._allNotes.length) {
-			this._allNotes[deletedNoteId] = lastNote;
-			lastNote.id = deletedNoteId;
-			this._allNotes[deletedNoteId].onlySave();
-		}
-		this._deleteNoteFiles(this._allNotes.length);
+		this._allNotes = this._allNotes.filter(function (n) {
+			return n.id !== deletedNoteId;
+		});
+		this._store.removeNote(deletedNoteId);
+		let textfile = Gio.file_new_for_path(
+			PATH + '/' + deletedNoteId.toString() + '_text'
+		);
+		textfile.delete(null); // may not do anything
 	}
 
 	/*
-	 * Tells if [x, y] are suitable coords for a note (= not too close of the
-	 * other existing notes). Called by NoteBox objects on various occasions,
-	 * for example when brought back to the primary monitor, or when deciding
-	 * the initial coords at the creation of the note.
+	 * Single disk write for the whole set of notes: the positions of every
+	 * note become the saved layout of the current monitor configuration, and
+	 * the monitor-independent attributes (color, font size) are synced too.
+	 * Called by the NoteBox objects (through onlySave) on drag/resize
+	 * release, color or font size change, and by the manager itself.
 	 */
-	areCoordsUsable (x, y) {
-		let areaIsFree = true;
-		this._allNotes.forEach(function (n) {
-			if( (Math.abs(n._x - x) < 230) && (Math.abs(n._y - y) < 100) ) {
-				areaIsFree = false;
+	saveLayout () {
+		this._currentKey = Layouts.signature(this._monitorRects());
+		let positions = {};
+		this._allNotes.forEach((n) => {
+			positions[n.id] = {
+				x: n._x,
+				y: n._y,
+				w: Math.floor(n.actor.width),
+				h: Math.floor(n.actor.height)
+			};
+			this._store.setNoteAttrs(n.id, { color: n.customColor, fontSize: n._fontSize });
+		});
+		this._store.put(this._currentKey, positions);
+	}
+
+	// The note's geometry, in the shape the layouts.js helpers expect.
+	_noteRect (note) {
+		return {
+			x: note._x,
+			y: note._y,
+			w: note.actor.width,
+			h: note.actor.height
+		};
+	}
+
+	_applyRectToNote (note, rect) {
+		note._x = Math.floor(rect.x);
+		note._y = Math.floor(rect.y);
+		note.actor.width = Math.floor(rect.w);
+		note.actor.height = Math.floor(rect.h);
+		note._setNotePosition();
+	}
+
+	/*
+	 * Re-position every note for the monitor configuration currently active,
+	 * after a debounced monitors-changed whose signature actually changed:
+	 * 1. notes with a position saved for this configuration get it back,
+	 *    clamped to the current geometry (safety net for a configuration
+	 *    overlapping the saved one only partially);
+	 * 2. notes without one keep their current position when it is still
+	 *    visible (intersecting the union of the monitors), otherwise they are
+	 *    folded into a deterministic slot of the primary monitor;
+	 * 3. the result becomes the saved layout of this configuration.
+	 */
+	applyLayoutForCurrentConfig () {
+		let monitors = this._monitorRects();
+		this._currentKey = Layouts.signature(monitors);
+
+		let layout = this._store.layoutFor(this._currentKey);
+		let positions = layout ? layout.positions : {};
+
+		let occupied = [];
+		let unplaced = [];
+		this._allNotes.forEach((n) => {
+			let saved = positions[n.id];
+			if (saved) {
+				this._applyRectToNote(n, Layouts.clampRect(saved, monitors));
+				occupied.push(this._noteRect(n));
+			} else {
+				unplaced.push(n);
 			}
 		});
-		return areaIsFree;
+
+		let kept = unplaced.filter((n) => {
+			return Layouts.intersectsAnyMonitor(this._noteRect(n), monitors);
+		});
+		// the notes keeping their spot also count as occupied by the fold
+		let lost = unplaced.filter(function (n) {
+			return kept.indexOf(n) === -1;
+		});
+		kept.forEach((n) => {
+			occupied.push(this._noteRect(n));
+		});
+
+		let slots = Layouts.foldInto(
+			Main.layoutManager.primaryMonitor,
+			lost.map(function (n) {
+				return { id: n.id, w: n.actor.width, h: n.actor.height };
+			}),
+			occupied
+		);
+		lost.forEach((n) => {
+			this._applyRectToNote(n, slots[n.id]);
+		});
+
+		this.saveLayout();
+	}
+
+	/*
+	 * Gathers every note into a deterministic cascade on the primary monitor,
+	 * whatever the current configuration is. Bound to the "Bring back to the
+	 * primary monitor" button of the preferences (through the ugly-hack
+	 * gsettings key, see _connectAllSignals).
+	 */
+	foldAllIntoPrimary () {
+		let slots = Layouts.foldInto(
+			Main.layoutManager.primaryMonitor,
+			this._allNotes.map(function (n) {
+				return { id: n.id, w: n.actor.width, h: n.actor.height };
+			}),
+			[]
+		);
+		this._allNotes.forEach((n) => {
+			this._applyRectToNote(n, slots[n.id]);
+		});
+		this.saveLayout();
 	}
 
 	/*
@@ -213,14 +411,6 @@ class NotesManager {
 			n.onlyHide();
 		});
 		this._notesAreVisible = false;
-	}
-
-	_deleteNoteFiles (id) {
-		let filePathBeginning = PATH + '/' + id.toString();
-		let textfile = Gio.file_new_for_path(filePathBeginning + '_text');
-		let statefile = Gio.file_new_for_path(filePathBeginning + '_state');
-		textfile.delete(null); // may not do anything
-		statefile.delete(null); // may not do anything
 	}
 
 	_onButtonPressed (actor, event) {
@@ -338,6 +528,10 @@ class NotesManager {
 			'changed::notes-kb-shortcut',
 			this._updateShortcut.bind(this)
 		);
+		this._monitorsChangedId = Main.layoutManager.connect(
+			'monitors-changed',
+			this._onMonitorsChanged.bind(this)
+		);
 		//this._settingsSignals['auto-focus'] = this._settings.connect(
 		//	'changed::auto-focus',
 		//	this._updateFocusSetting.bind(this)
@@ -359,15 +553,56 @@ class NotesManager {
 	//	);
 	//}
 
+	_onMonitorsChanged () {
+		// before the first load there is nothing to reposition (and no
+		// _currentKey to compare against): loading evaluates the layout of
+		// the configuration active at that moment
+		if (!this._notesLoaded) { return; }
+		this._armMonitorDebounce();
+	}
+
+	/*
+	 * Re-arming the timeout coalesces the signals storm of a display
+	 * reconfiguration into a single layout application.
+	 */
+	_armMonitorDebounce () {
+		if (this._monitorsDebounceId) {
+			Mainloop.source_remove(this._monitorsDebounceId);
+		}
+		this._monitorsDebounceId = Mainloop.timeout_add(
+			MONITORS_DEBOUNCE_MS,
+			() => {
+				this._monitorsDebounceId = null;
+				// applying a layout while a note is being dragged would fight
+				// with the pointer: retry after the same delay, the release
+				// ends the loop
+				if (this._allNotes.some(function (n) {
+					return n._isMoving || n._isResizing;
+				})) {
+					this._armMonitorDebounce();
+					return GLib.SOURCE_REMOVE;
+				}
+				this._applyLayoutIfConfigChanged();
+				return GLib.SOURCE_REMOVE;
+			}
+		);
+	}
+
+	_applyLayoutIfConfigChanged () {
+		let newKey = Layouts.signature(this._monitorRects());
+		if (newKey === this._currentKey) { return; }
+		this.applyLayoutForCurrentConfig();
+	}
+
 	_updateIconVisibility () {
 		let now_visible = !this._settings.get_boolean('hide-icon');
 		this.panel_button.visible = now_visible;
 	}
 
 	_bringToPrimaryMonitorOnly () {
-		this._allNotes.forEach(function (n) {
-			n.fixState();
-		});
+		// nothing to gather before the notes are actually loaded
+		if (!this._notesLoaded) { return; }
+		this.foldAllIntoPrimary();
 	}
 
 	//--------------------------------------------------------------------------
@@ -378,11 +613,17 @@ class NotesManager {
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-2']);
 		//this._settings.disconnect(this._settingsSignals['auto-focus']);
+		Main.layoutManager.disconnect(this._monitorsChangedId);
 
 		this._allNotes.forEach(function (n) {
 			n.onlySave(false);
 			n.destroy();
 		});
+
+		// the texts were saved just above; this flushes the registry itself
+		if (this._store) {
+			this._store.save();
+		}
 
 		if(this._useKeyboardShortcut) {
 			Main.wm.removeKeybinding('notes-kb-shortcut');
@@ -394,6 +635,12 @@ class NotesManager {
 		if (this._timeout_id) {
 			Mainloop.source_remove(this._timeout_id);
 			this._timeout_id = null;
+		}
+
+		// a monitors-changed debounce may still be pending
+		if (this._monitorsDebounceId) {
+			Mainloop.source_remove(this._monitorsDebounceId);
+			this._monitorsDebounceId = null;
 		}
 	}
 };
