@@ -12,6 +12,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const Common = Me.imports.common;
 const Menus = Me.imports.menus;
 const Dialog = Me.imports.dialog;
+const TextHistory = Me.imports.textHistory.TextHistory;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
@@ -109,6 +110,10 @@ var NoteBox = class NoteBox {
 		// selectable, and notes are read-only by default
 		clutterText.set_selectable(true);
 
+		// the connection happens before _loadText, whose initial set_text is
+		// wrapped in a history suspend so it doesn't open a bogus undo step
+		clutterText.connect('text-changed', this._onTextChanged.bind(this));
+
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
 			x_expand: true,
@@ -136,8 +141,9 @@ var NoteBox = class NoteBox {
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
 		//}
 		// runs before the entry's own key handling (bubbling from the text or
-		// on the entry itself), so a paste attempt on a read-only note can
-		// still be redirected to the editing mode
+		// on the entry itself), so undo/redo work in both modes, and a paste
+		// attempt in the editing mode opens an undo boundary before the
+		// native paste (which stays one undo step)
 		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
 
 		// Notes are displayed read-only by default; clicking the edit button is
@@ -272,6 +278,12 @@ var NoteBox = class NoteBox {
 	 * are always displayed read-only the next time they show up.
 	 */
 	setEditMode (editing) {
+		// a mode switch is a discrete operation: whatever typing portion was
+		// open becomes its own undo step (the history doesn't exist yet during
+		// the initial calls from _buildNote)
+		if (this._history) {
+			this._history.boundary();
+		}
 		this._editing = editing;
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
@@ -301,6 +313,52 @@ var NoteBox = class NoteBox {
 		);
 	}
 
+	/*
+	 * 'text-changed' handler: every user edit (typing, deletion, native
+	 * paste…) feeds the history, which coalesces consecutive changes into
+	 * undo portions. The suspend flag keeps history restorations and the
+	 * initial text load out of the history.
+	 */
+	_onTextChanged () {
+		if (!this._history) { return; }
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.onChange(
+			clutterText.get_text(),
+			clutterText.get_cursor_position()
+		);
+	}
+
+	/*
+	 * Restore the previous/next state, in both modes, without switching
+	 * modes; nothing happens on an empty history. The restored text is
+	 * written to disk right away. Called from _onKeyPress and (from Ф3) the
+	 * text context menu.
+	 */
+	undo () {
+		if (!this._history) { return; }
+		let state = this._history.undo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	redo () {
+		if (!this._history) { return; }
+		let state = this._history.redo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	_restoreHistoryState (state) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.suspend(() => {
+			clutterText.set_text(state.text);
+			clutterText.set_cursor_position(state.cursor);
+		});
+		this._saveText();
+	}
+
 	_pasteFromClipboard () {
 		St.Clipboard.get_default().get_text(
 			St.ClipboardType.CLIPBOARD,
@@ -316,6 +374,9 @@ var NoteBox = class NoteBox {
 	 */
 	_appendClipboardText (text) {
 		if (this.actor == null || !text) { return; }
+		// the headerbar's paste button is a discrete operation: any open
+		// typing portion closes here, the paste becomes its own undo step
+		this._history.boundary();
 		let noteText = this.noteEntry.get_text();
 		if (noteText && noteText.length > 0) {
 			if (!noteText.endsWith('\n')) {
@@ -331,20 +392,34 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
-	 * A paste attempt on a read-only note silently did nothing, which is easy
-	 * to mistake for a broken clipboard: switch to the editing mode first and
-	 * paste from there.
+	 * Key handling running before the entry's own: undo/redo are offered in
+	 * both modes (the text is restored and saved to disk without switching
+	 * modes); Ctrl+V in the editing mode just opens an undo boundary and
+	 * falls through to the native paste. On a read-only note the native paste
+	 * silently does nothing (decision 2026-10-21: paste never switches to the
+	 * editing mode anymore).
 	 */
 	_onKeyPress (actor, event) {
-		if (this._editing) { return false; }
 		if (!(event.get_state() & Clutter.ModifierType.CONTROL_MASK)) { return false; }
 		let key = event.get_key_symbol();
-		if (key != Clutter.KEY_v && key != Clutter.KEY_V && key != Clutter.KEY_Paste) {
-			return false;
+		if (key == Clutter.KEY_z || key == Clutter.KEY_Z || key == Clutter.KEY_Undo) {
+			if (!(event.get_state() & Clutter.ModifierType.SHIFT_MASK)) {
+				this.undo();
+				return true;
+			}
+			this.redo();
+			return true;
 		}
-		this.setEditMode(true);
-		this.noteEntry.get_clutter_text().paste_clipboard();
-		return true;
+		if (key == Clutter.KEY_Redo) {
+			this.redo();
+			return true;
+		}
+		if (this._editing
+				&& (key == Clutter.KEY_v || key == Clutter.KEY_V
+					|| key == Clutter.KEY_Paste)) {
+			this._history.boundary();
+		}
+		return false;
 	}
 
 	_openDeleteDialog () {
@@ -644,7 +719,13 @@ var NoteBox = class NoteBox {
 		}
 		let content = stringFromArray(contents);
 
-		this.noteEntry.set_text(content);
+		// the loaded text is the baseline: the initial set_text fires
+		// 'text-changed' (the connection predates this method), so it runs
+		// under suspend and opens no undo step
+		this._history = new TextHistory({ text: content, cursor: 0 });
+		this._history.suspend(() => {
+			this.noteEntry.set_text(content);
+		});
 		this._textLoaded = true;
 	}
 

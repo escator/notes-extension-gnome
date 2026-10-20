@@ -3,7 +3,7 @@
 | Фаза | Содержание | Статус |
 |------|-----------|--------|
 | Ф1 | TextHistory: модуль + юнит-тесты | done |
-| Ф2 | Клавиатурные Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, оба режима) | pending |
+| Ф2 | Клавиатурные Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, оба режима) | код готов, живая проверка X11 не проводилась |
 | Ф3 | Контекстное меню (разведка FIXME + меню) | pending |
 | Ф4 | Приёмка 1–11, ADR, слияние | pending |
 
@@ -29,3 +29,15 @@
   инъекцией часов (`now` в params), без зависимости от event loop. Конструктор
   принимает params {now, windowMs, maxDepth}. Интеграции нет — модуль никем не
   подключён.
+- 2026-10-21 — Ф2 (код) выполнена: TextHistory интегрирован в NoteBox —
+  создание в `_loadText` с baseline и `suspend` на начальный `set_text`
+  (подключение `text-changed` перенесено раньше `_loadText`); `_onKeyPress`
+  обрабатывает Ctrl+Z/KEY_Undo и Ctrl+Shift+Z/KEY_Redo в обоих режимах без
+  смены режима; ветка Ctrl+V-перенаправления в read-only удалена (решение
+  2026-10-21), Ctrl+V в режиме редактирования → `boundary()` + `false`
+  (нативная вставка — отдельный шаг undo); `boundary()` также в `setEditMode`
+  (с guard'ом: в ранних вызовах из `_buildNote` истории ещё нет) и в
+  `_appendClipboardText`; новые `undo()/redo()` → `suspend(set_text,
+  set_cursor_position)` → `_saveText()`. Юнит-тесты зелёные (51/51, 69/69),
+  синтаксис noteBox.js проверен. Живая проверка X11 по DoD Ф2 — не проводилась,
+  перенесена в Ф4 (сценарии приёмки).
