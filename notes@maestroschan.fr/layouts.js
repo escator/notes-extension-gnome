@@ -81,6 +81,18 @@ function clampRect(rect, monitors) {
 	};
 }
 
+/*
+ * True when the rect has a non-empty intersection with at least one monitor:
+ * the union of the monitor geometries is the visible canvas. Used to decide
+ * whether a note without a saved position may keep its current placement.
+ */
+function intersectsAnyMonitor(rect, monitors) {
+	return (monitors || []).some(function (m) {
+		return rect.x < m.x + m.width && m.x < rect.x + rect.w
+			&& rect.y < m.y + m.height && m.y < rect.y + rect.h;
+	});
+}
+
 //------------------------------------------------------------------------------
 
 const FOLD_PADDING = 16;

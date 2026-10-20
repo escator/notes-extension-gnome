@@ -24,6 +24,10 @@ const _ = Gettext.gettext;
 
 const PATH = Common.DATA_PATH;
 
+// A display reconfiguration storms 'monitors-changed'; the layout is applied
+// once, after things settle, for the final configuration
+const MONITORS_DEBOUNCE_MS = 1000;
+
 var NOTES_MANAGER;
 
 function init() {
@@ -94,6 +98,7 @@ class NotesManager {
 		// the layout manager being ready.
 		this._store = null;
 		this._currentKey = null;
+		this._monitorsDebounceId = null;
 
 		// Initialisation of the signals connections
 		this._bindKeyboardShortcut();
@@ -271,6 +276,99 @@ class NotesManager {
 			this._store.setNoteAttrs(n.id, { color: n.customColor, fontSize: n._fontSize });
 		});
 		this._store.put(this._currentKey, positions);
+	}
+
+	// The note's geometry, in the shape the layouts.js helpers expect.
+	_noteRect (note) {
+		return {
+			x: note._x,
+			y: note._y,
+			w: note.actor.width,
+			h: note.actor.height
+		};
+	}
+
+	_applyRectToNote (note, rect) {
+		note._x = Math.floor(rect.x);
+		note._y = Math.floor(rect.y);
+		note.actor.width = Math.floor(rect.w);
+		note.actor.height = Math.floor(rect.h);
+		note._setNotePosition();
+	}
+
+	/*
+	 * Re-position every note for the monitor configuration currently active,
+	 * after a debounced monitors-changed whose signature actually changed:
+	 * 1. notes with a position saved for this configuration get it back,
+	 *    clamped to the current geometry (safety net for a configuration
+	 *    overlapping the saved one only partially);
+	 * 2. notes without one keep their current position when it is still
+	 *    visible (intersecting the union of the monitors), otherwise they are
+	 *    folded into a deterministic slot of the primary monitor;
+	 * 3. the result becomes the saved layout of this configuration.
+	 */
+	applyLayoutForCurrentConfig () {
+		let monitors = this._monitorRects();
+		this._currentKey = Layouts.signature(monitors);
+
+		let layout = this._store.layoutFor(this._currentKey);
+		let positions = layout ? layout.positions : {};
+
+		let occupied = [];
+		let unplaced = [];
+		this._allNotes.forEach((n) => {
+			let saved = positions[n.id];
+			if (saved) {
+				this._applyRectToNote(n, Layouts.clampRect(saved, monitors));
+				occupied.push(this._noteRect(n));
+			} else {
+				unplaced.push(n);
+			}
+		});
+
+		let kept = unplaced.filter((n) => {
+			return Layouts.intersectsAnyMonitor(this._noteRect(n), monitors);
+		});
+		// the notes keeping their spot also count as occupied by the fold
+		let lost = unplaced.filter(function (n) {
+			return kept.indexOf(n) === -1;
+		});
+		kept.forEach((n) => {
+			occupied.push(this._noteRect(n));
+		});
+
+		let slots = Layouts.foldInto(
+			Main.layoutManager.primaryMonitor,
+			lost.map(function (n) {
+				return { id: n.id, w: n.actor.width, h: n.actor.height };
+			}),
+			occupied
+		);
+		lost.forEach((n) => {
+			this._applyRectToNote(n, slots[n.id]);
+		});
+
+		this.saveLayout();
+	}
+
+	/*
+	 * Gathers every note into a deterministic cascade on the primary monitor,
+	 * whatever the current configuration is. Bound to the "Bring back to the
+	 * primary monitor" button of the preferences (through the ugly-hack
+	 * gsettings key, see _connectAllSignals).
+	 */
+	foldAllIntoPrimary () {
+		let slots = Layouts.foldInto(
+			Main.layoutManager.primaryMonitor,
+			this._allNotes.map(function (n) {
+				return { id: n.id, w: n.actor.width, h: n.actor.height };
+			}),
+			[]
+		);
+		this._allNotes.forEach((n) => {
+			this._applyRectToNote(n, slots[n.id]);
+		});
+		this.saveLayout();
 	}
 
 	/*
@@ -456,10 +554,44 @@ class NotesManager {
 	//}
 
 	_onMonitorsChanged () {
-		// The repositioning logic is enabled in phase 3 of task 001; before
-		// that, positions are only re-evaluated when the notes are loaded
-		// (_loadAllNotes) or saved (saveLayout). Before the notes are loaded
-		// there is nothing to reposition anyway.
+		// before the first load there is nothing to reposition (and no
+		// _currentKey to compare against): loading evaluates the layout of
+		// the configuration active at that moment
+		if (!this._notesLoaded) { return; }
+		this._armMonitorDebounce();
+	}
+
+	/*
+	 * Re-arming the timeout coalesces the signals storm of a display
+	 * reconfiguration into a single layout application.
+	 */
+	_armMonitorDebounce () {
+		if (this._monitorsDebounceId) {
+			Mainloop.source_remove(this._monitorsDebounceId);
+		}
+		this._monitorsDebounceId = Mainloop.timeout_add(
+			MONITORS_DEBOUNCE_MS,
+			() => {
+				this._monitorsDebounceId = null;
+				// applying a layout while a note is being dragged would fight
+				// with the pointer: retry after the same delay, the release
+				// ends the loop
+				if (this._allNotes.some(function (n) {
+					return n._isMoving || n._isResizing;
+				})) {
+					this._armMonitorDebounce();
+					return GLib.SOURCE_REMOVE;
+				}
+				this._applyLayoutIfConfigChanged();
+				return GLib.SOURCE_REMOVE;
+			}
+		);
+	}
+
+	_applyLayoutIfConfigChanged () {
+		let newKey = Layouts.signature(this._monitorRects());
+		if (newKey === this._currentKey) { return; }
+		this.applyLayoutForCurrentConfig();
 	}
 
 	_updateIconVisibility () {
@@ -468,10 +600,9 @@ class NotesManager {
 	}
 
 	_bringToPrimaryMonitorOnly () {
-		// Temporarily a no-op: the button will fold every note into the
-		// primary monitor once the monitor-change handling is wired (phase 3
-		// of task 001). The former fixState() belongs to the deleted per-note
-		// state files logic.
+		// nothing to gather before the notes are actually loaded
+		if (!this._notesLoaded) { return; }
+		this.foldAllIntoPrimary();
 	}
 
 	//--------------------------------------------------------------------------
@@ -504,6 +635,12 @@ class NotesManager {
 		if (this._timeout_id) {
 			Mainloop.source_remove(this._timeout_id);
 			this._timeout_id = null;
+		}
+
+		// a monitors-changed debounce may still be pending
+		if (this._monitorsDebounceId) {
+			Mainloop.source_remove(this._monitorsDebounceId);
+			this._monitorsDebounceId = null;
 		}
 	}
 };

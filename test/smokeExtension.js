@@ -82,11 +82,23 @@ const MONITORS = [
 	{ x: 1920, y: 0, width: 1280, height: 1024 },
 ];
 
+// timeout_add/source_remove drive a tiny manual scheduler: the tests fire the
+// pending callbacks themselves (flush-free determinism)
+let pendingTimeouts = [];
+let nextTimeoutId = 1;
+// the last 'monitors-changed' callback connected by the manager under test
+let monitorsChangedCb = null;
+
 const Main = {
 	layoutManager: {
 		monitors: MONITORS,
 		primaryMonitor: MONITORS[0],
-		connect: function (sig, cb) { return 1; },
+		connect: function (sig, cb) {
+			if (sig === 'monitors-changed') {
+				monitorsChangedCb = cb;
+			}
+			return 1;
+		},
 		disconnect: function () {},
 		addChrome: function () {},
 		trackChrome: function () {},
@@ -132,10 +144,13 @@ class FakeMenuManager {
 	addMenu() {}
 }
 
+// gsettings double: `changed::key` handlers are kept so the tests can emit
+// the signals (the ugly-hack channel used by the prefs fold button)
+const settingsHandlers = {};
 const fakeSettings = {
 	get_boolean: function () { return false; },
 	get_strv: function () { return [0.5, 0.5, 0.5]; },
-	connect: function () { return 1; },
+	connect: function (key, cb) { settingsHandlers[key] = cb; return 1; },
 	disconnect: function () {},
 };
 
@@ -155,11 +170,16 @@ class FakeNoteBox {
 		this.customColor = (spec.color === '') ? '184,217,242' : spec.color;
 		this._fontSize = spec.fontSize;
 		this.actor = {
+			x: Math.floor(spec.x),
+			y: Math.floor(spec.y),
 			width: Math.floor(spec.w),
 			height: Math.floor(spec.h),
-			set_position: function () {},
+			set_position: function (x, y) { this.x = x; this.y = y; },
 		};
 		createdSpecs.push(spec);
+	}
+	_setNotePosition () {
+		this.actor.set_position(Math.floor(this._x), Math.floor(this._y));
 	}
 	onlyHide() {}
 	show() {}
@@ -180,7 +200,7 @@ const common = loadModule(EXT_DIR + '/common.js',
 
 const layouts = loadModule(EXT_DIR + '/layouts.js',
 	{ gi: { GLib: GLib }, byteArray: ByteArray },
-	'signature, clampRect, foldInto, LayoutStore, DEFAULT_FONT_SIZE, DEFAULT_WIDTH, DEFAULT_HEIGHT');
+	'signature, clampRect, intersectsAnyMonitor, foldInto, LayoutStore, DEFAULT_FONT_SIZE, DEFAULT_WIDTH, DEFAULT_HEIGHT');
 
 const Me = {
 	uuid: 'notes@maestroschan.fr',
@@ -197,14 +217,22 @@ const fakeImports = {
 		Meta: { KeyBindingFlags: { NONE: 0 } },
 		Clutter: { BUTTON_SECONDARY: 3 },
 	},
+	// extension.js imports Mainloop from the top level, like in the shell
+	mainloop: {
+		timeout_add: function (delay, cb) {
+			pendingTimeouts.push({ id: nextTimeoutId, delay: delay, cb: cb });
+			return nextTimeoutId++;
+		},
+		source_remove: function (id) {
+			pendingTimeouts = pendingTimeouts.filter(function (t) {
+				return t.id !== id;
+			});
+		},
+	},
 	ui: {
 		panelMenu: { Button: FakeButton },
 		panel: {},
 		main: Main,
-		mainloop: {
-			timeout_add: function () { return 0; },
-			source_remove: function () {},
-		},
 		popupMenu: { PopupMenu: FakeMenu, PopupMenuManager: FakeMenuManager },
 	},
 	misc: {
@@ -315,6 +343,126 @@ eq('attributes survived the reload', store.getNoteAttrs('1'),
 	{ color: '255,240,168', fontSize: 12 });
 
 manager2.destroy();
+
+//------------------------------------------------------------------------------
+// Phase 3: monitors-changed debounce, applyLayoutForCurrentConfig, fold button
+
+print('== phase 3: monitors-changed and fold ==');
+
+const MON_A = MONITORS[0];
+const SIG_TWO = SIG;
+const SIG_MONO = layouts.signature([MON_A]);
+
+function noteById(id) {
+	return manager3._allNotes.find(function (n) { return n.id === id; });
+}
+function rectOf(n) {
+	return { x: n._x, y: n._y, w: n.actor.width, h: n.actor.height };
+}
+function inMonitorA(p) {
+	return p.x >= MON_A.x + 16 && p.y >= MON_A.y + 16
+		&& p.x + p.w <= MON_A.x + MON_A.width - 16
+		&& p.y + p.h <= MON_A.y + MON_A.height - 16;
+}
+function savedPositions(key) {
+	let s = new layouts.LayoutStore(DATA_PATH + '/layouts.json', common.MAX_LAYOUTS);
+	s.load();
+	let l = s.layoutFor(key);
+	return l ? l.positions : null;
+}
+function fireDebounce() {
+	let t = pendingTimeouts.shift();
+	if (!t) {
+		throw new Error('no pending timeout to fire');
+	}
+	t.cb();
+}
+
+// a fresh manager whose notes are never loaded: both the monitors-changed
+// handler and the ugly-hack button must be no-ops before the first load
+createdSpecs = [];
+extension.enable();
+const managerIdle = extension.getNotesManager();
+monitorsChangedCb();
+check('monitors-changed before load: nothing armed', pendingTimeouts.length === 0);
+check('monitors-changed before load: no store', managerIdle._store === null);
+settingsHandlers['changed::ugly-hack']();
+check('ugly-hack before load: no store', managerIdle._store === null);
+extension.disable();
+
+// the manager under test, loaded for the two-monitor configuration
+createdSpecs = [];
+extension.enable();
+const manager3 = extension.getNotesManager();
+manager3._loadAllNotes();
+
+let twoPos = savedPositions(SIG_TWO);
+let n1 = noteById(1), n2 = noteById(2), n3 = noteById(3);
+
+// unchanged configuration: the debounced application exits early
+let beforeBytes = readFile(DATA_PATH + '/layouts.json');
+monitorsChangedCb();
+check('monitors-changed arms the debounce', pendingTimeouts.length === 1);
+monitorsChangedCb();
+check('repeated signals coalesce into one timeout', pendingTimeouts.length === 1);
+fireDebounce();
+check('unchanged signature: registry untouched',
+	readFile(DATA_PATH + '/layouts.json') === beforeBytes);
+
+// single-monitor configuration: note 1 (saved on the second monitor) becomes
+// invisible and gets folded; the visible notes keep their positions
+Main.layoutManager.monitors = [MON_A];
+monitorsChangedCb();
+fireDebounce();
+check('folded note inside the primary', inMonitorA(rectOf(n1)));
+check('visible note 2 kept its position',
+	n2._x === twoPos['2'].x && n2._y === twoPos['2'].y);
+check('visible note 3 kept its position',
+	n3._x === twoPos['3'].x && n3._y === twoPos['3'].y);
+check('folded note avoids the kept notes',
+	!overlaps(rectOf(n1), rectOf(n2)) && !overlaps(rectOf(n1), rectOf(n3)));
+
+let monoPos = savedPositions(SIG_MONO);
+check('single-monitor scheme saved', monoPos !== null);
+check('scheme covers every note',
+	['1', '2', '3'].every(function (id) { return !!monoPos[id]; }));
+eq('kept note 2 saved as-is', monoPos['2'], twoPos['2']);
+eq('kept note 3 saved as-is', monoPos['3'], twoPos['3']);
+check('folded note saved inside the primary', inMonitorA(monoPos['1']));
+eq('two-monitor scheme untouched', savedPositions(SIG_TWO)['1'], twoPos['1']);
+
+// back to two monitors while a note is being dragged: the application is
+// deferred, then happens once the note is released
+Main.layoutManager.monitors = MONITORS;
+n1._isMoving = true;
+monitorsChangedCb();
+fireDebounce(); // detects the drag, re-arms itself
+check('drag defers the layout application', pendingTimeouts.length === 1);
+check('dragging note not repositioned yet', inMonitorA(rectOf(n1)));
+n1._isMoving = false;
+fireDebounce();
+check('released note restored to its saved position',
+	n1._x === twoPos['1'].x && n1._y === twoPos['1'].y);
+check('restored note has its saved size',
+	n1.actor.width === twoPos['1'].w && n1.actor.height === twoPos['1'].h);
+
+// the prefs button ("Bring back to the primary monitor", ugly-hack channel)
+settingsHandlers['changed::ugly-hack']();
+eq('button fold starts the cascade at the origin',
+	{ x: n1._x, y: n1._y }, { x: 16, y: 16 });
+check('button fold keeps every note in the primary',
+	inMonitorA(rectOf(n1)) && inMonitorA(rectOf(n2)) && inMonitorA(rectOf(n3)));
+check('button fold has no overlap',
+	!overlaps(rectOf(n1), rectOf(n2)) && !overlaps(rectOf(n1), rectOf(n3))
+		&& !overlaps(rectOf(n2), rectOf(n3)));
+eq('button fold saved in the current scheme',
+	savedPositions(SIG_TWO)['1'], rectOf(n1));
+
+// a pending debounce is cancelled by destroy
+monitorsChangedCb();
+check('debounce pending before destroy', pendingTimeouts.length === 1);
+manager3.destroy();
+check('destroy cancelled the debounce', pendingTimeouts.length === 0);
 
 //------------------------------------------------------------------------------
 

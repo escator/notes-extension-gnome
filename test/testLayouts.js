@@ -128,6 +128,34 @@ eq(
 
 //------------------------------------------------------------------------------
 
+print('== intersectsAnyMonitor ==');
+
+check('rect inside a monitor', Layouts.intersectsAnyMonitor(
+	{ x: 100, y: 100, w: 250, h: 180 }, [MONITOR_A]
+));
+check('rect on the second monitor', Layouts.intersectsAnyMonitor(
+	{ x: 3000, y: 200, w: 250, h: 180 }, [MONITOR_A, MONITOR_B]
+));
+check(
+	'rect spanning the border between two monitors',
+	Layouts.intersectsAnyMonitor({ x: 1880, y: 0, w: 250, h: 180 }, [MONITOR_A, MONITOR_B])
+);
+check('rect fully outside', !Layouts.intersectsAnyMonitor(
+	{ x: 5000, y: 5000, w: 250, h: 180 }, [MONITOR_A, MONITOR_B]
+));
+check('rect left of everything', !Layouts.intersectsAnyMonitor(
+	{ x: -500, y: 0, w: 250, h: 180 }, [MONITOR_A]
+));
+// [1920, 250) touches monitor A's right edge without entering it
+check('edge touching does not count', !Layouts.intersectsAnyMonitor(
+	{ x: 1920, y: 0, w: 250, h: 180 }, [MONITOR_A]
+));
+check('empty monitor list', !Layouts.intersectsAnyMonitor(
+	{ x: 0, y: 0, w: 250, h: 180 }, []
+));
+
+//------------------------------------------------------------------------------
+
 print('== foldInto ==');
 
 const NOTES = [
