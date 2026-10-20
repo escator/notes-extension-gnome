@@ -202,7 +202,7 @@ var NoteBox = class NoteBox {
 
 		this._btnCopy = new Menus.NoteRoundButton(
 			this,
-			Common.getCustomIcon(Me.dir, 'copy-to-buf'),
+			Common.getCustomIcon(Me.dir, 'edit-copy'),
 			_("Copy to clipboard")
 		);
 		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
