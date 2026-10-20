@@ -287,9 +287,11 @@ var NoteTextContextMenu = class NoteTextContextMenu {
 
 		this.super_menu = new PopupMenu.PopupMenu(this._anchor, 0.0, St.Side.TOP);
 
-		this._cutItem = this.super_menu.addAction(_("Cut"), this._onCutActivated.bind(this));
-		this._copyItem = this.super_menu.addAction(_("Copy"), this._onCopyActivated.bind(this));
-		this._pasteItem = this.super_menu.addAction(_("Paste"), this._onPasteActivated.bind(this));
+		// the actions themselves live in the NoteBox (task 003): one
+		// implementation per action, shared with the keyboard shortcuts
+		this._cutItem = this.super_menu.addAction(_("Cut"), () => { this._note.cutSelection(); });
+		this._copyItem = this.super_menu.addAction(_("Copy"), () => { this._note.copySelection(); });
+		this._pasteItem = this.super_menu.addAction(_("Paste"), () => { this._note.pasteClipboardAtCursor(); });
 
 		this._appendSeparator();
 
@@ -298,7 +300,7 @@ var NoteTextContextMenu = class NoteTextContextMenu {
 
 		this._appendSeparator();
 
-		this._selectAllItem = this.super_menu.addAction(_("Select All"), this._onSelectAllActivated.bind(this));
+		this._selectAllItem = this.super_menu.addAction(_("Select All"), () => { this._note.selectAllText(); });
 
 		Main.uiGroup.add_child(this.super_menu.actor);
 		this.super_menu.actor.hide();
@@ -364,53 +366,6 @@ var NoteTextContextMenu = class NoteTextContextMenu {
 
 	_appendSeparator () {
 		this.super_menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-	}
-
-	/*
-	 * Clutter.Text (GS 42) has no copy_clipboard/paste_clipboard/select_all:
-	 * the clipboard is driven directly through St.Clipboard, and selection
-	 * through set_selection — same approach as the upstream EntryMenu.
-	 */
-	_onCutActivated () {
-		let clutterText = this._note.noteEntry.get_clutter_text();
-		this._note.boundary();
-		St.Clipboard.get_default().set_text(
-			St.ClipboardType.CLIPBOARD,
-			clutterText.get_selection()
-		);
-		clutterText.delete_selection();
-	}
-
-	_onCopyActivated () {
-		let clutterText = this._note.noteEntry.get_clutter_text();
-		this._note.boundary();
-		St.Clipboard.get_default().set_text(
-			St.ClipboardType.CLIPBOARD,
-			clutterText.get_selection()
-		);
-	}
-
-	_onPasteActivated () {
-		let clutterText = this._note.noteEntry.get_clutter_text();
-		this._note.boundary();
-		// the menu's modal grab took the key focus away from the text;
-		// give it back so the cursor sits where the user left it
-		this._note.noteEntry.grab_key_focus();
-		St.Clipboard.get_default().get_text(
-			St.ClipboardType.CLIPBOARD,
-			(clipboard, text) => {
-				// the read is asynchronous: the note may be gone by then
-				if (this._isDestroyed || !text) { return; }
-				clutterText.delete_selection();
-				clutterText.insert_text(text, clutterText.get_cursor_position());
-			}
-		);
-	}
-
-	_onSelectAllActivated () {
-		let clutterText = this._note.noteEntry.get_clutter_text();
-		this._note.noteEntry.grab_key_focus();
-		clutterText.set_selection(0, clutterText.get_text().length);
 	}
 };
 

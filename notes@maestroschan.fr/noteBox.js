@@ -396,6 +396,66 @@ var NoteBox = class NoteBox {
 		return this._history ? this._history.canRedo() : false;
 	}
 
+	//-------------------------- text actions ------------------------------------
+
+	/*
+	 * The text actions shared by the text context menu and the keyboard
+	 * shortcuts (task 003, see
+	 * docs/tasks/003-own-keyboard-text-actions/02-architecture.md §1): one
+	 * implementation per action; the callers only check their own
+	 * preconditions (the menu through its item sensitivity, the keyboard
+	 * through its key matrix) and invoke.
+	 *
+	 * Clutter.Text (GS 42) has no copy_clipboard/paste_clipboard/select_all:
+	 * the clipboard is driven directly through St.Clipboard, and selection
+	 * through set_selection — same approach as the upstream EntryMenu.
+	 *
+	 * Every mutating action opens an undo boundary first, so it stays one
+	 * undo step: the text-changed handler then records the change itself.
+	 */
+	copySelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+	}
+
+	cutSelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+		clutterText.delete_selection();
+	}
+
+	pasteClipboardAtCursor () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		// the menu's modal grab took the key focus away from the text; give it
+		// back so the cursor sits where the user left it (a no-op when the
+		// entry already has the focus, i.e. when invoked from the keyboard)
+		this.noteEntry.grab_key_focus();
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => {
+				// the read is asynchronous: the note may be gone by then
+				if (this.actor == null || !text) { return; }
+				clutterText.delete_selection();
+				clutterText.insert_text(text, clutterText.get_cursor_position());
+			}
+		);
+	}
+
+	selectAllText () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.noteEntry.grab_key_focus();
+		clutterText.set_selection(0, clutterText.get_text().length);
+	}
+
 	//-------------------------- text context menu ------------------------------
 
 	/*
