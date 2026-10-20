@@ -14,6 +14,11 @@ const { GLib, Gio } = imports.gi;
 // Data directory of the extension, usually ~/.local/share/notes@maestroschan.fr
 var DATA_PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
 
+// Maximum number of monitor-configuration layouts kept in layouts.json;
+// over the limit the least recently used one is evicted (see layouts.js and
+// docs/adr/0001-multi-monitor-layout-registry.md)
+var MAX_LAYOUTS = 8;
+
 /*
  * Light-theme color palette, from .agent/COLOR.md. GNOME Shell's CSS engine
  * doesn't support var() custom properties, so the same values are inlined in
