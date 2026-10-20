@@ -23,6 +23,19 @@ const PATH = Common.DATA_PATH;
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
 
+// X11 evdev keycodes (linux/input-event-codes.h) of the physical keys bound
+// by the keyboard matrix in _onKeyPress: unlike a keyval, a keycode doesn't
+// depend on the active XKB group, so the shortcuts work with Cyrillic active
+// too (docs/tasks/003-own-keyboard-text-actions/02-architecture.md §3).
+// Clutter delivers them unchanged on Wayland and offset by 8 (the X keycode)
+// under X11 — _isKey accepts both.
+const EVDEV_V = 55;
+const EVDEV_C = 54;
+const EVDEV_X = 53;
+const EVDEV_Z = 52;
+const EVDEV_A = 38;
+const EVDEV_INSERT = 118;
+
 //------------------------------------------------------------------------------
 
 function stringFromArray(data){
@@ -159,9 +172,9 @@ var NoteBox = class NoteBox {
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
 		//}
 		// runs before the entry's own key handling (bubbling from the text or
-		// on the entry itself), so undo/redo work in both modes, and a paste
-		// attempt in the editing mode opens an undo boundary before the
-		// native paste (which stays one undo step)
+		// on the entry itself): the whole keyboard matrix of task 003 is
+		// served there, before St.Entry/ClutterText ever see the key (see
+		// _onKeyPress)
 		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
 
 		// Notes are displayed read-only by default; clicking the edit button is
@@ -529,55 +542,97 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
-	 * Key handling running before the entry's own class handler: undo/redo
-	 * are offered in both modes (the text is restored and saved to disk
-	 * without switching modes). In the editing mode Ctrl+V just opens an
-	 * undo boundary and falls through to the paste done by St.Entry. On a
-	 * read-only note St.Entry would STILL paste and cut the text
-	 * (st_entry_key_press_event, GS 42, has no editable check): those keys
-	 * are swallowed here, before it runs — nothing happens instead
-	 * (decision 2026-10-21: paste never switches to the editing mode
-	 * anymore); Ctrl+C / Ctrl+A keep their native copy behavior.
+	 * The keyboard matrix of task 003 (02-architecture.md §2), running before
+	 * the entry's own class handler. Every recognized key is executed here
+	 * and stopped, so the native path never takes part: St.Entry pastes and
+	 * cuts with no editable check, and the whole native path is unreviewable
+	 * (01-analysis.md). Paste and cut are served only in the editing mode —
+	 * in the read-only mode they are swallowed (pasting never switches the
+	 * mode, decision 2026-10-21), just like the context menu items they
+	 * mirror; copy, select-all and undo/redo work in both modes. A
+	 * recognized key failing its precondition (no selection, empty text) is
+	 * stopped all the same: the key is ours.
 	 */
 	_onKeyPress (actor, event) {
 		let state = event.get_state();
 		let key = event.get_key_symbol();
+		let control = state & Clutter.ModifierType.CONTROL_MASK;
+		let shift = state & Clutter.ModifierType.SHIFT_MASK;
+		let clutterText = this.noteEntry.get_clutter_text();
 
-		if (state & Clutter.ModifierType.CONTROL_MASK) {
-			if (key == Clutter.KEY_z || key == Clutter.KEY_Z || key == Clutter.KEY_Undo) {
-				if (!(state & Clutter.ModifierType.SHIFT_MASK)) {
-					this.undo();
-				} else {
-					this.redo();
-				}
-				return true;
-			}
-			if (key == Clutter.KEY_Redo) {
+		// undo / redo, both modes
+		if (control && (this._isKey(event, [Clutter.KEY_z, Clutter.KEY_Z], EVDEV_Z)
+				|| key == Clutter.KEY_Undo)) {
+			if (shift) {
 				this.redo();
-				return true;
+			} else {
+				this.undo();
 			}
+			return Clutter.EVENT_STOP;
+		}
+		if (control && key == Clutter.KEY_Redo) {
+			this.redo();
+			return Clutter.EVENT_STOP;
 		}
 
-		if (this._editing) {
-			// the native paste (St.Entry's) must stay one undo step
-			if (state & Clutter.ModifierType.CONTROL_MASK
-					&& (key == Clutter.KEY_v || key == Clutter.KEY_V
-						|| key == Clutter.KEY_Paste)) {
-				this._history.boundary();
+		// paste in the editing mode, swallowed in the read-only mode:
+		// Ctrl+V / Shift+Insert / KEY_Paste (KP_Insert, like in St.Entry, is
+		// not served)
+		if ((control && this._isKey(event, [Clutter.KEY_v, Clutter.KEY_V], EVDEV_V))
+				|| key == Clutter.KEY_Paste
+				|| (shift && !control
+					&& this._isKey(event, [Clutter.KEY_Insert], EVDEV_INSERT))) {
+			if (this._editing) {
+				this.pasteClipboardAtCursor();
 			}
-			return false;
+			return Clutter.EVENT_STOP;
 		}
 
-		if (state & Clutter.ModifierType.CONTROL_MASK
-				&& (key == Clutter.KEY_v || key == Clutter.KEY_V
-					|| key == Clutter.KEY_Paste
-					|| key == Clutter.KEY_x || key == Clutter.KEY_X)) {
-			return true;
+		// cut, editing only, with a selection; swallowed when read-only
+		if ((control && this._isKey(event, [Clutter.KEY_x, Clutter.KEY_X], EVDEV_X))
+				|| key == Clutter.KEY_Cut) {
+			if (this._editing && clutterText.get_selection()) {
+				this.cutSelection();
+			}
+			return Clutter.EVENT_STOP;
 		}
-		if (state & Clutter.ModifierType.SHIFT_MASK && key == Clutter.KEY_Insert) {
-			return true;
+
+		// copy, both modes, only with a selection
+		if (control && this._isKey(event, [Clutter.KEY_c, Clutter.KEY_C], EVDEV_C)) {
+			if (clutterText.get_selection()) {
+				this.copySelection();
+			}
+			return Clutter.EVENT_STOP;
 		}
-		return false;
+
+		// select all, both modes, only with some text
+		if (control && this._isKey(event, [Clutter.KEY_a, Clutter.KEY_A], EVDEV_A)) {
+			if (clutterText.get_text()) {
+				this.selectAllText();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// not ours: typing, navigation, IM/preedit — the native path
+		return Clutter.EVENT_PROPAGATE;
+	}
+
+	/*
+	 * True when the event's keyval is one of `keyvals`, or when its hardware
+	 * keycode is `evdevCode` — a keyval depends on the active XKB group
+	 * (with Cyrillic active Ctrl+Z arrives as a Cyrillic keysym on the same
+	 * physical key), a keycode doesn't. Clutter reports the evdev code
+	 * unchanged on Wayland and offset by 8 (the X keycode) under X11, hence
+	 * both are accepted. The service keysyms (Undo, Redo, Paste, Cut) have
+	 * no physical key: pass 0 to skip the keycode check. Lower- and
+	 * uppercase keyvals are both listed by the callers, so Caps Lock doesn't
+	 * matter either.
+	 */
+	_isKey (event, keyvals, evdevCode) {
+		if (keyvals.includes(event.get_key_symbol())) { return true; }
+		if (evdevCode == 0) { return false; }
+		let code = event.get_key_code();
+		return code == evdevCode || code == evdevCode + 8;
 	}
 
 	_openDeleteDialog () {
