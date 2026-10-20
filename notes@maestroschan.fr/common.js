@@ -57,7 +57,7 @@ var TEXT_COLORS = {
  * `gicon` property of a St.Icon (icon_name can't find them, as they aren't
  * part of the system icon theme). Returns null when the icon doesn't exist.
  */
-var CUSTOM_ICONS = ['copy-to-buf', 'edit', 'new-note', 'setting'];
+var CUSTOM_ICONS = ['edit', 'edit-copy', 'edit-paste', 'new-note', 'setting'];
 
 var getCustomIcon = function (extensionDir, name) {
 	let file = Gio.File.new_for_path(GLib.build_filenamev([
