@@ -4,7 +4,7 @@
 |------|-----------|--------|
 | Ф1 | TextHistory: модуль + юнит-тесты | done |
 | Ф2 | Клавиатурные Undo/Redo (Ctrl+Z / Ctrl+Shift+Z, оба режима) | код готов, живая проверка X11 не проводилась |
-| Ф3 | Контекстное меню (разведка FIXME + меню) | pending |
+| Ф3 | Контекстное меню (разведка FIXME + меню) | код готов, живая проверка X11 не проводилась |
 | Ф4 | Приёмка 1–11, ADR, слияние | pending |
 
 ## Журнал
@@ -41,3 +41,41 @@
   set_cursor_position)` → `_saveText()`. Юнит-тесты зелёные (51/51, 69/69),
   синтаксис noteBox.js проверен. Живая проверка X11 по DoD Ф2 — не проводилась,
   перенесена в Ф4 (сценарии приёмки).
+- 2026-10-21 — Ф3 разведка FIXME `ShellEntry.addContextMenu` (вывод): FIXME
+  добавлен апстримом в 6844b87 («Finally fix #31 #32…», май 2020) — период
+  регрессий GrabHelper/фокуса в GS 3.34–3.36 («GrabHelper owner must be a
+  Clutter.Actor», ишью #31/#32); вызов комментировался вслепую, апстрим
+  (origin/master) живёт с ним до сих пор. В GS 42 `addContextMenu`
+  механически работоспособен (его EntryMenu сидит на тех же
+  PopupMenuManager+pushModal, что и наш NoteOptionsMenu), но непригоден
+  концептуально: нет Cut/Undo/Redo, нет правил режимов, позиционирование —
+  у верхнего края entry (alignment по X), а не у клика. Вывод: меню своё
+  (решение 02 не изменилось). Позиционирование: BoxPointer умеет
+  привязываться только к source-актору, поэтому меню якорится к невидимому
+  St.Bin 1×1 в uiGroup, перемещаемому в точку клика перед открытием.
+- 2026-10-21 — находка разведки (важно): в Clutter.Text GS 42/mutter-10
+  **нет** `copy_clipboard`/`paste_clipboard`/`select_all` (проверено
+  интроспекцией прототипа через gjs); есть `get_selection`, `set_selection`,
+  `delete_selection`, `insert_text`, `position_to_coords`. Значит, старая
+  ветка Ctrl+V из 8413260 (`paste_clipboard()`) на этой версии бросала
+  TypeError, который маскировался переключением в редактирование (апстримный
+  EntryMenu по этой же причине вставляет вручную: delete_selection +
+  insert_text). Действия меню реализованы через `St.Clipboard` +
+  `set_selection(0, len)` для «Выделить всё».
+- 2026-10-21 — Ф3 (код) выполнена: `menus.js` — `NoteTextContextMenu`
+  (Cut/Copy/Paste | Undo/Redo | Select all, чувствительность по матрице 02,
+  async-проверка буфера для Paste с guard'ом уничтожения, жизненный цикл по
+  образцу NoteOptionsMenu: notify::mapped → close, destroy → destroy);
+  отклонения от 02: (1) `blockSourceEvents` не ставится — в GS 42 это
+  мёртвое свойство, закрытие вне меню делает PopupMenuManager через
+  captured-event; (2) правый клик при открытом меню закрывает его без
+  переоткрытия (паттерн апстримного `_onButtonPressEvent`). `noteBox.js` —
+  перехват button==3 на clutterText до дефолтного обработчика (сохраняет
+  выделение), сигнал `popup-menu` (Menu/Shift+F10, якорь у курсора),
+  ленивое создание меню + PopupMenuManager на заметку, публичные
+  `boundary()`/`canUndo()`/`canRedo()`; удалён мёртвый импорт ShellEntry,
+  FIXME-строка заменена ссылкой на журнал. i18n: строки через `_()`,
+  `update-and-compile-translations.sh --pot` (обновлён только .pot;
+  msgmerge по всем языкам — на Ф4 перед слиянием). Синтаксис обоих файлов и
+  юнит-тесты зелёные (51/51). Живая проверка X11 по DoD Ф3 — не проводилась,
+  перенесена в Ф4.

@@ -5,6 +5,7 @@
 const { Clutter, St } = imports.gi;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
+const BoxPointer = imports.ui.boxpointer;
 const Signals = imports.signals;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -250,6 +251,168 @@ var NoteRoundButton = class NoteRoundButton {
 	}
 };
 Signals.addSignalMethods(NoteRoundButton.prototype);
+
+//------------------------------------------------------------------------------
+
+/*
+ * Text context menu of a single note (task 002, see
+ * docs/tasks/002-text-context-menu/02-architecture.md): Cut / Copy / Paste —
+ * Undo / Redo — Select all, opened by a right click on the note's text or by
+ * the keyboard Menu key (popup-menu signal). Created lazily by the NoteBox;
+ * destroys itself with the note.
+ *
+ * Positioning: BoxPointer can only anchor itself to a source actor, so the
+ * menu is anchored to a 1×1 invisible "anchor" actor living in the uiGroup,
+ * moved to the click point (or to the text cursor for the popup-menu signal)
+ * before opening. Anchoring to the note entry itself would stick the arrow
+ * to the entry's top edge instead of the click point.
+ *
+ * Item sensitivity follows the matrix from 02-architecture.md: Cut and Paste
+ * are editing-only (Paste also depends on the clipboard content, checked
+ * asynchronously like the upstream EntryMenu does), Copy depends on the
+ * selection, Undo/Redo on the note's history, Select all on the text being
+ * non-empty.
+ */
+var NoteTextContextMenu = class NoteTextContextMenu {
+	constructor (note) {
+		this._note = note;
+		this._isDestroyed = false;
+
+		this._anchor = new St.Bin({
+			reactive: false,
+			width: 1,
+			height: 1,
+		});
+		Main.uiGroup.add_child(this._anchor);
+
+		this.super_menu = new PopupMenu.PopupMenu(this._anchor, 0.0, St.Side.TOP);
+
+		this._cutItem = this.super_menu.addAction(_("Cut"), this._onCutActivated.bind(this));
+		this._copyItem = this.super_menu.addAction(_("Copy"), this._onCopyActivated.bind(this));
+		this._pasteItem = this.super_menu.addAction(_("Paste"), this._onPasteActivated.bind(this));
+
+		this._appendSeparator();
+
+		this._undoItem = this.super_menu.addAction(_("Undo"), () => { this._note.undo(); });
+		this._redoItem = this.super_menu.addAction(_("Redo"), () => { this._note.redo(); });
+
+		this._appendSeparator();
+
+		this._selectAllItem = this.super_menu.addAction(_("Select All"), this._onSelectAllActivated.bind(this));
+
+		Main.uiGroup.add_child(this.super_menu.actor);
+		this.super_menu.actor.hide();
+
+		// Chain the menu's lifecycle to that of the note (pattern of
+		// NoteOptionsMenu): hiding the note closes the menu, destroying it
+		// destroys the menu (and the anchor with it)
+		note.actor.connect('notify::mapped', () => {
+			if (!note.actor.mapped) {
+				this.super_menu.close();
+			}
+		});
+		note.actor.connect('destroy', this.destroy.bind(this));
+	}
+
+	/*
+	 * stageX/stageY: stage coordinates to anchor the menu at; when undefined
+	 * (shouldn't normally happen), the menu opens at the anchor's last
+	 * position.
+	 */
+	popup (stageX, stageY) {
+		if (stageX !== undefined) {
+			this._anchor.set_position(Math.floor(stageX), Math.floor(stageY));
+		}
+		this._redisplay();
+		this.super_menu.open(BoxPointer.PopupAnimation.FULL);
+	}
+
+	destroy () {
+		if (this._isDestroyed) { return; }
+		this._isDestroyed = true;
+		this._anchor.destroy();
+		this.super_menu.destroy();
+	}
+
+	//-------------------------- internals --------------------------------------
+
+	_redisplay () {
+		let clutterText = this._note.noteEntry.get_clutter_text();
+		let selection = clutterText.get_selection();
+		let hasSelection = (selection != null && selection != '');
+		let hasText = this._note.noteEntry.get_text().length > 0;
+
+		this._cutItem.setSensitive(this._note._editing && hasSelection);
+		this._copyItem.setSensitive(hasSelection);
+		this._selectAllItem.setSensitive(hasText);
+		this._undoItem.setSensitive(this._note.canUndo());
+		this._redoItem.setSensitive(this._note.canRedo());
+
+		// the clipboard read is asynchronous, the callback can happen after
+		// the note (and the menu) got destroyed
+		this._pasteItem.setSensitive(false);
+		if (this._note._editing) {
+			St.Clipboard.get_default().get_text(
+				St.ClipboardType.CLIPBOARD,
+				(clipboard, text) => {
+					if (this._isDestroyed) { return; }
+					this._pasteItem.setSensitive(text && text != '');
+				}
+			);
+		}
+	}
+
+	_appendSeparator () {
+		this.super_menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+	}
+
+	/*
+	 * Clutter.Text (GS 42) has no copy_clipboard/paste_clipboard/select_all:
+	 * the clipboard is driven directly through St.Clipboard, and selection
+	 * through set_selection — same approach as the upstream EntryMenu.
+	 */
+	_onCutActivated () {
+		let clutterText = this._note.noteEntry.get_clutter_text();
+		this._note.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+		clutterText.delete_selection();
+	}
+
+	_onCopyActivated () {
+		let clutterText = this._note.noteEntry.get_clutter_text();
+		this._note.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+	}
+
+	_onPasteActivated () {
+		let clutterText = this._note.noteEntry.get_clutter_text();
+		this._note.boundary();
+		// the menu's modal grab took the key focus away from the text;
+		// give it back so the cursor sits where the user left it
+		this._note.noteEntry.grab_key_focus();
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => {
+				// the read is asynchronous: the note may be gone by then
+				if (this._isDestroyed || !text) { return; }
+				clutterText.delete_selection();
+				clutterText.insert_text(text, clutterText.get_cursor_position());
+			}
+		);
+	}
+
+	_onSelectAllActivated () {
+		let clutterText = this._note.noteEntry.get_clutter_text();
+		this._note.noteEntry.grab_key_focus();
+		clutterText.set_selection(0, clutterText.get_text().length);
+	}
+};
 
 //------------------------------------------------------------------------------
 

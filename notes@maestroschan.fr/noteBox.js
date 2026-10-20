@@ -4,7 +4,7 @@
 
 const { Clutter, St, GLib, Gio } = imports.gi;
 const Main = imports.ui.main;
-const ShellEntry = imports.ui.shellEntry;
+const PopupMenu = imports.ui.popupMenu;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -114,6 +114,24 @@ var NoteBox = class NoteBox {
 		// wrapped in a history suspend so it doesn't open a bogus undo step
 		clutterText.connect('text-changed', this._onTextChanged.bind(this));
 
+		// The text context menu (task 002) is built lazily on its first use.
+		// A right click is intercepted here, before ClutterText's own
+		// handling: letting ClutterText process button 3 would move the
+		// cursor to the click point and drop the selection.
+		this._textMenu = null;
+		this._textMenuManager = null;
+		clutterText.connect('button-press-event', (actor, event) => {
+			if (event.get_button() != 3) { return Clutter.EVENT_PROPAGATE; }
+			if (this._textMenu && this._textMenu.super_menu.isOpen) {
+				this._textMenu.super_menu.close();
+				return Clutter.EVENT_STOP;
+			}
+			this._openTextMenu(event.get_coords()[0], event.get_coords()[1]);
+			return Clutter.EVENT_STOP;
+		});
+		// Shift+F10 / Menu key: the menu is anchored at the text cursor
+		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
+
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
 			x_expand: true,
@@ -159,7 +177,8 @@ var NoteBox = class NoteBox {
 		this.loadIntoCorrectLayer();
 		this._setNotePosition();
 		this._loadText();
-		// ShellEntry.addContextMenu(this.noteEntry); // FIXME doesn't work
+		// the text menu below replaces ShellEntry.addContextMenu (its FIXME
+		// "doesn't work" is explained in the task 002 journal)
 		this._initStyle();
 		// a newly created note opens straight into the editing mode; done
 		// after _loadText so the initial setEditMode(false) in the middle of
@@ -281,9 +300,7 @@ var NoteBox = class NoteBox {
 		// a mode switch is a discrete operation: whatever typing portion was
 		// open becomes its own undo step (the history doesn't exist yet during
 		// the initial calls from _buildNote)
-		if (this._history) {
-			this._history.boundary();
-		}
+		this.boundary();
 		this._editing = editing;
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
@@ -357,6 +374,66 @@ var NoteBox = class NoteBox {
 			clutterText.set_cursor_position(state.cursor);
 		});
 		this._saveText();
+	}
+
+	/*
+	 * Closes the currently open undo portion, making it one undo step (no-op
+	 * when the history doesn't exist yet, or when nothing is open). Called
+	 * before discrete operations: mode switch, headerbar paste, Ctrl+V, the
+	 * context menu's Cut/Copy/Paste.
+	 */
+	boundary () {
+		if (this._history) {
+			this._history.boundary();
+		}
+	}
+
+	canUndo () {
+		return this._history ? this._history.canUndo() : false;
+	}
+
+	canRedo () {
+		return this._history ? this._history.canRedo() : false;
+	}
+
+	//-------------------------- text context menu ------------------------------
+
+	/*
+	 * Opens the text context menu anchored at the stage point (stageX,
+	 * stageY); the menu and its manager are created on the first use.
+	 */
+	_openTextMenu (stageX, stageY) {
+		if (!this._textMenu) {
+			this._textMenu = new Menus.NoteTextContextMenu(this);
+			// same compat shim as NoteRoundButton.addMenu: before 3.33 the
+			// constructor takes the owner, after it the actor
+			try {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this);
+			} catch (e) {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this.actor);
+			}
+			this._textMenuManager.addMenu(this._textMenu.super_menu);
+		}
+		this._textMenu.popup(stageX, stageY);
+	}
+
+	/*
+	 * Keyboard opening (Menu key / Shift+F10, via the popup-menu signal):
+	 * anchored at the text cursor, falling back to the entry's corner when
+	 * the cursor position can't be translated to coordinates (e.g. no cursor
+	 * in the read-only mode).
+	 */
+	_onTextPopupMenu () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let [transformed, entryX, entryY] = clutterText.get_transformed_position();
+		let [success, textX, textY, lineHeight] =
+			clutterText.position_to_coords(clutterText.get_cursor_position());
+		if (success) {
+			this._openTextMenu(entryX + textX, entryY + textY + lineHeight);
+		} else if (transformed) {
+			this._openTextMenu(entryX, entryY);
+		}
+		return true;
 	}
 
 	_pasteFromClipboard () {
