@@ -171,6 +171,8 @@ var NoteBox = class NoteBox {
 	 * - The 'edit' button toggles the note between the read-only mode (the
 	 *   default) and the editing mode.
 	 * - The 'copy' button copies the note's text to the clipboard.
+	 * - The 'paste' button appends the clipboard's text at the end of the
+	 *   note, on a new line if the note already has some.
 	 * - The 'delete' button asks the user to confirm if they really wants to
 	 *   delete the note (see `dialog.js`), and if yes the object is destroyed,
 	 *   and a method from the NotesManager is called to correctly delete the
@@ -207,6 +209,14 @@ var NoteBox = class NoteBox {
 		);
 		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
 		this._buttonsBox.add_child(this._btnCopy.actor);
+
+		this._btnPaste = new Menus.NoteRoundButton(
+			this,
+			Common.getCustomIcon(Me.dir, 'edit-paste'),
+			_("Paste from clipboard")
+		);
+		this._btnPaste.actor.connect('clicked', this._pasteFromClipboard.bind(this));
+		this._buttonsBox.add_child(this._btnPaste.actor);
 
 		this._btnDelete = new Menus.NoteRoundButton(
 			this,
@@ -289,6 +299,35 @@ var NoteBox = class NoteBox {
 			St.ClipboardType.CLIPBOARD,
 			this.noteEntry.get_text()
 		);
+	}
+
+	_pasteFromClipboard () {
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => { this._appendClipboardText(text); }
+		);
+	}
+
+	/*
+	 * Appends `text` at the end of the note: straight into an empty (or new)
+	 * note, on a new line otherwise — without doubling a newline the note
+	 * already ends with. The clipboard read is asynchronous, so the note may
+	 * have been destroyed in the meantime.
+	 */
+	_appendClipboardText (text) {
+		if (this.actor == null || !text) { return; }
+		let noteText = this.noteEntry.get_text();
+		if (noteText && noteText.length > 0) {
+			if (!noteText.endsWith('\n')) {
+				noteText += '\n';
+			}
+			text = noteText + text;
+		}
+		this.noteEntry.set_text(text);
+		this._saveText();
+		if (this._editing) {
+			this.noteEntry.get_clutter_text().set_cursor_position(text.length);
+		}
 	}
 
 	/*
