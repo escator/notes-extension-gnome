@@ -13,10 +13,11 @@ const ByteArray = imports.byteArray;
 
 const REGISTRY_VERSION = 1;
 // Defaults mirror the legacy behavior: createNote('', 16) in extension.js and
-// the former _createDefaultState in noteBox.js
-const DEFAULT_FONT_SIZE = 16;
-const DEFAULT_WIDTH = 250;
-const DEFAULT_HEIGHT = 180;
+// the former _createDefaultState in noteBox.js. Exported as vars: the manager
+// uses them for the fold slot of a brand-new note.
+var DEFAULT_FONT_SIZE = 16;
+var DEFAULT_WIDTH = 250;
+var DEFAULT_HEIGHT = 180;
 
 //------------------------------------------------------------------------------
 // Monitor configuration signature --------------------------------------------

@@ -34,19 +34,24 @@ function stringFromArray(data){
 
 /*
  * This class stands for one note. The note's id corresponds to the name of
- * files where its data will be stored. The note's state is loaded and the note
- * is built, then the note's text is loaded.
- * Almost all of the init process is done in the _buildNote() method. Then, the
- * other methods are here for managing note state through buttons, or to
+ * the file where its text is stored, and to its entry in the layout registry
+ * (layouts.json, owned by the NotesManager). The manager decides the id, the
+ * attributes (color, font size) and the geometry (x, y, w, h — global scene
+ * coordinates, valid across all the monitors); the note itself only handles
+ * the widgets, the user interactions, and the text file.
+ * Almost all of the init process is done in the _buildNote() method. Then,
+ * the other methods are here for managing note state through buttons, or to
  * interact with the NotesManager singleton.
  */
 var NoteBox = class NoteBox {
-	constructor (manager, id, color, fontSize, startInEditMode = false) {
+	constructor (manager, spec) {
 		this._manager = manager;
-		this.id = id;
-		this._fontSize = fontSize;
-		if (color.split(',').length == 3) {
-			this.customColor = color;
+		this.id = spec.id;
+		this._fontSize = spec.fontSize;
+		this._x = Math.floor(spec.x);
+		this._y = Math.floor(spec.y);
+		if (spec.color && spec.color.split(',').length == 3) {
+			this.customColor = spec.color;
 		} else {
 			let c = this._manager.settings.get_strv('first-note-rgb');
 			c[0] = Math.round(c[0] * 255);
@@ -54,10 +59,10 @@ var NoteBox = class NoteBox {
 			c[2] = Math.round(c[2] * 255);
 			this.customColor = c.toString();
 		}
-		this._buildNote(startInEditMode);
+		this._buildNote(spec);
 	}
 
-	_buildNote (startInEditMode) {
+	_buildNote (spec) {
 		this.actor = new St.BoxLayout({
 			reactive: true,
 			vertical: true,
@@ -68,7 +73,8 @@ var NoteBox = class NoteBox {
 		});
 
 		this._fontColor = '';
-		this._loadState();
+		this.actor.width = Math.floor(spec.w);
+		this.actor.height = Math.floor(spec.h);
 		this._applyActorStyle();
 
 		// This actually builds all the possible headerbars
@@ -152,7 +158,7 @@ var NoteBox = class NoteBox {
 		// a newly created note opens straight into the editing mode; done
 		// after _loadText so the initial setEditMode(false) in the middle of
 		// this method keeps its "don't wipe the file" guarantee
-		if (startInEditMode) {
+		if (spec.startInEditMode) {
 			this.setEditMode(true);
 		}
 
@@ -380,24 +386,11 @@ var NoteBox = class NoteBox {
 
 	onlySave (withMetadata=true) {
 		if(withMetadata) {
-			this._saveState();
+			// one disk write for the whole set of notes (positions +
+			// attributes), see NotesManager.saveLayout
+			this._manager.saveLayout();
 		}
 		this._saveText();
-	}
-
-	fixState () {
-		let outX = (this._x < 0 || this._x > Main.layoutManager.primaryMonitor.width - 20);
-		let outY = (this._y < 0 || this._y > Main.layoutManager.primaryMonitor.height - 20);
-		if (outX || outY) {
-			[this._x, this._y] = this._computeRandomPosition();
-			this._setNotePosition();
-		}
-		if (Number.isNaN(this._x)) { this._x = 10; }
-		if (Number.isNaN(this._y)) { this._y = 10; }
-		if (Number.isNaN(this.actor.width)) { this.actor.width = 250; }
-		if (Number.isNaN(this.actor.height)) { this.actor.height = 200; }
-		if (Number.isNaN(this._fontSize)) { this._fontSize = 10; }
-		this._saveState();
 	}
 
 	//--------------------------------------------------------------------------
@@ -477,11 +470,11 @@ var NoteBox = class NoteBox {
 	// Sticky note's size and position -----------------------------------------
 
 	_setNotePosition () {
-		let monitor = Main.layoutManager.primaryMonitor;
-
+		// the note's coordinates are global scene coordinates (valid across
+		// all the monitors), not relative to the primary monitor anymore
 		this.actor.set_position(
-			monitor.x + Math.floor(this._x),
-			monitor.y + Math.floor(this._y)
+			Math.floor(this._x),
+			Math.floor(this._y)
 		);
 	}
 
@@ -623,78 +616,6 @@ var NoteBox = class NoteBox {
 		}
 		let file = GLib.build_filenamev([PATH, this.id.toString() + '_text']);
 		GLib.file_set_contents(file, noteText);
-	}
-
-	/*
-	 * This tries to find a random [x,y] which doesn't overlap with an existing
-	 * note's header and which isn't out of the primary monitor. Of course, if
-	 * there is notes everywhere, it just abandons computation, and sets the
-	 * note in a random position (within the monitor or course).
-	 */
-	_computeRandomPosition () {
-		let x;
-		let y;
-		for(var i = 0; i < 15; i++) {
-			x = Math.random() * (Main.layoutManager.primaryMonitor.width - 300);
-			y = Math.random() * (Main.layoutManager.primaryMonitor.height - 100);
-
-			if (this._manager.areCoordsUsable(x, y)) {
-				return [x, y];
-			}
-		}
-		return [x, y];
-	}
-
-	_createDefaultState (fileName) {
-		let defaultPosition = this._computeRandomPosition();
-		let defaultContent = defaultPosition[0].toString() + ';'
-		                   + defaultPosition[1].toString() + ';'
-		                   + this.customColor + ';250;180;'
-		                   + this._fontSize + ';'
-		GLib.file_set_contents(fileName, defaultContent);
-		return defaultContent;
-	}
-
-	_loadState () {
-		let fname = GLib.build_filenamev([PATH, this.id.toString() + '_state']);
-		if (!GLib.file_test(fname, GLib.FileTest.EXISTS)) {
-			// If a _text file has no corresponding _state file
-			this._createDefaultState(fname);
-		}
-
-		let file = Gio.file_new_for_path(fname);
-		let [result, contents] = file.load_contents(null);
-		let stringContent;
-		if (!result) {
-			log("Could not read sticky note state file: " + fname);
-			stringContent = this._createDefaultState(fname);
-		} else {
-			stringContent = stringFromArray(contents);
-		}
-
-		let state = stringContent.split(';');
-		this._x = Number(state[0]);
-		this._y = Number(state[1]);
-		this.customColor = state[2];
-		this.actor.width = Number(state[3]);
-		this.actor.height = Number(state[4]);
-		this._fontSize = Number(state[5]);
-		// Old state files have a legacy 7th field ('entry_is_visible'), which
-		// isn't used anymore: notes always open read-only.
-	}
-
-	_saveState () {
-		let noteState = '';
-		noteState += this._x.toString() + ';';
-		noteState += this._y.toString() + ';';
-		noteState += this.customColor.toString() + ';';
-		noteState += this.actor.width.toString() + ';';
-		noteState += this.actor.height.toString() + ';';
-		noteState += this._fontSize.toString() + ';';
-
-		//log('_saveState | ' + this.id.toString() + ' | ' + noteState);
-		let file = GLib.build_filenamev([PATH, this.id.toString() + '_state']);
-		GLib.file_set_contents(file, noteState);
 	}
 
 	//--------------------------------------------------------------------------
