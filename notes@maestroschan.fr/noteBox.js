@@ -469,32 +469,53 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
-	 * Key handling running before the entry's own: undo/redo are offered in
-	 * both modes (the text is restored and saved to disk without switching
-	 * modes); Ctrl+V in the editing mode just opens an undo boundary and
-	 * falls through to the native paste. On a read-only note the native paste
-	 * silently does nothing (decision 2026-10-21: paste never switches to the
-	 * editing mode anymore).
+	 * Key handling running before the entry's own class handler: undo/redo
+	 * are offered in both modes (the text is restored and saved to disk
+	 * without switching modes). In the editing mode Ctrl+V just opens an
+	 * undo boundary and falls through to the paste done by St.Entry. On a
+	 * read-only note St.Entry would STILL paste and cut the text
+	 * (st_entry_key_press_event, GS 42, has no editable check): those keys
+	 * are swallowed here, before it runs — nothing happens instead
+	 * (decision 2026-10-21: paste never switches to the editing mode
+	 * anymore); Ctrl+C / Ctrl+A keep their native copy behavior.
 	 */
 	_onKeyPress (actor, event) {
-		if (!(event.get_state() & Clutter.ModifierType.CONTROL_MASK)) { return false; }
+		let state = event.get_state();
 		let key = event.get_key_symbol();
-		if (key == Clutter.KEY_z || key == Clutter.KEY_Z || key == Clutter.KEY_Undo) {
-			if (!(event.get_state() & Clutter.ModifierType.SHIFT_MASK)) {
-				this.undo();
+
+		if (state & Clutter.ModifierType.CONTROL_MASK) {
+			if (key == Clutter.KEY_z || key == Clutter.KEY_Z || key == Clutter.KEY_Undo) {
+				if (!(state & Clutter.ModifierType.SHIFT_MASK)) {
+					this.undo();
+				} else {
+					this.redo();
+				}
 				return true;
 			}
-			this.redo();
-			return true;
+			if (key == Clutter.KEY_Redo) {
+				this.redo();
+				return true;
+			}
 		}
-		if (key == Clutter.KEY_Redo) {
-			this.redo();
-			return true;
+
+		if (this._editing) {
+			// the native paste (St.Entry's) must stay one undo step
+			if (state & Clutter.ModifierType.CONTROL_MASK
+					&& (key == Clutter.KEY_v || key == Clutter.KEY_V
+						|| key == Clutter.KEY_Paste)) {
+				this._history.boundary();
+			}
+			return false;
 		}
-		if (this._editing
+
+		if (state & Clutter.ModifierType.CONTROL_MASK
 				&& (key == Clutter.KEY_v || key == Clutter.KEY_V
-					|| key == Clutter.KEY_Paste)) {
-			this._history.boundary();
+					|| key == Clutter.KEY_Paste
+					|| key == Clutter.KEY_x || key == Clutter.KEY_X)) {
+			return true;
+		}
+		if (state & Clutter.ModifierType.SHIFT_MASK && key == Clutter.KEY_Insert) {
+			return true;
 		}
 		return false;
 	}
