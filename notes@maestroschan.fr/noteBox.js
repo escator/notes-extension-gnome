@@ -542,17 +542,18 @@ var NoteBox = class NoteBox {
 	_pasteFromClipboard () {
 		St.Clipboard.get_default().get_text(
 			St.ClipboardType.CLIPBOARD,
-			(clipboard, text) => { this._appendClipboardText(text); }
+			(clipboard, text) => { this.appendClipboardText(text); }
 		);
 	}
 
 	/*
 	 * Appends `text` at the end of the note: straight into an empty (or new)
 	 * note, on a new line otherwise — without doubling a newline the note
-	 * already ends with. The clipboard read is asynchronous, so the note may
-	 * have been destroyed in the meantime.
+	 * already ends with. Public: the notes manager also calls it right after
+	 * creating a 'New from Clipboard' note. The clipboard read is
+	 * asynchronous, so the note may have been destroyed in the meantime.
 	 */
-	_appendClipboardText (text) {
+	appendClipboardText (text) {
 		if (this.actor == null || !text) { return; }
 		// the headerbar's paste button is a discrete operation: any open
 		// typing portion closes here, the paste becomes its own undo step

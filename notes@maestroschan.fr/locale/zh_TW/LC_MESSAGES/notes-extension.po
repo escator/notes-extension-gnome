@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 19:54+0700\n"
+"POT-Creation-Date: 2026-10-21 20:11+0700\n"
 "PO-Revision-Date: 2020-06-23 17:24+0800\n"
 "Last-Translator: Nesquate <nesquate.100001@gmail.com>\n"
 "Language-Team: \n"
@@ -26,6 +26,10 @@ msgstr "Notes 擴充套件錯誤 : 載入便箋失敗"
 #| msgid "Show notes"
 msgid "New note"
 msgstr "顯示便箋"
+
+#: notes@maestroschan.fr/extension.js
+msgid "New from Clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
