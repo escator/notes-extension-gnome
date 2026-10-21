@@ -180,20 +180,13 @@ const NotesSettingsWidget = new GObject.Class({
 	_buildAboutPage(builder) {
 		builder.get_object('about_icon').set_from_pixbuf(
 			GdkPixbuf.Pixbuf.new_from_file_at_size(Me.path +
-		                             '/screenshots/about_picture.png', 163, 114)
+			                             '/icons/notes.png', 96, 96)
 		);
 
 		let ext_version = _("Version %s").replace('%s', Me.metadata.version.toString());
 		builder.get_object('label_version').set_label(ext_version)
 
-		let translation_credits = builder.get_object('translation_credits').get_label();
-		if (translation_credits == 'translator-credits') {
-			builder.get_object('translation_label').set_label('');
-			builder.get_object('translation_credits').set_label('');
-		}
-
-		let ext_report_url = Me.metadata.url.toString();
-		builder.get_object('report_link_button').set_uri(ext_report_url);
+		builder.get_object('report_link_button').set_uri('https://github.com/escator/notes-extension-gnome');
 	}
 
 });

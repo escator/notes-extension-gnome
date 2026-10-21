@@ -323,7 +323,7 @@
         <child>
           <object class="GtkLabel">
             <property name="halign">center</property>
-            <property name="label" translatable="yes">Notes</property>
+            <property name="label">Sticky Notes 2</property>
             <attributes>
               <attribute name="weight" value="bold"/>
               <attribute name="scale" value="2"/>
@@ -332,12 +332,14 @@
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="label" translatable="yes">Sticky notes for the GNOME Shell desktop.</property>
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">(fork of the sticky notes extension for the GNOME Shell desktop)</property>
           </object>
         </child>
         <child>
           <object class="GtkImage" id="about_icon">
-            <property name="pixel-size">163</property>
+            <property name="pixel-size">96</property>
           </object>
         </child>
         <child>
@@ -349,46 +351,48 @@
             </style>
           </object>
         </child>
-
         <child>
-          <object class="GtkBox">
-            <property name="spacing">12</property>
-            <property name="hexpand">True</property>
-            <property name="valign">end</property>
-            <child>
-              <object class="GtkBox">
-                <property name="halign">start</property>
-                <property name="orientation">vertical</property>
-                <property name="spacing">12</property>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="label" translatable="yes">Author:</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="label">Romain F. T.</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="halign">end</property>
-                <property name="orientation">vertical</property>
-                <property name="spacing">12</property>
-                <child>
-                  <object class="GtkLabel" id="translation_label">
-                    <property name="label" translatable="yes">Translation:</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="translation_credits">
-                    <property name="label" translatable="yes">translator-credits</property>
-                  </object>
-                </child>
-              </object>
-            </child>
+          <object class="GtkLabel" id="about_description">
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Reworked design and extended functionality:
+• Improved visual style and interface
+• Better sticky notes on the screen
+• Text context menu with edit history
+• New notes from the clipboard
+• Color filter in the panel menu
+• Proper multi-monitor support</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Based on the original extension by Romain F. T. (maoschanz)</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Fork  https://github.com/maoschanz/notes-extension-gnome</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Developer: Pavel Chernyakov (escator)</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">center</property>
+            <property name="wrap">True</property>
+            <property name="label">Git fork: https://github.com/escator/notes-extension-gnome</property>
           </object>
         </child>
         <child>
