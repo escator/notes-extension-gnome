@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 20:11+0700\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2020-06-23 17:24+0800\n"
 "Last-Translator: Nesquate <nesquate.100001@gmail.com>\n"
 "Language-Team: \n"
@@ -34,6 +34,16 @@ msgstr ""
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "設定"
+
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Custom color"
+msgid "Filter by color"
+msgstr "自訂色彩"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
