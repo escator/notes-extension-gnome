@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 19:54+0700\n"
+"POT-Creation-Date: 2026-10-21 20:11+0700\n"
 "PO-Revision-Date: 2022-09-06 17:25+0200\n"
 "Last-Translator: David Astillero Pérez <dastillero@gmail.com>\n"
 "Language-Team: Spanish\n"
@@ -32,6 +32,10 @@ msgstr "Error de extensión de notas: Hubo un error al cargar la nota"
 #| msgid "Show notes"
 msgid "New note"
 msgstr "Mostrar notas"
+
+#: notes@maestroschan.fr/extension.js
+msgid "New from Clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"

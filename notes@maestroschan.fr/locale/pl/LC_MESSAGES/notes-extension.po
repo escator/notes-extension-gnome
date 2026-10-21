@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 19:54+0700\n"
+"POT-Creation-Date: 2026-10-21 20:11+0700\n"
 "PO-Revision-Date: 2022-04-23 23:41+0200\n"
 "Last-Translator: Dawid Jandziński <quark@fedora>\n"
 "Language-Team: Greek\n"
@@ -27,6 +27,10 @@ msgstr ""
 
 #: notes@maestroschan.fr/extension.js
 msgid "New note"
+msgstr ""
+
+#: notes@maestroschan.fr/extension.js
+msgid "New from Clipboard"
 msgstr ""
 
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
