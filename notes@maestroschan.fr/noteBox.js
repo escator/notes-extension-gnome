@@ -733,6 +733,12 @@ var NoteBox = class NoteBox {
 	}
 
 	show () {
+		// a visible note is already in the chrome; trackChrome would throw
+		// ('trying to re-track existing chrome actor'), e.g. when the color
+		// filter reset shows the hidden notes next to the already visible
+		// ones, or when a note created through 'New note' while the notes
+		// are globally hidden survives into the next global show
+		if (this.actor.visible) { return; }
 		this.actor.visible = true;
 		Main.layoutManager.trackChrome(this.actor);
 	}
