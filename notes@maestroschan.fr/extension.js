@@ -219,9 +219,12 @@ class NotesManager {
 			[{ id: id, w: Layouts.DEFAULT_WIDTH, h: Layouts.DEFAULT_HEIGHT }],
 			occupied
 		)[id];
-		this._createNoteBox(id, colorString, fontSize,
+		let note = this._createNoteBox(id, colorString, fontSize,
 			slot.x, slot.y, slot.w, slot.h, startInEditMode);
 		this.saveLayout();
+		// null when the NoteBox constructor threw (the failure is already
+		// notified); the caller may want the object (e.g. to fill it)
+		return note;
 	}
 
 	_createNoteBox (id, colorString, fontSize, x, y, w, h, startInEditMode) {
@@ -234,10 +237,12 @@ class NotesManager {
 				startInEditMode: startInEditMode
 			});
 			this._allNotes.push(note);
+			return note;
 		} catch (e) {
 			Main.notify(_("Notes extension error: failed to load a note"));
 			log('failed to create note n°' + id.toString());
 			log(e);
+			return null;
 		}
 	}
 
@@ -460,6 +465,13 @@ class NotesManager {
 
 		this._addIconAction(_("New note"), Common.getCustomIcon(Me.dir, 'new-note'),
 			this._onMenuNewNote.bind(this));
+		// the clipboard content is only known asynchronously: the item starts
+		// insensitive, and gets enabled on each menu opening if there is some
+		// text to paste (see the 'open-state-changed' handler below)
+		this._newFromClipboardItem = this._addIconAction(_("New from Clipboard"),
+			Common.getCustomIcon(Me.dir, 'edit-paste'),
+			this._onMenuNewFromClipboard.bind(this));
+		this._newFromClipboardItem.setSensitive(false);
 		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
 			this._onMenuSettings.bind(this));
 
@@ -469,6 +481,15 @@ class NotesManager {
 		this._menu.connect('open-state-changed', (menu, open) => {
 			if (open) {
 				this.panel_button.add_style_pseudo_class('active');
+				// 'New from Clipboard' makes sense only with some text in the
+				// clipboard; the read is asynchronous, so the item visibly
+				// grays out (or back in) a moment after the menu opens
+				St.Clipboard.get_default().get_text(
+					St.ClipboardType.CLIPBOARD,
+					(clipboard, text) => {
+						this._newFromClipboardItem.setSensitive(!!text);
+					}
+				);
 			} else {
 				this.panel_button.remove_style_pseudo_class('active');
 			}
@@ -488,6 +509,7 @@ class NotesManager {
 			style_class: 'popup-menu-icon',
 		});
 		menuItem.actor.insert_child_at_index(iconActor, 1);
+		return menuItem;
 	}
 
 	_onMenuNewNote () {
@@ -496,6 +518,29 @@ class NotesManager {
 			this._loadAllNotes();
 		}
 		this.createNote('', 16, true);
+	}
+
+	/*
+	 * Creates a note prefilled with the clipboard's text, kept in the
+	 * read-only mode (like every existing note; the user clicks 'Edit' to
+	 * modify it). The clipboard read is asynchronous: nothing is created when
+	 * the clipboard got emptied between the menu opening and this callback.
+	 */
+	_onMenuNewFromClipboard () {
+		this._menu.close();
+		if(!this._notesLoaded) {
+			this._loadAllNotes();
+		}
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => {
+				if (!text) { return; }
+				let note = this.createNote('', 16, false);
+				if (note != null) {
+					note.appendClipboardText(text);
+				}
+			}
+		);
 	}
 
 	_onMenuSettings () {
