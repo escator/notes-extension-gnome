@@ -132,7 +132,12 @@ class FakeMenu {
 			connect: function () { return 1; },
 		};
 	}
-	addAction() { return { actor: { insert_child_at_index: function () {} } }; }
+	addAction() {
+		return {
+			actor: { insert_child_at_index: function () {} },
+			setSensitive: function () {},
+		};
+	}
 	connect() { return 1; }
 	close() {}
 	toggle() {}
