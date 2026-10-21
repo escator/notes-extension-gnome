@@ -89,6 +89,10 @@ class NotesManager {
 		this._allNotes = new Array();
 		this._notesAreVisible = false;
 
+		// The color filter (task 004 / ADR-0003): name of the active preset,
+		// or null. A session-only state, deliberately not persisted.
+		this._colorFilter = null;
+
 		this._notesLoaded = false; // this will tell the toggleState method that
 		// notes need to be loaded first, thus doing the actual initialisation
 
@@ -390,7 +394,7 @@ class NotesManager {
 
 	_showNotes () {
 		this._notesAreVisible = true;
-		this._allNotes.forEach(function (n) {
+		this._allNotes.filter(this._passesFilter, this).forEach(function (n) {
 			n.show();
 		});
 	}
@@ -420,6 +424,65 @@ class NotesManager {
 		this._notesAreVisible = false;
 	}
 
+	//--------------------------------------------------------------------------
+	// Color filter (task 004 / ADR-0003) ---------------------------------------
+	//
+	// Visibility invariant: a note is visible if and only if the notes are
+	// globally visible AND it passes the filter (always true when the filter
+	// is null). Every change goes through NoteBox.show/onlyHide, so that the
+	// input region follows.
+
+	/* Strict comparison of the rgb string: the colors outside the presets
+	 * don't exist anymore (the custom color is gone, the default is beige). */
+	_passesFilter (note) {
+		return this._colorFilter === null
+			|| note.customColor === Common.PRESET_COLORS[this._colorFilter].rgb.join(',');
+	}
+
+	/* Hides (right away; the smooth fade-out comes in phase 3) the visible
+	 * notes that stop passing the newly set filter. */
+	_applyFilterHiding () {
+		this._allNotes.forEach((n) => {
+			if (n.actor.visible && !this._passesFilter(n)) {
+				n.setEditMode(false);
+				n.onlyHide();
+			}
+		});
+	}
+
+	/* Toggle semantics: selecting the active preset again clears the filter. */
+	setColorFilter (presetName) {
+		if (presetName === this._colorFilter) {
+			this.clearColorFilter();
+			return;
+		}
+		this._colorFilter = presetName;
+		this._applyFilterHiding();
+		this._updateFilterBadge();
+	}
+
+	clearColorFilter () {
+		this._colorFilter = null;
+		// the globally hidden case is already covered by the next _showNotes
+		if (this._notesAreVisible) {
+			this._allNotes.forEach(function (n) {
+				n.show();
+			});
+		}
+		this._updateFilterBadge();
+	}
+
+	/* The color new notes get while a filter is active (empty string keeps
+	 * the default, i.e. the first note's color). */
+	_filterColorString () {
+		if (this._colorFilter === null) { return ''; }
+		return Common.PRESET_COLORS[this._colorFilter].rgb.join(',');
+	}
+
+	// the panel badge (phase 2) replaces this placeholder
+	_updateFilterBadge () {
+	}
+
 	_onButtonPressed (actor, event) {
 		// the keyboard shortcut arrives without any Clutter event
 		if (event && typeof event.get_button === 'function') {
@@ -437,7 +500,7 @@ class NotesManager {
 		}
 
 		if(this._allNotes.length == 0) {
-			this.createNote('', 16, true);
+			this.createNote(this._filterColorString(), 16, true);
 			this._showNotes();
 		} else if (this._notesAreVisible) {
 			this._hideNotes();
@@ -517,7 +580,7 @@ class NotesManager {
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
-		this.createNote('', 16, true);
+		this.createNote(this._filterColorString(), 16, true);
 	}
 
 	/*
@@ -535,7 +598,7 @@ class NotesManager {
 			St.ClipboardType.CLIPBOARD,
 			(clipboard, text) => {
 				if (!text) { return; }
-				let note = this.createNote('', 16, false);
+				let note = this.createNote(this._filterColorString(), 16, false);
 				if (note != null) {
 					note.appendClipboardText(text);
 				}

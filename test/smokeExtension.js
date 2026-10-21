@@ -179,16 +179,31 @@ class FakeNoteBox {
 			y: Math.floor(spec.y),
 			width: Math.floor(spec.w),
 			height: Math.floor(spec.h),
+			visible: true, // a real note enters the chrome visible
 			set_position: function (x, y) { this.x = x; this.y = y; },
 		};
+		this.showCount = 0;
+		this.hideCount = 0;
+		this._editMode = false;
 		createdSpecs.push(spec);
 	}
 	_setNotePosition () {
 		this.actor.set_position(Math.floor(this._x), Math.floor(this._y));
 	}
-	onlyHide() {}
-	show() {}
-	setEditMode() {}
+	onlyHide() {
+		this.actor.visible = false;
+		this.hideCount++;
+	}
+	show() {
+		this.actor.visible = true;
+		this.showCount++;
+	}
+	setEditMode(editing) {
+		this._editMode = editing;
+	}
+	appendClipboardText(text) {
+		this.appendedText = text;
+	}
 	destroy() {}
 	onlySave(withMetadata) {
 		if (withMetadata) {
@@ -215,7 +230,19 @@ const Me = {
 
 const fakeImports = {
 	gi: {
-		St: { Icon: FakeIcon, Side: { TOP: 1 } },
+		St: {
+			Icon: FakeIcon,
+			Side: { TOP: 1 },
+			ClipboardType: { CLIPBOARD: 0 },
+			Clipboard: {
+				get_default: function () {
+					return {
+						// the test clipboard always has some text
+						get_text: function (type, cb) { cb(null, 'clipboard text'); },
+					};
+				},
+			},
+		},
 		Shell: { ActionMode: { ALL: 1 } },
 		GLib: GLib,
 		Gio: Gio,
@@ -467,6 +494,98 @@ eq('button fold saved in the current scheme',
 monitorsChangedCb();
 check('debounce pending before destroy', pendingTimeouts.length === 1);
 manager3.destroy();
+
+//------------------------------------------------------------------------------
+// Phase 4: color filter (task 004 / ADR-0003)
+
+print('== phase 4: color filter ==');
+
+extension.enable();
+const manager4 = extension.getNotesManager();
+manager4._loadAllNotes();
+
+function m4note(id) {
+	return manager4._allNotes.find(function (n) { return n.id === id; });
+}
+
+const MINT = common.PRESET_COLORS['mint'].rgb.join(',');
+const SKY = common.PRESET_COLORS['sky'].rgb.join(',');
+const CREAM = common.PRESET_COLORS['cream'].rgb.join(',');
+m4note(1).customColor = MINT;
+m4note(2).customColor = SKY;
+m4note(3).customColor = CREAM;
+
+// applying a filter to visible notes: only the matching color survives, and
+// the hidden notes leave the editing mode
+manager4._showNotes();
+m4note(2)._editMode = true;
+manager4.setColorFilter('mint');
+eq('filter state is the preset name', manager4._colorFilter, 'mint');
+check('filtered note stays visible', m4note(1).actor.visible);
+check('other colors hidden', !m4note(2).actor.visible && !m4note(3).actor.visible);
+check('hidden notes left the edit mode', !m4note(2)._editMode);
+check('hidden notes went through onlyHide', m4note(2).hideCount > 0);
+
+// _showNotes under an active filter shows only the passing notes
+manager4._onlyHideNotes();
+manager4._showNotes();
+check('show under filter: only the passing note',
+	m4note(1).actor.visible && !m4note(2).actor.visible && !m4note(3).actor.visible);
+
+// clearing the filter brings every note back, instantly
+manager4.clearColorFilter();
+check('filter is null after clearing', manager4._colorFilter === null);
+check('clearing shows every note again',
+	m4note(1).actor.visible && m4note(2).actor.visible && m4note(3).actor.visible);
+
+// the toggle: selecting the active preset again clears the filter
+manager4.setColorFilter('mint');
+eq('filter active before the toggle', manager4._colorFilter, 'mint');
+manager4.setColorFilter('mint');
+check('re-selecting the preset clears the filter', manager4._colorFilter === null);
+check('toggle made every note visible again',
+	m4note(1).actor.visible && m4note(2).actor.visible && m4note(3).actor.visible);
+
+// new notes get the filter color while a filter is active: exercised through
+// the real menu call sites, which is where the color string comes from
+manager4.setColorFilter('mint');
+eq('_filterColorString returns the preset rgb', manager4._filterColorString(), MINT);
+createdSpecs = [];
+manager4._onMenuNewNote();
+eq('new note gets the filter color', createdSpecs[0].color, MINT);
+check('new note starts in the edit mode', createdSpecs[0].startInEditMode === true);
+createdSpecs = [];
+manager4._onMenuNewFromClipboard();
+eq('clipboard note gets the filter color', createdSpecs[0].color, MINT);
+manager4.clearColorFilter();
+eq('_filterColorString empty without filter', manager4._filterColorString(), '');
+createdSpecs = [];
+manager4._onMenuNewNote();
+eq('new note without filter keeps the empty color string', createdSpecs[0].color, '');
+
+// a legacy color outside the palette passes no filter (ADR-0003 risk, accepted)
+let odd = m4note(3);
+odd.customColor = '10,20,30';
+manager4.setColorFilter('mint');
+check('off-palette color hidden by the mint filter', !odd.actor.visible);
+manager4.setColorFilter('beige');
+check('off-palette color hidden by any filter', !odd.actor.visible);
+manager4.clearColorFilter();
+check('off-palette color back after clearing', odd.actor.visible);
+
+// the global toggle keeps the filter and its effect
+manager4.setColorFilter('mint');
+manager4._hideNotes();
+check('global hide hides everyone, filter kept', manager4._colorFilter === 'mint'
+	&& !m4note(1).actor.visible && !m4note(2).actor.visible);
+manager4._showNotes();
+check('global show respects the filter',
+	m4note(1).actor.visible && !m4note(2).actor.visible && !m4note(3).actor.visible);
+manager4.clearColorFilter();
+check('final clearing shows everyone',
+	m4note(1).actor.visible && m4note(2).actor.visible && m4note(3).actor.visible);
+
+manager4.destroy();
 check('destroy cancelled the debounce', pendingTimeouts.length === 0);
 
 //------------------------------------------------------------------------------
