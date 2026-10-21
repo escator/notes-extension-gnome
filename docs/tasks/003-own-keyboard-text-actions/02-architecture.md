@@ -20,7 +20,11 @@ NoteBox.actions ──▶ St.Clipboard + ClutterText.delete_selection/insert_tex
 - `pasteClipboardAtCursor()` — async `St.Clipboard.get_text` → guard
   уничтоженной заметки (флаг, как в меню) → `delete_selection()` +
   `insert_text(text, cursor)`; перед запуском чтения — `boundary()`.
-- `selectAllText()` — фокус на entry + `set_selection(0, len)`.
+- `selectAllText()` — фокус на entry + `set_selection(0, len)`; фокус берётся
+  повторно через `Meta.later_add(BEFORE_REDRAW)`: закрытие попапа возвращает
+  до-грабовский фокус (в read-only клики фокус не дают, то есть null) и без
+  повторного захвата клавиатурная матрица в чтении остаётся недоступной
+  (находка приёмки Ф3, журнал 04).
 - Уже есть: `undo()` / `redo()` / `boundary()` (Ф2 задачи 002).
 
 Каждое мутирующее действие — ровно один шаг undo: `boundary()` до мутации,
