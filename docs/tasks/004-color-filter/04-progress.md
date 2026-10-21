@@ -36,3 +36,21 @@
   подставляется в местах вызова меню, а не внутри `createNote` — сценарий
   теста изначально звал `createNote` напрямую и честно упал, переписан на
   колл-сайты.
+- 2026-10-21 — Ф2 выполнена (секция меню + бейдж). `extension.js`:
+  ребёнок кнопки панели — `St.BoxLayout` [иконка, `this._filterDot`]; точка —
+  `St.Bin` класса `notesFilterBadge`, скрыта по умолчанию, фон инлайном из
+  ring-цвета пресета в `_updateFilterBadge` (заглушка Ф1 заменена);
+  `_buildFilterSection` после пункта New from Clipboard: separator,
+  неинтерактивный заголовок «Filter by color» (паттерн `size_item` из
+  menus.js), две строки свотчей 2×4 в порядке палитры (паттерн
+  `_addColorButton`, кнопки в `this._filterSwatches`), «Reset filter» через
+  `_menu.addAction` (закрывает меню, паттерн `_onApply`), изначально
+  insensitive; клик свотча — `setColorFilter(name)` + close. Стили свотчей
+  строит один метод `_swatchStyle` (заливка пресетом + ring-кольцо активному,
+  приём menus.js:138–140), используется и при построении, и при
+  `_refreshFilterMenu` в обработчике `open-state-changed` (там же
+  чувствительность «Reset filter»). `stylesheet.css`: класс
+  `.notesFilterBadge` (8×8, радиус 4; фон — инлайн из JS). Smoke-стабы:
+  generic `FakeWidget` (Bin/BoxLayout/Label/Button), `FakePopupItem`,
+  `addMenuItem` у фейкового меню, `Clutter.ActorAlign`. Прогон 74/74.
+  Живая проверка X11 (сценарии 1–5, 7, 8) — после установки, на пользователе.

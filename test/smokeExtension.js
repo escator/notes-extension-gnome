@@ -117,6 +117,19 @@ class FakeIcon {
 	constructor(props) { Object.assign(this, props || {}); }
 }
 
+/* Generic St widget double (Bin, BoxLayout, Label, Button…): records the
+ * constructor properties, keeps a visible flag. */
+class FakeWidget {
+	constructor(props) {
+		this.visible = true;
+		Object.assign(this, props || {});
+	}
+	add_child() {}
+	connect() { return 1; }
+	set_style() {}
+	destroy() {}
+}
+
 class FakeButton {
 	constructor() { this.visible = true; }
 	add_child() {}
@@ -138,10 +151,17 @@ class FakeMenu {
 			setSensitive: function () {},
 		};
 	}
+	addMenuItem() {}
 	connect() { return 1; }
 	close() {}
 	toggle() {}
 	destroy() {}
+}
+
+/* PopupBaseMenuItem / PopupSeparatorMenuItem double: hosts an actor. */
+class FakePopupItem {
+	constructor() { this.actor = new FakeWidget(); }
+	setSensitive() {}
 }
 
 class FakeMenuManager {
@@ -232,6 +252,10 @@ const fakeImports = {
 	gi: {
 		St: {
 			Icon: FakeIcon,
+			Bin: FakeWidget,
+			BoxLayout: FakeWidget,
+			Label: FakeWidget,
+			Button: FakeWidget,
 			Side: { TOP: 1 },
 			ClipboardType: { CLIPBOARD: 0 },
 			Clipboard: {
@@ -247,7 +271,10 @@ const fakeImports = {
 		GLib: GLib,
 		Gio: Gio,
 		Meta: { KeyBindingFlags: { NONE: 0 } },
-		Clutter: { BUTTON_SECONDARY: 3 },
+		Clutter: {
+			BUTTON_SECONDARY: 3,
+			ActorAlign: { START: 0, CENTER: 3, END: 2 },
+		},
 	},
 	// extension.js imports Mainloop from the top level, like in the shell
 	mainloop: {
@@ -265,7 +292,12 @@ const fakeImports = {
 		panelMenu: { Button: FakeButton },
 		panel: {},
 		main: Main,
-		popupMenu: { PopupMenu: FakeMenu, PopupMenuManager: FakeMenuManager },
+		popupMenu: {
+			PopupMenu: FakeMenu,
+			PopupMenuManager: FakeMenuManager,
+			PopupBaseMenuItem: FakePopupItem,
+			PopupSeparatorMenuItem: FakePopupItem,
+		},
 	},
 	misc: {
 		extensionUtils: {

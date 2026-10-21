@@ -66,6 +66,14 @@
 	border-color: #4F6BED;
 }
 
+/* The color filter badge on the panel button (task 004): only the shape is
+   here, the background color is set inline from the preset's ring (JS side) */
+.notesFilterBadge {
+	width: 8px;
+	height: 8px;
+	border-radius: 4px;
+}
+
 /* Modal dialogs (delete confirmation, edit title) ****************************/
 /* No palette text colors here: the dialog surface belongs to the shell theme,
    which is dark in the default theme — the light text tokens would be
