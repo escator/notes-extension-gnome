@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 19:54+0700\n"
 "PO-Revision-Date: 2020-06-23 17:24+0800\n"
 "Last-Translator: Nesquate <nesquate.100001@gmail.com>\n"
 "Language-Team: \n"
@@ -21,38 +21,55 @@ msgstr "顯示便箋"
 msgid "Notes extension error: failed to load a note"
 msgstr "Notes 擴充套件錯誤 : 載入便箋失敗"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr ""
-
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "重新啟用擴充套件以套用變更"
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "顯示便箋"
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "自訂色彩"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "設定"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "套用"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "字型大小"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "在這裡輸入 …"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "新增"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -67,6 +84,10 @@ msgid "Resize"
 msgstr "調整大小"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "在這裡輸入 …"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr ""
 
@@ -77,6 +98,10 @@ msgstr "刪除這個便箋 ?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "套用"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -91,34 +116,6 @@ msgstr "預設值是 %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "版本 %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "便箋位置"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "全部置頂"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "置於背景"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "與 Desktop Icons 擴充套件不相容"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "自動聚焦"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -163,8 +160,9 @@ msgstr "開啟儲存目錄"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
-msgstr "檔名結尾帶 \"_state\" 的檔案包含了您的便箋的顏色以及位置"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -195,6 +193,10 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "帶回主螢幕"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -233,3 +235,30 @@ msgstr ""
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
 
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "重新啟用擴充套件以套用變更"
+
+#~ msgid "Custom color"
+#~ msgstr "自訂色彩"
+
+#~ msgid "New"
+#~ msgstr "新增"
+
+#~ msgid "Position of notes"
+#~ msgstr "便箋位置"
+
+#~ msgid "Above everything"
+#~ msgstr "全部置頂"
+
+#~ msgid "On the background"
+#~ msgstr "置於背景"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "與 Desktop Icons 擴充套件不相容"
+
+#~ msgid "Automatic focus"
+#~ msgstr "自動聚焦"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr "檔名結尾帶 \"_state\" 的檔案包含了您的便箋的顏色以及位置"

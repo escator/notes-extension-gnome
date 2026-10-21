@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 11:59+0700\n"
+"POT-Creation-Date: 2026-10-21 19:54+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -37,12 +37,40 @@ msgstr ""
 msgid "Font size"
 msgstr ""
 
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
+
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit"
 msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
 msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js

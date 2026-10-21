@@ -2,9 +2,9 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { Clutter, St, GLib, Gio } = imports.gi;
+const { Clutter, St, GLib, Gio, Meta } = imports.gi;
 const Main = imports.ui.main;
-const ShellEntry = imports.ui.shellEntry;
+const PopupMenu = imports.ui.popupMenu;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -12,6 +12,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const Common = Me.imports.common;
 const Menus = Me.imports.menus;
 const Dialog = Me.imports.dialog;
+const TextHistory = Me.imports.textHistory.TextHistory;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
@@ -21,6 +22,19 @@ const PATH = Common.DATA_PATH;
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
+
+// X11 evdev keycodes (linux/input-event-codes.h) of the physical keys bound
+// by the keyboard matrix in _onKeyPress: unlike a keyval, a keycode doesn't
+// depend on the active XKB group, so the shortcuts work with Cyrillic active
+// too (docs/tasks/003-own-keyboard-text-actions/02-architecture.md §3).
+// Clutter delivers them unchanged on Wayland and offset by 8 (the X keycode)
+// under X11 — _isKey accepts both.
+const EVDEV_V = 55;
+const EVDEV_C = 54;
+const EVDEV_X = 53;
+const EVDEV_Z = 52;
+const EVDEV_A = 38;
+const EVDEV_INSERT = 118;
 
 //------------------------------------------------------------------------------
 
@@ -109,6 +123,47 @@ var NoteBox = class NoteBox {
 		// selectable, and notes are read-only by default
 		clutterText.set_selectable(true);
 
+		// the connection happens before _loadText, whose initial set_text is
+		// wrapped in a history suspend so it doesn't open a bogus undo step
+		clutterText.connect('text-changed', this._onTextChanged.bind(this));
+
+		// The text context menu (task 002) is built lazily on its first use.
+		// A right click is intercepted here, before ClutterText's own
+		// handling: letting ClutterText process button 3 would move the
+		// cursor to the click point and drop the selection.
+		//
+		// In the read-only mode every press is swallowed as well: mutter's
+		// press handler (clutter_text_press) runs for any button on a
+		// selectable text and starts with an unconditional grab_key_focus,
+		// so a click on a read-only note silently stole the key focus from
+		// the note being edited (Ctrl+V then landed here and was swallowed
+		// by the matrix, and each click left two clutter_input_focus
+		// assertion warnings in the journal). Stopping the press before the
+		// class handler also means no drag selection in the read-only mode —
+		// selection there goes through the context menu instead
+		// (decision 2026-10-21).
+		this._textMenu = null;
+		this._textMenuManager = null;
+		clutterText.connect('button-press-event', (actor, event) => {
+			if (event.get_button() == 3) {
+				if (this._textMenu && this._textMenu.super_menu.isOpen) {
+					this._textMenu.super_menu.close();
+					return Clutter.EVENT_STOP;
+				}
+				this._openTextMenu(event.get_coords()[0], event.get_coords()[1]);
+				return Clutter.EVENT_STOP;
+			}
+			if (!this._editing) {
+				// the note still raises above its siblings: EVENT_STOP keeps
+				// the event from reaching noteEntry's own press handler
+				this._redraw();
+				return Clutter.EVENT_STOP;
+			}
+			return Clutter.EVENT_PROPAGATE;
+		});
+		// Shift+F10 / Menu key: the menu is anchored at the text cursor
+		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
+
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
 			x_expand: true,
@@ -136,8 +191,9 @@ var NoteBox = class NoteBox {
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
 		//}
 		// runs before the entry's own key handling (bubbling from the text or
-		// on the entry itself), so a paste attempt on a read-only note can
-		// still be redirected to the editing mode
+		// on the entry itself): the whole keyboard matrix of task 003 is
+		// served there, before St.Entry/ClutterText ever see the key (see
+		// _onKeyPress)
 		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
 
 		// Notes are displayed read-only by default; clicking the edit button is
@@ -153,7 +209,8 @@ var NoteBox = class NoteBox {
 		this.loadIntoCorrectLayer();
 		this._setNotePosition();
 		this._loadText();
-		// ShellEntry.addContextMenu(this.noteEntry); // FIXME doesn't work
+		// the text menu below replaces ShellEntry.addContextMenu (its FIXME
+		// "doesn't work" is explained in the task 002 journal)
 		this._initStyle();
 		// a newly created note opens straight into the editing mode; done
 		// after _loadText so the initial setEditMode(false) in the middle of
@@ -272,6 +329,10 @@ var NoteBox = class NoteBox {
 	 * are always displayed read-only the next time they show up.
 	 */
 	setEditMode (editing) {
+		// a mode switch is a discrete operation: whatever typing portion was
+		// open becomes its own undo step (the history doesn't exist yet during
+		// the initial calls from _buildNote)
+		this.boundary();
 		this._editing = editing;
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
@@ -301,6 +362,183 @@ var NoteBox = class NoteBox {
 		);
 	}
 
+	/*
+	 * 'text-changed' handler: every user edit (typing, deletion, native
+	 * paste…) feeds the history, which coalesces consecutive changes into
+	 * undo portions. The suspend flag keeps history restorations and the
+	 * initial text load out of the history.
+	 */
+	_onTextChanged () {
+		if (!this._history) { return; }
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.onChange(
+			clutterText.get_text(),
+			clutterText.get_cursor_position()
+		);
+	}
+
+	/*
+	 * Restore the previous/next state, in both modes, without switching
+	 * modes; nothing happens on an empty history. The restored text is
+	 * written to disk right away. Called from _onKeyPress and (from Ф3) the
+	 * text context menu.
+	 */
+	undo () {
+		if (!this._history) { return; }
+		let state = this._history.undo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	redo () {
+		if (!this._history) { return; }
+		let state = this._history.redo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	_restoreHistoryState (state) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.suspend(() => {
+			clutterText.set_text(state.text);
+			clutterText.set_cursor_position(state.cursor);
+		});
+		this._saveText();
+	}
+
+	/*
+	 * Closes the currently open undo portion, making it one undo step (no-op
+	 * when the history doesn't exist yet, or when nothing is open). Called
+	 * before discrete operations: mode switch, headerbar paste, Ctrl+V, the
+	 * context menu's Cut/Copy/Paste.
+	 */
+	boundary () {
+		if (this._history) {
+			this._history.boundary();
+		}
+	}
+
+	canUndo () {
+		return this._history ? this._history.canUndo() : false;
+	}
+
+	canRedo () {
+		return this._history ? this._history.canRedo() : false;
+	}
+
+	//-------------------------- text actions ------------------------------------
+
+	/*
+	 * The text actions shared by the text context menu and the keyboard
+	 * shortcuts (task 003, see
+	 * docs/tasks/003-own-keyboard-text-actions/02-architecture.md §1): one
+	 * implementation per action; the callers only check their own
+	 * preconditions (the menu through its item sensitivity, the keyboard
+	 * through its key matrix) and invoke.
+	 *
+	 * Clutter.Text (GS 42) has no copy_clipboard/paste_clipboard/select_all:
+	 * the clipboard is driven directly through St.Clipboard, and selection
+	 * through set_selection — same approach as the upstream EntryMenu.
+	 *
+	 * Every mutating action opens an undo boundary first, so it stays one
+	 * undo step: the text-changed handler then records the change itself.
+	 */
+	copySelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+	}
+
+	cutSelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+		clutterText.delete_selection();
+	}
+
+	pasteClipboardAtCursor () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		// the menu's modal grab took the key focus away from the text; give it
+		// back so the cursor sits where the user left it (a no-op when the
+		// entry already has the focus, i.e. when invoked from the keyboard)
+		this.noteEntry.grab_key_focus();
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => {
+				// the read is asynchronous: the note may be gone by then
+				if (this.actor == null || !text) { return; }
+				clutterText.delete_selection();
+				clutterText.insert_text(text, clutterText.get_cursor_position());
+			}
+		);
+	}
+
+	selectAllText () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.noteEntry.grab_key_focus();
+		clutterText.set_selection(0, clutterText.get_text().length);
+		// Closing the popup restores the key focus the menu had grabbed the
+		// stage with — null here, since in the read-only mode no click gives
+		// focus — and that drops the focus (and with it the matrix access)
+		// the grab above has just taken. Both are re-done once the menu
+		// teardown has settled; the redo is idempotent for every other
+		// caller (task 003, acceptance)
+		Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+			if (this.actor == null) { return; }
+			this.noteEntry.grab_key_focus();
+			clutterText.set_selection(0, clutterText.get_text().length);
+		});
+	}
+
+	//-------------------------- text context menu ------------------------------
+
+	/*
+	 * Opens the text context menu anchored at the stage point (stageX,
+	 * stageY); the menu and its manager are created on the first use.
+	 */
+	_openTextMenu (stageX, stageY) {
+		if (!this._textMenu) {
+			this._textMenu = new Menus.NoteTextContextMenu(this);
+			// same compat shim as NoteRoundButton.addMenu: before 3.33 the
+			// constructor takes the owner, after it the actor
+			try {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this);
+			} catch (e) {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this.actor);
+			}
+			this._textMenuManager.addMenu(this._textMenu.super_menu);
+		}
+		this._textMenu.popup(stageX, stageY);
+	}
+
+	/*
+	 * Keyboard opening (Menu key / Shift+F10, via the popup-menu signal):
+	 * anchored at the text cursor, falling back to the entry's corner when
+	 * the cursor position can't be translated to coordinates (e.g. no cursor
+	 * in the read-only mode).
+	 */
+	_onTextPopupMenu () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let [transformed, entryX, entryY] = clutterText.get_transformed_position();
+		let [success, textX, textY, lineHeight] =
+			clutterText.position_to_coords(clutterText.get_cursor_position());
+		if (success) {
+			this._openTextMenu(entryX + textX, entryY + textY + lineHeight);
+		} else if (transformed) {
+			this._openTextMenu(entryX, entryY);
+		}
+		return true;
+	}
+
 	_pasteFromClipboard () {
 		St.Clipboard.get_default().get_text(
 			St.ClipboardType.CLIPBOARD,
@@ -316,6 +554,9 @@ var NoteBox = class NoteBox {
 	 */
 	_appendClipboardText (text) {
 		if (this.actor == null || !text) { return; }
+		// the headerbar's paste button is a discrete operation: any open
+		// typing portion closes here, the paste becomes its own undo step
+		this._history.boundary();
 		let noteText = this.noteEntry.get_text();
 		if (noteText && noteText.length > 0) {
 			if (!noteText.endsWith('\n')) {
@@ -331,20 +572,97 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
-	 * A paste attempt on a read-only note silently did nothing, which is easy
-	 * to mistake for a broken clipboard: switch to the editing mode first and
-	 * paste from there.
+	 * The keyboard matrix of task 003 (02-architecture.md §2), running before
+	 * the entry's own class handler. Every recognized key is executed here
+	 * and stopped, so the native path never takes part: St.Entry pastes and
+	 * cuts with no editable check, and the whole native path is unreviewable
+	 * (01-analysis.md). Paste and cut are served only in the editing mode —
+	 * in the read-only mode they are swallowed (pasting never switches the
+	 * mode, decision 2026-10-21), just like the context menu items they
+	 * mirror; copy, select-all and undo/redo work in both modes. A
+	 * recognized key failing its precondition (no selection, empty text) is
+	 * stopped all the same: the key is ours.
 	 */
 	_onKeyPress (actor, event) {
-		if (this._editing) { return false; }
-		if (!(event.get_state() & Clutter.ModifierType.CONTROL_MASK)) { return false; }
+		let state = event.get_state();
 		let key = event.get_key_symbol();
-		if (key != Clutter.KEY_v && key != Clutter.KEY_V && key != Clutter.KEY_Paste) {
-			return false;
+		let control = state & Clutter.ModifierType.CONTROL_MASK;
+		let shift = state & Clutter.ModifierType.SHIFT_MASK;
+		let clutterText = this.noteEntry.get_clutter_text();
+
+		// undo / redo, both modes
+		if (control && (this._isKey(event, [Clutter.KEY_z, Clutter.KEY_Z], EVDEV_Z)
+				|| key == Clutter.KEY_Undo)) {
+			if (shift) {
+				this.redo();
+			} else {
+				this.undo();
+			}
+			return Clutter.EVENT_STOP;
 		}
-		this.setEditMode(true);
-		this.noteEntry.get_clutter_text().paste_clipboard();
-		return true;
+		if (control && key == Clutter.KEY_Redo) {
+			this.redo();
+			return Clutter.EVENT_STOP;
+		}
+
+		// paste in the editing mode, swallowed in the read-only mode:
+		// Ctrl+V / Shift+Insert / KEY_Paste (KP_Insert, like in St.Entry, is
+		// not served)
+		if ((control && this._isKey(event, [Clutter.KEY_v, Clutter.KEY_V], EVDEV_V))
+				|| key == Clutter.KEY_Paste
+				|| (shift && !control
+					&& this._isKey(event, [Clutter.KEY_Insert], EVDEV_INSERT))) {
+			if (this._editing) {
+				this.pasteClipboardAtCursor();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// cut, editing only, with a selection; swallowed when read-only
+		if ((control && this._isKey(event, [Clutter.KEY_x, Clutter.KEY_X], EVDEV_X))
+				|| key == Clutter.KEY_Cut) {
+			if (this._editing && clutterText.get_selection()) {
+				this.cutSelection();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// copy, both modes, only with a selection
+		if (control && this._isKey(event, [Clutter.KEY_c, Clutter.KEY_C], EVDEV_C)) {
+			if (clutterText.get_selection()) {
+				this.copySelection();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// select all, both modes, only with some text
+		if (control && this._isKey(event, [Clutter.KEY_a, Clutter.KEY_A], EVDEV_A)) {
+			if (clutterText.get_text()) {
+				this.selectAllText();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// not ours: typing, navigation, IM/preedit — the native path
+		return Clutter.EVENT_PROPAGATE;
+	}
+
+	/*
+	 * True when the event's keyval is one of `keyvals`, or when its hardware
+	 * keycode is `evdevCode` — a keyval depends on the active XKB group
+	 * (with Cyrillic active Ctrl+Z arrives as a Cyrillic keysym on the same
+	 * physical key), a keycode doesn't. Clutter reports the evdev code
+	 * unchanged on Wayland and offset by 8 (the X keycode) under X11, hence
+	 * both are accepted. The service keysyms (Undo, Redo, Paste, Cut) have
+	 * no physical key: pass 0 to skip the keycode check. Lower- and
+	 * uppercase keyvals are both listed by the callers, so Caps Lock doesn't
+	 * matter either.
+	 */
+	_isKey (event, keyvals, evdevCode) {
+		if (keyvals.includes(event.get_key_symbol())) { return true; }
+		if (evdevCode == 0) { return false; }
+		let code = event.get_key_code();
+		return code == evdevCode || code == evdevCode + 8;
 	}
 
 	_openDeleteDialog () {
@@ -644,7 +962,13 @@ var NoteBox = class NoteBox {
 		}
 		let content = stringFromArray(contents);
 
-		this.noteEntry.set_text(content);
+		// the loaded text is the baseline: the initial set_text fires
+		// 'text-changed' (the connection predates this method), so it runs
+		// under suspend and opens no undo step
+		this._history = new TextHistory({ text: content, cursor: 0 });
+		this._history.suspend(() => {
+			this.noteEntry.set_text(content);
+		});
 		this._textLoaded = true;
 	}
 

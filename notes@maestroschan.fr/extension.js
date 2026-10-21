@@ -69,8 +69,10 @@ class NotesManager {
 
 		// Initialisation of the button in the top panel
 		this.panel_button = new PanelMenu.Button(0.0, _("Show notes"), true);
+		// Full-color bundled PNG (icons/notes.png): St downscales it to the
+		// panel size, which also keeps it crisp at HiDPI scale factors
 		let icon = new St.Icon({
-			icon_name: 'document-edit-symbolic',
+			gicon: Common.getCustomIcon(Me.dir, 'notes'),
 			style_class: 'system-status-icon'
 		});
 		this.panel_button.add_child(icon);

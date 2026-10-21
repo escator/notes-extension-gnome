@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:28+0200\n"
+"POT-Creation-Date: 2026-10-21 19:54+0700\n"
 "PO-Revision-Date: 2023-02-08 21:07+0100\n"
 "Last-Translator: Quentin PAGÈS\n"
 "Language-Team: \n"
@@ -25,38 +25,55 @@ msgstr "Afichar las nòtas"
 msgid "Notes extension error: failed to load a note"
 msgstr "Error de Notes extensions : cargament impossible de la nòta"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Nòtas"
-
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "Reaviar l’extension per aplicar las modificacions"
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Afichar las nòtas"
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Color personalizada"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Paramètres"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Aplicar"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Talha de la polissa"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Picatz aquí…"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Novèl"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -71,6 +88,10 @@ msgid "Resize"
 msgstr "Redimensionar"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Picatz aquí…"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr "Nòta voida"
 
@@ -81,6 +102,10 @@ msgstr "Suprimir aquesta nòta ?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr "Modificar lo títol"
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Aplicar"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -95,34 +120,6 @@ msgstr "La valor per defaut es %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Version %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Posicion de las nòtas"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "Al dessús de tot"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "Pel fons"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "Incompatible amb las icònas de burèu"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr "Boclar amb 3 estats"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr "Enviar al rèireplan, enviar al primièr plan, amagar"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Fòcus automatic"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -161,7 +158,8 @@ msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
@@ -189,6 +187,10 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Nòtas"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -226,3 +228,33 @@ msgstr "Las claus de modificacions devon èsser entre croquets"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "Utilizetz pas un acorchi de clavièr qu'existís ja."
+
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Reaviar l’extension per aplicar las modificacions"
+
+#~ msgid "Custom color"
+#~ msgstr "Color personalizada"
+
+#~ msgid "New"
+#~ msgstr "Novèl"
+
+#~ msgid "Position of notes"
+#~ msgstr "Posicion de las nòtas"
+
+#~ msgid "Above everything"
+#~ msgstr "Al dessús de tot"
+
+#~ msgid "On the background"
+#~ msgstr "Pel fons"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Incompatible amb las icònas de burèu"
+
+#~ msgid "Cycle through 3 states"
+#~ msgstr "Boclar amb 3 estats"
+
+#~ msgid "Send to background, send to foreground, hide"
+#~ msgstr "Enviar al rèireplan, enviar al primièr plan, amagar"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Fòcus automatic"
