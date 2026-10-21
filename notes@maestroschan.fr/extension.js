@@ -450,16 +450,27 @@ class NotesManager {
 			|| note.customColor === Common.PRESET_COLORS[this._colorFilter].rgb.join(',');
 	}
 
-	/* Hides (right away; the smooth fade-out comes in phase 3) the visible
-	 * notes that stop passing the newly set filter. */
-	_applyFilterHiding () {
-		this._allNotes.forEach((n) => {
-			if (n.actor.visible && !this._passesFilter(n)) {
-				n.setEditMode(false);
-				n.onlyHide();
-			}
-		});
+/* Hides (with a fade-out) the visible notes that stop passing the newly set
+ * filter; the edit mode is left by fadeOutAndHide itself. */
+_applyFilterHiding () {
+	this._allNotes.forEach((n) => {
+		if (n.actor.visible && !this._passesFilter(n)) {
+			n.fadeOutAndHide();
+		}
+	});
+}
+
+/* Called by NoteBox.applyColorAndSave: a visible note whose fresh color
+ * doesn't match the active filter fades away. The reverse case (a hidden
+ * note becoming the filter's color) can't happen: the menu of a hidden note
+ * is unreachable (02-architecture.md §4). */
+refreshFilterForNote (note) {
+	if (this._colorFilter !== null
+			&& note.actor.visible
+			&& !this._passesFilter(note)) {
+		note.fadeOutAndHide();
 	}
+}
 
 	/* Toggle semantics: selecting the active preset again clears the filter. */
 	setColorFilter (presetName) {
@@ -474,9 +485,12 @@ class NotesManager {
 
 	clearColorFilter () {
 		this._colorFilter = null;
-		// the globally hidden case is already covered by the next _showNotes
+		// the globally hidden case is already covered by the next _showNotes;
+		// cancelFadeOut first, so that a note caught mid-fade comes back
+		// opaque instead of dissolving after being shown again
 		if (this._notesAreVisible) {
 			this._allNotes.forEach(function (n) {
+				n.cancelFadeOut();
 				n.show();
 			});
 		}

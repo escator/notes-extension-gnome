@@ -204,6 +204,8 @@ class FakeNoteBox {
 		};
 		this.showCount = 0;
 		this.hideCount = 0;
+		this.fadeCount = 0;
+		this.cancelCount = 0;
 		this._editMode = false;
 		createdSpecs.push(spec);
 	}
@@ -213,6 +215,18 @@ class FakeNoteBox {
 	onlyHide() {
 		this.actor.visible = false;
 		this.hideCount++;
+	}
+	fadeOutAndHide() {
+		// outcome-level mirror of the real method: the manager only cares
+		// that the note is hidden and has left the edit mode (guard included);
+		// the animation itself can only be checked live
+		if (!this.actor.visible) { return; }
+		this._editMode = false;
+		this.fadeCount++;
+		this.onlyHide();
+	}
+	cancelFadeOut() {
+		this.cancelCount++;
 	}
 	show() {
 		this.actor.visible = true;
@@ -613,9 +627,44 @@ check('global hide hides everyone, filter kept', manager4._colorFilter === 'mint
 manager4._showNotes();
 check('global show respects the filter',
 	m4note(1).actor.visible && !m4note(2).actor.visible && !m4note(3).actor.visible);
-manager4.clearColorFilter();
-check('final clearing shows everyone',
-	m4note(1).actor.visible && m4note(2).actor.visible && m4note(3).actor.visible);
+	manager4.clearColorFilter();
+	check('final clearing shows everyone',
+		m4note(1).actor.visible && m4note(2).actor.visible && m4note(3).actor.visible);
+
+	// phase 3: the color-change hook. refreshFilterForNote is what the note
+	// menu hits through applyColorAndSave: a visible note that stopped
+	// matching the active filter fades away instead of staying around
+	let fader = m4note(2);
+	let baseline = fader.fadeCount; // fades accumulated by the rounds above
+	fader.customColor = CREAM; // the note passes the filter that comes next
+	manager4.setColorFilter('cream');
+	check('note matching the filter stays visible', fader.actor.visible);
+	fader._editMode = true;
+	fader.customColor = SKY; // the user picks another preset in the note menu
+	manager4.refreshFilterForNote(fader);
+	check('color change hook fades the non-matching note',
+		fader.fadeCount === baseline + 1 && !fader.actor.visible);
+	check('faded note left the edit mode', !fader._editMode);
+	check('fade went through onlyHide', fader.hideCount > 0);
+	manager4.refreshFilterForNote(fader);
+	check('already hidden note does not fade twice', fader.fadeCount === baseline + 1);
+	manager4.clearColorFilter();
+	fader.customColor = CREAM;
+	manager4.setColorFilter('cream');
+	manager4.refreshFilterForNote(fader);
+	check('matching note is not faded',
+		fader.fadeCount === baseline + 1 && fader.actor.visible);
+
+	// clearing the filter cancels the fades before showing everyone back
+	// (the mid-fade race itself is a live-check matter: timing is not
+	// modeled here)
+	manager4.clearColorFilter();
+	check('clearing cancels fade-outs on every note',
+		m4note(1).cancelCount > 0 && fader.cancelCount > 0 && m4note(3).cancelCount > 0);
+	check('everyone is visible again after cancel + show',
+		m4note(1).actor.visible && fader.actor.visible && m4note(3).actor.visible);
+	manager4.refreshFilterForNote(fader);
+	check('no fade when the filter is off', fader.fadeCount === baseline + 1);
 
 manager4.destroy();
 check('destroy cancelled the debounce', pendingTimeouts.length === 0);

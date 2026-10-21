@@ -4,7 +4,7 @@
 |------|-----------|--------|
 | Ф1 | Ядро менеджера без UI (мгновенное скрытие) + smoke-сценарии | done |
 | Ф2 | Секция меню (свотчи 2×4, «Сбросить фильтр») + бейдж на панели | done |
-| Ф3 | Плавный fade-out + хук applyColorAndSave | pending |
+| Ф3 | Плавный fade-out + хук applyColorAndSave | done |
 | Ф4 | Переводы, живая приёмка 1–9, слияние | pending |
 
 ## Журнал
@@ -85,3 +85,44 @@
   подтвердил: после hide/show заметка исчезла — инвариант работает).
   Сценарий 9 (переводы) — Ф4; обе новые строки сейчас английские в любой
   локали до Ф4. Журнал shell чистый.
+- 2026-10-21 — Ф3 выполнена (fade-out + хук смены цвета). Мини-эксперимент
+  риска №1 плана (ease на chrome-акторе): в лоб не повторяется — mutter-10 не
+  интроспектирует `Clutter.init` (standalone gjs не поднимет stage), Xvfb в
+  системе нет, unsafe-mode для D-Bus Eval включается только изнутри shell
+  (Alt+F2 → lg). Доказательство собрано иначе, по частям: `ease()` в GS42 —
+  не Clutter API, а патч `environment.js` самого shell (`_easeActor`:
+  перезаписываемые переходы отменяются по имени свойства; колбэк вешается на
+  `stopped`; `onComplete` — только при естественном завершении, `isFinished`);
+  собственный `windowManager.js` этой сборки зовёт `.ease(` 12 раз и
+  `remove_all_transitions` 5 раз; `remove_all_transitions`/`get_transition` —
+  настоящие интроспектируемые методы `Clutter.Actor` (проверено по прототипу
+  в standalone gjs), `EASE_OUT_QUAD` = 3. Следствия, заложенные в код:
+  перезапуск ease по тому же свойству сам отменяет прошлый переход (быстрая
+  смена пресетов — без ручной отмены); после `remove_all_transitions`
+  `onComplete` не сработает (сброс во время fade не прячет заметку);
+  unmapped-актор завершает ease мгновенно (`callback(true)`) — с guard по
+  `visible` не встречается. Поправка к плану: shell на этой машине GS 42.9,
+  а не GS 40 — на выводы не влияет. Артефакт: `tmplog/ease-experiment.js`
+  (gitignored). Код: `noteBox.js` — `FILTER_FADE_MS = 300`; `fadeOutAndHide`
+  (guard по `visible`; `setEditMode(false)` до анимации; ease opacity → 0,
+  onComplete: `onlyHide()` + `opacity = 255`); `cancelFadeOut`
+  (`remove_all_transitions()` + `opacity = 255`); `applyColorAndSave` →
+  `this._manager.refreshFilterForNote(this)`. `extension.js` —
+  `_applyFilterHiding` зовёт `fadeOutAndHide()` (setEditMode переехал внутрь
+  NoteBox); новый `refreshFilterForNote` (фильтр активен + заметка видима +
+  не проходит → fadeOutAndHide; обратной ветки нет — меню скрытой заметки
+  недостижимо); `clearColorFilter` — `cancelFadeOut()` перед `show()` для
+  всех. Риск №2 плана (fade ↔ глобальный hide) оставлен как есть:
+  onComplete на скрытом акторе безвреден (onlyHide идемпотентен, opacity
+  вернётся). Smoke: стаб `fadeOutAndHide` на уровне исхода (guard + edit
+  mode + счётчик + `onlyHide`), стаб `cancelFadeOut`; +9 проверок: хук
+  фейдит видимую не-проходящую (реальная последовательность «цвет
+  совпадал → фильтр → смена цвета», иначе стаб `_applyFilterHiding` прячет
+  заметку до хука), выход из edit mode, no-refade скрытой, проходящая не
+  фейдится, cancel перед показом, без фильтра фейда нет. Прогон 83/83
+  (было 74/74); `testLayouts` 69/69; `testTextHistory` 51/51; parse-проверка
+  реального `noteBox.js`/`extension.js` через gjs (харнесс подменяет
+  noteBox стабом). Нюанс сценария: счётчики копятся через предыдущие раунды
+  — проверки только на дельты. Сценарий 6 (живая проверка: плавность,
+  спринт-клик сброса во время fade, журнал) — на пользователе после
+  установки.

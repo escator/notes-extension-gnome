@@ -23,6 +23,10 @@ const PATH = Common.DATA_PATH;
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
 
+// duration of the fade-out used by fadeOutAndHide: the color filter's way of
+// sending a note off the screen (task 004 phase 3)
+const FILTER_FADE_MS = 300;
+
 // X11 evdev keycodes (linux/input-event-codes.h) of the physical keys bound
 // by the keyboard matrix in _onKeyPress: unlike a keyval, a keycode doesn't
 // depend on the active XKB group, so the shortcuts work with Cyrillic active
@@ -748,6 +752,40 @@ var NoteBox = class NoteBox {
 		Main.layoutManager.untrackChrome(this.actor);
 	}
 
+	/*
+	 * Smooth variant of onlyHide(), used by the color filter: the note fades
+	 * out and leaves the chrome only once the animation is over. The guard
+	 * keeps hidden notes (for instance a filter change during a fade) from
+	 * restarting the animation. The note leaves the edit mode right away, so
+	 * it is never editable while dissolving.
+	 */
+	fadeOutAndHide () {
+		if (!this.actor.visible) { return; }
+		this.setEditMode(false);
+		this.actor.ease({
+			opacity: 0,
+			duration: FILTER_FADE_MS,
+			mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+			onComplete: () => {
+				this.onlyHide();
+				this.actor.opacity = 255;
+			}
+		});
+	}
+
+	/*
+	 * Cancels a fade-out in progress, called by the manager before showing
+	 * the notes back (resetting the filter mid-fade must not let the deferred
+	 * onlyHide() run on a note that is shown again). The shell's ease() helper
+	 * fires onComplete only for transitions that finished by themselves, so
+	 * detaching the transitions is enough; remove_all_transitions() is part
+	 * of the gnome-shell 42 Clutter API (verified on this build).
+	 */
+	cancelFadeOut () {
+		this.actor.remove_all_transitions();
+		this.actor.opacity = 255;
+	}
+
 	onlySave (withMetadata=true) {
 		if(withMetadata) {
 			// one disk write for the whole set of notes (positions +
@@ -927,6 +965,10 @@ var NoteBox = class NoteBox {
 	applyColorAndSave (r, g, b) {
 		this._applyColor(r, g, b)
 		this.onlySave();
+		// a visible note whose new color doesn't match the active filter has
+		// to fade away (the manager ignores the notes hidden by the filter:
+		// their menu is unreachable, so no reverse case)
+		this._manager.refreshFilterForNote(this);
 	}
 
 	//--------------------------------------------------------------------------
