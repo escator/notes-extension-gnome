@@ -2,7 +2,7 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { Clutter, St, GLib, Gio } = imports.gi;
+const { Clutter, St, GLib, Gio, Meta } = imports.gi;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 
@@ -486,6 +486,17 @@ var NoteBox = class NoteBox {
 		let clutterText = this.noteEntry.get_clutter_text();
 		this.noteEntry.grab_key_focus();
 		clutterText.set_selection(0, clutterText.get_text().length);
+		// Closing the popup restores the key focus the menu had grabbed the
+		// stage with — null here, since in the read-only mode no click gives
+		// focus — and that drops the focus (and with it the matrix access)
+		// the grab above has just taken. Both are re-done once the menu
+		// teardown has settled; the redo is idempotent for every other
+		// caller (task 003, acceptance)
+		Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+			if (this.actor == null) { return; }
+			this.noteEntry.grab_key_focus();
+			clutterText.set_selection(0, clutterText.get_text().length);
+		});
 	}
 
 	//-------------------------- text context menu ------------------------------
