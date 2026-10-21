@@ -16,7 +16,7 @@ const REGISTRY_VERSION = 1;
 // the former _createDefaultState in noteBox.js. Exported as vars: the manager
 // uses them for the fold slot of a brand-new note.
 var DEFAULT_FONT_SIZE = 16;
-var DEFAULT_WIDTH = 250;
+var DEFAULT_WIDTH = 300;
 var DEFAULT_HEIGHT = 180;
 
 //------------------------------------------------------------------------------

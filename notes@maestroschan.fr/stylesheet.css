@@ -34,7 +34,9 @@
 /* Notes' headers and the buttons in them *************************************/
 
 .noteHeaderStyle {
-	spacing: 10px;
+	/* tight spacing: the buttons must not eat the whole header of a
+	   minimum-width note, the drag area (notesTitleButton) needs to survive */
+	spacing: 4px;
 	margin: 5px;
 }
 
