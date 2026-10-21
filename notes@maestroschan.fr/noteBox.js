@@ -131,16 +131,35 @@ var NoteBox = class NoteBox {
 		// A right click is intercepted here, before ClutterText's own
 		// handling: letting ClutterText process button 3 would move the
 		// cursor to the click point and drop the selection.
+		//
+		// In the read-only mode every press is swallowed as well: mutter's
+		// press handler (clutter_text_press) runs for any button on a
+		// selectable text and starts with an unconditional grab_key_focus,
+		// so a click on a read-only note silently stole the key focus from
+		// the note being edited (Ctrl+V then landed here and was swallowed
+		// by the matrix, and each click left two clutter_input_focus
+		// assertion warnings in the journal). Stopping the press before the
+		// class handler also means no drag selection in the read-only mode —
+		// selection there goes through the context menu instead
+		// (decision 2026-10-21).
 		this._textMenu = null;
 		this._textMenuManager = null;
 		clutterText.connect('button-press-event', (actor, event) => {
-			if (event.get_button() != 3) { return Clutter.EVENT_PROPAGATE; }
-			if (this._textMenu && this._textMenu.super_menu.isOpen) {
-				this._textMenu.super_menu.close();
+			if (event.get_button() == 3) {
+				if (this._textMenu && this._textMenu.super_menu.isOpen) {
+					this._textMenu.super_menu.close();
+					return Clutter.EVENT_STOP;
+				}
+				this._openTextMenu(event.get_coords()[0], event.get_coords()[1]);
 				return Clutter.EVENT_STOP;
 			}
-			this._openTextMenu(event.get_coords()[0], event.get_coords()[1]);
-			return Clutter.EVENT_STOP;
+			if (!this._editing) {
+				// the note still raises above its siblings: EVENT_STOP keeps
+				// the event from reaching noteEntry's own press handler
+				this._redraw();
+				return Clutter.EVENT_STOP;
+			}
+			return Clutter.EVENT_PROPAGATE;
 		});
 		// Shift+F10 / Menu key: the menu is anchored at the text cursor
 		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
