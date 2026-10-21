@@ -75,7 +75,18 @@ class NotesManager {
 			gicon: Common.getCustomIcon(Me.dir, 'notes'),
 			style_class: 'system-status-icon'
 		});
-		this.panel_button.add_child(icon);
+		// the color filter badge (task 004): a small dot shown next to the
+		// icon while a filter is active, so the filter is never forgotten
+		this._filterDot = new St.Bin({
+			style_class: 'notesFilterBadge',
+			x_align: Clutter.ActorAlign.END,
+			y_align: Clutter.ActorAlign.END,
+			visible: false
+		});
+		let buttonContent = new St.BoxLayout({ vertical: false });
+		buttonContent.add_child(icon);
+		buttonContent.add_child(this._filterDot);
+		this.panel_button.add_child(buttonContent);
 		this._buildPanelMenu();
 		this.panel_button.connect(
 			'button-press-event',
@@ -88,6 +99,10 @@ class NotesManager {
 		// Initialisation of the notes themselves
 		this._allNotes = new Array();
 		this._notesAreVisible = false;
+
+		// The color filter (task 004 / ADR-0003): name of the active preset,
+		// or null. A session-only state, deliberately not persisted.
+		this._colorFilter = null;
 
 		this._notesLoaded = false; // this will tell the toggleState method that
 		// notes need to be loaded first, thus doing the actual initialisation
@@ -390,7 +405,7 @@ class NotesManager {
 
 	_showNotes () {
 		this._notesAreVisible = true;
-		this._allNotes.forEach(function (n) {
+		this._allNotes.filter(this._passesFilter, this).forEach(function (n) {
 			n.show();
 		});
 	}
@@ -420,6 +435,87 @@ class NotesManager {
 		this._notesAreVisible = false;
 	}
 
+	//--------------------------------------------------------------------------
+	// Color filter (task 004 / ADR-0003) ---------------------------------------
+	//
+	// Visibility invariant: a note is visible if and only if the notes are
+	// globally visible AND it passes the filter (always true when the filter
+	// is null). Every change goes through NoteBox.show/onlyHide, so that the
+	// input region follows.
+
+	/* Strict comparison of the rgb string: the colors outside the presets
+	 * don't exist anymore (the custom color is gone, the default is beige). */
+	_passesFilter (note) {
+		return this._colorFilter === null
+			|| note.customColor === Common.PRESET_COLORS[this._colorFilter].rgb.join(',');
+	}
+
+/* Hides (with a fade-out) the visible notes that stop passing the newly set
+ * filter; the edit mode is left by fadeOutAndHide itself. */
+_applyFilterHiding () {
+	this._allNotes.forEach((n) => {
+		if (n.actor.visible && !this._passesFilter(n)) {
+			n.fadeOutAndHide();
+		}
+	});
+}
+
+/* Called by NoteBox.applyColorAndSave: a visible note whose fresh color
+ * doesn't match the active filter fades away. The reverse case (a hidden
+ * note becoming the filter's color) can't happen: the menu of a hidden note
+ * is unreachable (02-architecture.md §4). */
+refreshFilterForNote (note) {
+	if (this._colorFilter !== null
+			&& note.actor.visible
+			&& !this._passesFilter(note)) {
+		note.fadeOutAndHide();
+	}
+}
+
+	/* Toggle semantics: selecting the active preset again clears the filter. */
+	setColorFilter (presetName) {
+		if (presetName === this._colorFilter) {
+			this.clearColorFilter();
+			return;
+		}
+		this._colorFilter = presetName;
+		this._applyFilterHiding();
+		this._updateFilterBadge();
+	}
+
+	clearColorFilter () {
+		this._colorFilter = null;
+		// the globally hidden case is already covered by the next _showNotes;
+		// cancelFadeOut first, so that a note caught mid-fade comes back
+		// opaque instead of dissolving after being shown again
+		if (this._notesAreVisible) {
+			this._allNotes.forEach(function (n) {
+				n.cancelFadeOut();
+				n.show();
+			});
+		}
+		this._updateFilterBadge();
+	}
+
+	/* The color new notes get while a filter is active (empty string keeps
+	 * the default, i.e. the first note's color). */
+	_filterColorString () {
+		if (this._colorFilter === null) { return ''; }
+		return Common.PRESET_COLORS[this._colorFilter].rgb.join(',');
+	}
+
+	// the dot's color is the active preset's ring: darker and more
+	// contrasted than the fill on the dark panel
+	_updateFilterBadge () {
+		if (this._colorFilter === null) {
+			this._filterDot.visible = false;
+			return;
+		}
+		this._filterDot.style = 'background-color: '
+			+ Common.PRESET_COLORS[this._colorFilter].ring + ';';
+		this._filterDot.visible = true;
+	}
+
 	_onButtonPressed (actor, event) {
 		// the keyboard shortcut arrives without any Clutter event
 		if (event && typeof event.get_button === 'function') {
@@ -437,7 +533,7 @@ class NotesManager {
 		}
 
 		if(this._allNotes.length == 0) {
-			this.createNote('', 16, true);
+			this.createNote(this._filterColorString(), 16, true);
 			this._showNotes();
 		} else if (this._notesAreVisible) {
 			this._hideNotes();
@@ -472,6 +568,7 @@ class NotesManager {
 			Common.getCustomIcon(Me.dir, 'edit-paste'),
 			this._onMenuNewFromClipboard.bind(this));
 		this._newFromClipboardItem.setSensitive(false);
+		this._buildFilterSection();
 		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
 			this._onMenuSettings.bind(this));
 
@@ -481,6 +578,7 @@ class NotesManager {
 		this._menu.connect('open-state-changed', (menu, open) => {
 			if (open) {
 				this.panel_button.add_style_pseudo_class('active');
+				this._refreshFilterMenu();
 				// 'New from Clipboard' makes sense only with some text in the
 				// clipboard; the read is asynchronous, so the item visibly
 				// grays out (or back in) a moment after the menu opens
@@ -512,12 +610,103 @@ class NotesManager {
 		return menuItem;
 	}
 
+	/*
+	 * The color filter section (task 004 / ADR-0003): a non-interactive
+	 * title, two rows of swatches in the palette order and a "Reset filter"
+	 * item. The row/swatch widgets reuse the NoteOptionsMenu patterns
+	 * (non-reactive PopupBaseMenuItems hosting St.Buttons).
+	 */
+	_buildFilterSection () {
+		this._menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+		let titleItem = new PopupMenu.PopupBaseMenuItem({
+			reactive: false,
+			activate: false,
+			hover: false,
+			style_class: null,
+			can_focus: false
+		});
+		titleItem.actor.add_child(new St.Label({
+			text: _("Filter by color"),
+			x_expand: true,
+			x_align: Clutter.ActorAlign.START,
+			y_align: Clutter.ActorAlign.CENTER,
+		}));
+		this._menu.addMenuItem(titleItem);
+
+		this._filterSwatches = {};
+		let row1 = this._newSwatchRow();
+		let row2 = this._newSwatchRow();
+		['peach', 'cream', 'mint', 'sky'].forEach(
+			(name) => this._addFilterSwatch(name, row1));
+		['lavender', 'pink', 'sage', 'beige'].forEach(
+			(name) => this._addFilterSwatch(name, row2));
+		this._menu.addMenuItem(row1);
+		this._menu.addMenuItem(row2);
+
+		// like the swatches, the reset closes the menu (_onApply pattern):
+		// the result is immediately visible on the desktop
+		this._resetFilterItem = this._menu.addAction(_("Reset filter"), () => {
+			this.clearColorFilter();
+			this._menu.close();
+		});
+		this._resetFilterItem.setSensitive(false);
+	}
+
+	_newSwatchRow () {
+		return new PopupMenu.PopupBaseMenuItem({
+			reactive: false,
+			activate: false,
+			hover: false,
+			style_class: null,
+			can_focus: false
+		});
+	}
+
+	_addFilterSwatch (presetName, rowItem) {
+		let btn = new St.Button({
+			style_class: 'notesCircleButton',
+			style: this._swatchStyle(presetName),
+			x_expand: true,
+			x_align: Clutter.ActorAlign.CENTER,
+		});
+		btn.connect('clicked', () => {
+			this.setColorFilter(presetName);
+			this._menu.close();
+		});
+		rowItem.actor.add_child(btn);
+		this._filterSwatches[presetName] = btn;
+	}
+
+	/* The swatch background is the preset fill; the active filter's swatch
+	 * additionally gets the ring of its own color (COLOR.md §4.2, the same
+	 * convention as the current color in the note options menu). */
+	_swatchStyle (presetName) {
+		let preset = Common.PRESET_COLORS[presetName];
+		let rgb = preset.rgb;
+		let style = 'background-color: rgb(' + rgb[0] + ','
+			+ rgb[1] + ','
+			+ rgb[2] + ');';
+		if (presetName === this._colorFilter) {
+			style += 'border-color: ' + preset.ring + '; border-width: 2px;';
+		}
+		return style;
+	}
+
+	/* Called on every menu opening: redraw the rings and the reset item. */
+	_refreshFilterMenu () {
+		Object.keys(this._filterSwatches).forEach((name) => {
+			this._filterSwatches[name].set_style(this._swatchStyle(name));
+		});
+		this._resetFilterItem.setSensitive(this._colorFilter !== null);
+	}
+
 	_onMenuNewNote () {
 		this._menu.close();
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
-		this.createNote('', 16, true);
+		this.createNote(this._filterColorString(), 16, true);
 	}
 
 	/*
@@ -535,7 +724,7 @@ class NotesManager {
 			St.ClipboardType.CLIPBOARD,
 			(clipboard, text) => {
 				if (!text) { return; }
-				let note = this.createNote('', 16, false);
+				let note = this.createNote(this._filterColorString(), 16, false);
 				if (note != null) {
 					note.appendClipboardText(text);
 				}

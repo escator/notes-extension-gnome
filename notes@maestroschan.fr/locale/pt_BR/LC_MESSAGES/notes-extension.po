@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 20:11+0700\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2022-01-13 11:03-0300\n"
 "Last-Translator: Clóvis Fabrício Costa <github.nosklo@0sg.net>\n"
 "Language-Team: Brazillian Portuguese\n"
@@ -39,6 +39,16 @@ msgstr ""
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Configurações"
+
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "First note's color"
+msgid "Filter by color"
+msgstr "Cor da primeira nota"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
