@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 19:54+0700\n"
 "PO-Revision-Date: 2022-08-07 20:42+0100\n"
 "Last-Translator: Albano Battistella <albano_battistella@hotmail.com>\n"
 "Language-Team: \n"
@@ -26,38 +26,55 @@ msgstr "Mostra note"
 msgid "Notes extension error: failed to load a note"
 msgstr "Errore estensione di Notes: caricamento di una nota non riuscito"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Note"
-
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "Riavvia l'estensione per applicare le modifiche"
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Mostra note"
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Colore personalizzato"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Impostazioni"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Applica"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Dimensione del font"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Scrivi qui…"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Nuova"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -72,6 +89,10 @@ msgid "Resize"
 msgstr "Ridimensiona"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Scrivi qui…"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr "Nota vuota"
 
@@ -82,6 +103,10 @@ msgstr "Eliminare questa nota?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr "Modifica titolo"
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Applica"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -96,34 +121,6 @@ msgstr "Il valore predefinito è %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Versione %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Posizione delle note"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "In primo piano"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "Sullo sfondo"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "Incompatibile con le icone del desktop"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr "Passa attraverso 3 stati"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr "Invia sullo sfondo, invia in primo piano, nascondi"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Messa a fuoco automatica"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -167,10 +164,9 @@ msgstr "Apri la cartella di salvataggio"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
 msgstr ""
-"I file che terminano con \"_state\" contengono il colore e la posizione "
-"delle note"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -178,13 +174,13 @@ msgstr ""
 "I file che terminano con \"_text\" contengono il testo scritto nelle note"
 
 #: notes@maestroschan.fr/prefs.ui
-#| msgid "Back"
 msgid "Backup"
 msgstr "Backup"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Explanations about how to use this extension can be found here:"
-msgstr "Spiegazioni su come utilizzare questa estensione possono essere trovate qui:"
+msgstr ""
+"Spiegazioni su come utilizzare questa estensione possono essere trovate qui:"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Online help manual"
@@ -202,6 +198,10 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "Torna al monitor principale"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Note"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -241,3 +241,39 @@ msgstr "I tasti di modifica devono essere compresi tra chevrons"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "Non utilizzare una scorciatoia da tastiera già esistente."
+
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Riavvia l'estensione per applicare le modifiche"
+
+#~ msgid "Custom color"
+#~ msgstr "Colore personalizzato"
+
+#~ msgid "New"
+#~ msgstr "Nuova"
+
+#~ msgid "Position of notes"
+#~ msgstr "Posizione delle note"
+
+#~ msgid "Above everything"
+#~ msgstr "In primo piano"
+
+#~ msgid "On the background"
+#~ msgstr "Sullo sfondo"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Incompatibile con le icone del desktop"
+
+#~ msgid "Cycle through 3 states"
+#~ msgstr "Passa attraverso 3 stati"
+
+#~ msgid "Send to background, send to foreground, hide"
+#~ msgstr "Invia sullo sfondo, invia in primo piano, nascondi"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Messa a fuoco automatica"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "I file che terminano con \"_state\" contengono il colore e la posizione "
+#~ "delle note"
