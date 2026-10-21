@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
-"PO-Revision-Date: 2026-10-21 23:00+0700\n"
-"Last-Translator: Automatically generated\n"
+"POT-Creation-Date: 2026-10-21 23:26+0700\n"
+"PO-Revision-Date: 2026-10-21 23:40+0700\n"
+"Last-Translator: Pavel Chernyakov\n"
 "Language-Team: none\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -20,23 +20,23 @@ msgstr ""
 
 #: notes@maestroschan.fr/extension.js
 msgid "Show notes"
-msgstr ""
+msgstr "Показать заметки"
 
 #: notes@maestroschan.fr/extension.js
 msgid "Notes extension error: failed to load a note"
-msgstr ""
+msgstr "Ошибка расширения заметок: не удалось загрузить заметку"
 
 #: notes@maestroschan.fr/extension.js
 msgid "New note"
-msgstr ""
+msgstr "Новая заметка"
 
 #: notes@maestroschan.fr/extension.js
 msgid "New from Clipboard"
-msgstr ""
+msgstr "Новая из буфера обмена"
 
 #: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
-msgstr ""
+msgstr "Настройки"
 
 #: notes@maestroschan.fr/extension.js
 msgid "Filter by color"
@@ -48,113 +48,113 @@ msgstr "Сбросить фильтр"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
-msgstr ""
+msgstr "Размер шрифта"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Cut"
-msgstr ""
+msgstr "Вырезать"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Copy"
-msgstr ""
+msgstr "Копировать"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Paste"
-msgstr ""
+msgstr "Вставить"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Undo"
-msgstr ""
+msgstr "Отменить"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Redo"
-msgstr ""
+msgstr "Повторить"
 
 #: notes@maestroschan.fr/menus.js
 msgid "Select All"
-msgstr ""
+msgstr "Выделить всё"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit"
-msgstr ""
+msgstr "Редактировать"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "Копировать в буфер обмена"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Paste from clipboard"
-msgstr ""
+msgstr "Вставить из буфера обмена"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
-msgstr ""
+msgstr "Удалить"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Note options"
-msgstr ""
+msgstr "Параметры заметки"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Resize"
-msgstr ""
+msgstr "Изменить размер"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Type here…"
-msgstr ""
+msgstr "Введите текст…"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
-msgstr ""
+msgstr "Пустая заметка"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete this note?"
-msgstr ""
+msgstr "Удалить эту заметку?"
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
-msgstr ""
+msgstr "Изменить заголовок"
 
 #: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
 msgid "Apply"
-msgstr ""
+msgstr "Применить"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
-msgstr ""
+msgstr "Изменения вступят в силу после перезагрузки расширения."
 
 #: notes@maestroschan.fr/prefs.js
 #, javascript-format
 msgid "Default value is %s"
-msgstr ""
+msgstr "Значение по умолчанию: %s"
 
 #: notes@maestroschan.fr/prefs.js
 #, javascript-format
 msgid "Version %s"
-msgstr ""
+msgstr "Версия %s"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
-msgstr ""
+msgstr "Использовать комбинацию клавиш"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut to toggle notes visibility"
-msgstr ""
+msgstr "Использовать комбинацию клавиш для показа и скрытия заметок"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Help"
-msgstr ""
+msgstr "Справка"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Hide the icon"
-msgstr ""
+msgstr "Скрыть значок"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "First note's color"
-msgstr ""
+msgstr "Цвет первой заметки"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "The notes created afterwards will use the color of their parent"
-msgstr ""
+msgstr "Заметки, созданные позже, будут наследовать цвет родительской заметки"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
@@ -162,80 +162,103 @@ msgid ""
 "them). If you want to <b>get a copy of your notes</b>, this button opens the "
 "folder where they are."
 msgstr ""
+"Заметки сохраняются на диск в различных ситуациях (в основном, когда вы их "
+"скрываете). Если вы хотите <b>получить копию своих заметок</b>, эта кнопка "
+"откроет папку, в которой они находятся."
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Open the storage directory"
-msgstr ""
+msgstr "Открыть папку с заметками"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
 "The \"layouts.json\" file contains the color and position of your notes for "
 "each monitor configuration"
 msgstr ""
+"Файл \"layouts.json\" содержит цвет и положение заметок для каждой "
+"конфигурации мониторов"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
 msgstr ""
+"Файлы, оканчивающиеся на \"_text\", содержат текст ваших заметок"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Backup"
-msgstr ""
+msgstr "Резервное копирование"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Explanations about how to use this extension can be found here:"
-msgstr ""
+msgstr "О том, как пользоваться расширением, можно прочитать здесь:"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Online help manual"
-msgstr ""
+msgstr "Онлайн-руководство"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
 "Click on this button if you accidentally moved a note out of your primary "
 "monitor (example: if you had notes on a secondary monitor and unplugged it)."
 msgstr ""
+"Нажмите эту кнопку, если заметка случайно оказалась за пределами основного "
+"монитора (например, если заметки были на втором мониторе, а вы его "
+"отключили)."
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
-msgstr ""
+msgstr "Вернуть на основной монитор"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr ""
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
+msgstr "(форк расширения для заметок на рабочем столе.)"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
 msgstr ""
+"Переработанный дизайн и расширенная функциональность:\n"
+"• Улучшен визуальный стиль и интерфейс\n"
+"• Улучшенная работа с заметками на экране\n"
+"• Контекстное меню текста с историей правок\n"
+"• Создание заметок из буфера обмена\n"
+"• Цветовой фильтр заметок в меню панели\n"
+"• Корректная работа на нескольких мониторах"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr ""
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr "Основано на оригинальном расширении Romain F.T. (maoschanz)"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
-msgstr ""
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr "Форк  https://github.com/maoschanz/notes-extension-gnome"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
-msgstr ""
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr "Автор разработчик: Pavel Chernyakov (escator)"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
-msgstr ""
+msgstr "Сообщить об ошибке или предложить идею"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "About"
-msgstr ""
+msgstr "О расширении"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "List of valid key names"
-msgstr ""
+msgstr "Список допустимых названий клавиш"
 
 #. Context for translation: modifier keys are ctrl/shift/super/alt
 #: notes@maestroschan.fr/prefs.ui
 msgid "Modifier keys must be between chevrons"
-msgstr ""
+msgstr "Клавиши-модификаторы должны быть заключены в угловые скобки"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
-msgstr ""
+msgstr "Не используйте комбинацию клавиш, которая уже занята."
