@@ -52,16 +52,23 @@ var TEXT_COLORS = {
 };
 
 /*
- * SVG icons bundled with the extension live in icons/, one file per icon
- * named "<name>-symbolic.svg". This returns a Gio.FileIcon to be used as the
- * `gicon` property of a St.Icon (icon_name can't find them, as they aren't
- * part of the system icon theme). Returns null when the icon doesn't exist.
+ * Icons bundled with the extension live in icons/, one file per icon: SVGs
+ * are named "<name>-symbolic.svg", bitmaps "<name>.png". This returns a
+ * Gio.FileIcon to be used as the `gicon` property of a St.Icon (icon_name
+ * can't find them, as they aren't part of the system icon theme). Returns
+ * null when the icon doesn't exist.
  */
 var CUSTOM_ICONS = ['edit', 'edit-copy', 'edit-paste', 'new-note', 'setting'];
 
 var getCustomIcon = function (extensionDir, name) {
-	let file = Gio.File.new_for_path(GLib.build_filenamev([
-		extensionDir.get_path(), 'icons', name + '-symbolic.svg'
-	]));
-	return file.query_exists(null) ? Gio.FileIcon.new(file) : null;
+	let filenames = [name + '-symbolic.svg', name + '.png'];
+	for (let i = 0; i < filenames.length; i++) {
+		let file = Gio.File.new_for_path(GLib.build_filenamev([
+			extensionDir.get_path(), 'icons', filenames[i]
+		]));
+		if (file.query_exists(null)) {
+			return Gio.FileIcon.new(file);
+		}
+	}
+	return null;
 };
