@@ -160,8 +160,7 @@ const NotesSettingsWidget = new GObject.Class({
 	//--------------------------------------------------------------------------
 
 	_buildHelpPage(builder) {
-		let help_url = Me.metadata.url.toString();
-		help_url += "/blob/master/user-help/README.md";
+		let help_url = 'https://github.com/escator/notes-extension-gnome/blob/master/README.md';
 		builder.get_object('help_btn').set_uri(help_url);
 
 		let data_button = builder.get_object('backup_btn');
