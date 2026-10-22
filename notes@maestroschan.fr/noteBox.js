@@ -2,26 +2,43 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { Clutter, St, GLib, Gio } = imports.gi;
+const { Clutter, St, GLib, Gio, Meta } = imports.gi;
 const Main = imports.ui.main;
-const ShellEntry = imports.ui.shellEntry;
-const GrabHelper = imports.ui.grabHelper;
+const PopupMenu = imports.ui.popupMenu;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
+const Common = Me.imports.common;
 const Menus = Me.imports.menus;
-const Extension = Me.imports.extension;
 const Dialog = Me.imports.dialog;
+const TextHistory = Me.imports.textHistory.TextHistory;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
 
 // ~/.local/share/notes@maestroschan.fr
-const PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
+const PATH = Common.DATA_PATH;
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
+
+// duration of the fade-out used by fadeOutAndHide: the color filter's way of
+// sending a note off the screen (task 004 phase 3)
+const FILTER_FADE_MS = 300;
+
+// X11 evdev keycodes (linux/input-event-codes.h) of the physical keys bound
+// by the keyboard matrix in _onKeyPress: unlike a keyval, a keycode doesn't
+// depend on the active XKB group, so the shortcuts work with Cyrillic active
+// too (docs/tasks/003-own-keyboard-text-actions/02-architecture.md §3).
+// Clutter delivers them unchanged on Wayland and offset by 8 (the X keycode)
+// under X11 — _isKey accepts both.
+const EVDEV_V = 55;
+const EVDEV_C = 54;
+const EVDEV_X = 53;
+const EVDEV_Z = 52;
+const EVDEV_A = 38;
+const EVDEV_INSERT = 118;
 
 //------------------------------------------------------------------------------
 
@@ -35,29 +52,35 @@ function stringFromArray(data){
 
 /*
  * This class stands for one note. The note's id corresponds to the name of
- * files where its data will be stored. The note's state is loaded and the note
- * is built, then the note's text is loaded.
- * Almost all of the init process is done in the _buildNote() method. Then, the
- * other methods are here for managing note state through buttons, or to
+ * the file where its text is stored, and to its entry in the layout registry
+ * (layouts.json, owned by the NotesManager). The manager decides the id, the
+ * attributes (color, font size) and the geometry (x, y, w, h — global scene
+ * coordinates, valid across all the monitors); the note itself only handles
+ * the widgets, the user interactions, and the text file.
+ * Almost all of the init process is done in the _buildNote() method. Then,
+ * the other methods are here for managing note state through buttons, or to
  * interact with the NotesManager singleton.
  */
 var NoteBox = class NoteBox {
-	constructor (id, color, fontSize) {
-		this.id = id;
-		this._fontSize = fontSize;
-		if (color.split(',').length == 3) {
-			this.customColor = color;
+	constructor (manager, spec) {
+		this._manager = manager;
+		this.id = spec.id;
+		this._fontSize = spec.fontSize;
+		this._x = Math.floor(spec.x);
+		this._y = Math.floor(spec.y);
+		if (spec.color && spec.color.split(',').length == 3) {
+			this.customColor = spec.color;
 		} else {
-			let c = Extension.SETTINGS.get_strv('first-note-rgb');
-			c[0] = c[0] * 255;
-			c[1] = c[1] * 255;
-			c[2] = c[2] * 255;
+			let c = this._manager.settings.get_strv('first-note-rgb');
+			c[0] = Math.round(c[0] * 255);
+			c[1] = Math.round(c[1] * 255);
+			c[2] = Math.round(c[2] * 255);
 			this.customColor = c.toString();
 		}
-		this._buildNote();
+		this._buildNote(spec);
 	}
 
-	_buildNote () {
+	_buildNote (spec) {
 		this.actor = new St.BoxLayout({
 			reactive: true,
 			vertical: true,
@@ -68,7 +91,8 @@ var NoteBox = class NoteBox {
 		});
 
 		this._fontColor = '';
-		this._loadState();
+		this.actor.width = Math.floor(spec.w);
+		this.actor.height = Math.floor(spec.h);
 		this._applyActorStyle();
 
 		// This actually builds all the possible headerbars
@@ -87,9 +111,11 @@ var NoteBox = class NoteBox {
 		this.noteEntry = new St.Entry({
 			name: 'noteEntry',
 			can_focus: true,
-			hint_text: _("Type here…"),
 			track_hover: true,
 			x_expand: true,
+			// the entry must fill the scroll view: its natural height is a
+			// single text line and is not reliably recomputed when the text
+			// auto-wraps, so aligning to it clips every wrapped line
 			style_class: 'notesTextField',
 		});
 		let clutterText = this.noteEntry.get_clutter_text();
@@ -97,12 +123,55 @@ var NoteBox = class NoteBox {
 		clutterText.set_activatable(false); // we can press Enter
 		clutterText.set_line_wrap(true);
 		clutterText.set_line_wrap_mode(imports.gi.Pango.WrapMode.WORD_CHAR);
+		// a non-editable ClutterText only answers Ctrl+C / Ctrl+A when it is
+		// selectable, and notes are read-only by default
+		clutterText.set_selectable(true);
+
+		// the connection happens before _loadText, whose initial set_text is
+		// wrapped in a history suspend so it doesn't open a bogus undo step
+		clutterText.connect('text-changed', this._onTextChanged.bind(this));
+
+		// The text context menu (task 002) is built lazily on its first use.
+		// A right click is intercepted here, before ClutterText's own
+		// handling: letting ClutterText process button 3 would move the
+		// cursor to the click point and drop the selection.
+		//
+		// In the read-only mode every press is swallowed as well: mutter's
+		// press handler (clutter_text_press) runs for any button on a
+		// selectable text and starts with an unconditional grab_key_focus,
+		// so a click on a read-only note silently stole the key focus from
+		// the note being edited (Ctrl+V then landed here and was swallowed
+		// by the matrix, and each click left two clutter_input_focus
+		// assertion warnings in the journal). Stopping the press before the
+		// class handler also means no drag selection in the read-only mode —
+		// selection there goes through the context menu instead
+		// (decision 2026-10-21).
+		this._textMenu = null;
+		this._textMenuManager = null;
+		clutterText.connect('button-press-event', (actor, event) => {
+			if (event.get_button() == 3) {
+				if (this._textMenu && this._textMenu.super_menu.isOpen) {
+					this._textMenu.super_menu.close();
+					return Clutter.EVENT_STOP;
+				}
+				this._openTextMenu(event.get_coords()[0], event.get_coords()[1]);
+				return Clutter.EVENT_STOP;
+			}
+			if (!this._editing) {
+				// the note still raises above its siblings: EVENT_STOP keeps
+				// the event from reaching noteEntry's own press handler
+				this._redraw();
+				return Clutter.EVENT_STOP;
+			}
+			return Clutter.EVENT_PROPAGATE;
+		});
+		// Shift+F10 / Menu key: the menu is anchored at the text cursor
+		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
 
 		this._entryBox = new St.BoxLayout({
 			reactive: true,
 			x_expand: true,
 			y_expand: true,
-			visible: this.entry_is_visible,
 		});
 
 		this._entryBox.add_child(this.noteEntry);
@@ -111,27 +180,48 @@ var NoteBox = class NoteBox {
 
 		//----------------------------------------------------------------------
 
-		this._grabHelper = new GrabHelper.GrabHelper(this.noteEntry)
-		if (Extension.AUTO_FOCUS) { // TODO dynamically update this setting
-			this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
-		} else {
+		// The entry takes the key focus when hovered (autoFocus) or pressed, so
+		// the user can keep typing without an extra click. The focus is taken
+		// directly: GrabHelper's modal grab would swallow the first click
+		// happening outside the entry (on the header buttons).
+		//
+		// The "Automatic focus" option is disabled for now: the notes always
+		// take the key focus when pressed (the former setting defaulted to
+		// false anyway, and updating it dynamically was never implemented).
+		//if (this._manager.autoFocus) { // TODO dynamically update this setting
+		//	this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
+		//} else {
 			this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 			// this.noteEntry.connect('key-focus-in', this._redraw.bind(this)); // FIXME doesn't work
-			this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
-		}
-		this.actor.connect('notify::hover', this._applyActorStyle.bind(this));
+		//}
+		// runs before the entry's own key handling (bubbling from the text or
+		// on the entry itself): the whole keyboard matrix of task 003 is
+		// served there, before St.Entry/ClutterText ever see the key (see
+		// _onKeyPress)
+		this.noteEntry.connect('key-press-event', this._onKeyPress.bind(this));
+
+		// Notes are displayed read-only by default; clicking the edit button is
+		// the only way to change this (the state isn't saved across sessions)
+		this._editing = false;
+		this.setEditMode(false);
 
 		//----------------------------------------------------------------------
 
 		// Each note sets its own actor where it should be. This isn't a problem
-		// since the related setting isn't directly accessed, but is stored in
-		// 'Extension.NOTES_MANAGER' instead, which prevents inconsistencies.
+		// since the related setting isn't directly accessed, but is stored by
+		// the notes manager instead, which prevents inconsistencies.
 		this.loadIntoCorrectLayer();
 		this._setNotePosition();
 		this._loadText();
-		// ShellEntry.addContextMenu(this.noteEntry); // FIXME doesn't work
+		// the text menu below replaces ShellEntry.addContextMenu (its FIXME
+		// "doesn't work" is explained in the task 002 journal)
 		this._initStyle();
+		// a newly created note opens straight into the editing mode; done
+		// after _loadText so the initial setEditMode(false) in the middle of
+		// this method keeps its "don't wipe the file" guarantee
+		if (spec.startInEditMode) {
+			this.setEditMode(true);
+		}
 
 		this.grabX = this._x + 100;
 		this.grabY = this._y + 10;
@@ -139,8 +229,11 @@ var NoteBox = class NoteBox {
 
 	/*
 	 * The headerbar contains the UI controls to manage the note:
-	 * - The 'new note' button creates a note with the same color and font size,
-	 *   but with random coordinates, an empty text, and an harcoded size.
+	 * - The 'edit' button toggles the note between the read-only mode (the
+	 *   default) and the editing mode.
+	 * - The 'copy' button copies the note's text to the clipboard.
+	 * - The 'paste' button appends the clipboard's text at the end of the
+	 *   note, on a new line if the note already has some.
 	 * - The 'delete' button asks the user to confirm if they really wants to
 	 *   delete the note (see `dialog.js`), and if yes the object is destroyed,
 	 *   and a method from the NotesManager is called to correctly delete the
@@ -162,21 +255,37 @@ var NoteBox = class NoteBox {
 			style_class: 'noteHeaderStyle',
 		});
 
-		let btnNew = new Menus.NoteRoundButton(
+		this._btnEdit = new Menus.NoteRoundButton(
 			this,
-			'list-add-symbolic',
-			_("New")
+			Common.getCustomIcon(Me.dir, 'edit'),
+			_("Edit")
 		);
-		btnNew.actor.connect('clicked', this._createNote.bind(this));
-		this._buttonsBox.add_child(btnNew.actor);
+		this._btnEdit.actor.connect('clicked', this._toggleEditMode.bind(this));
+		this._buttonsBox.add_child(this._btnEdit.actor);
 
-		let btnDelete = new Menus.NoteRoundButton(
+		this._btnCopy = new Menus.NoteRoundButton(
+			this,
+			Common.getCustomIcon(Me.dir, 'edit-copy'),
+			_("Copy to clipboard")
+		);
+		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
+		this._buttonsBox.add_child(this._btnCopy.actor);
+
+		this._btnPaste = new Menus.NoteRoundButton(
+			this,
+			Common.getCustomIcon(Me.dir, 'edit-paste'),
+			_("Paste from clipboard")
+		);
+		this._btnPaste.actor.connect('clicked', this._pasteFromClipboard.bind(this));
+		this._buttonsBox.add_child(this._btnPaste.actor);
+
+		this._btnDelete = new Menus.NoteRoundButton(
 			this,
 			'user-trash-symbolic',
 			_("Delete")
 		);
-		btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
-		this._buttonsBox.add_child(btnDelete.actor);
+		this._btnDelete.actor.connect('clicked', this._openDeleteDialog.bind(this));
+		this._buttonsBox.add_child(this._btnDelete.actor);
 
 		this.moveBox = new St.Button({
 			x_expand: true,
@@ -185,30 +294,380 @@ var NoteBox = class NoteBox {
 		});
 		this._buttonsBox.add_child(this.moveBox);
 
-		let btnOptions = new Menus.NoteRoundButton(
+		this._btnOptions = new Menus.NoteRoundButton(
 			this,
 			'view-more-symbolic',
 			_("Note options")
 		);
-		btnOptions.addMenu();
-		this._buttonsBox.add_child(btnOptions.actor);
+		this._btnOptions.addMenu();
+		this._buttonsBox.add_child(this._btnOptions.actor);
 
-		let ctrlButton = new Menus.NoteRoundButton(
+		this._btnResize = new Menus.NoteRoundButton(
 			this,
 			'view-fullscreen-symbolic',
 			_("Resize")
 		);
-		this._buttonsBox.add_child(ctrlButton.actor);
+		this._buttonsBox.add_child(this._btnResize.actor);
 
 		this.moveBox.connect('button-press-event', this._onMovePress.bind(this));
 		this.moveBox.connect('motion-event', this._onMoveMotion.bind(this));
 		this.moveBox.connect('button-release-event', this._onRelease.bind(this));
 
-		ctrlButton.actor.connect('button-press-event', this._onResizePress.bind(this));
-		ctrlButton.actor.connect('motion-event', this._onResizeMotion.bind(this));
-		ctrlButton.actor.connect('button-release-event', this._onRelease.bind(this));
+		this._btnResize.actor.connect('button-press-event', this._onResizePress.bind(this));
+		this._btnResize.actor.connect('motion-event', this._onResizeMotion.bind(this));
+		this._btnResize.actor.connect('button-release-event', this._onRelease.bind(this));
 
 		this.actor.add_child(this._buttonsBox);
+	}
+
+	/*
+	 * Toggles between the read-only and editing modes: the entry is editable
+	 * only in the editing mode; all the headerbar buttons work in both modes.
+	 */
+	_toggleEditMode () {
+		this.setEditMode(!this._editing);
+	}
+
+	/*
+	 * Also called by the NotesManager when the notes get hidden, so that they
+	 * are always displayed read-only the next time they show up.
+	 */
+	setEditMode (editing) {
+		// a mode switch is a discrete operation: whatever typing portion was
+		// open becomes its own undo step (the history doesn't exist yet during
+		// the initial calls from _buildNote)
+		this.boundary();
+		this._editing = editing;
+		let clutterText = this.noteEntry.get_clutter_text();
+		clutterText.set_editable(editing);
+		clutterText.set_cursor_visible(editing);
+		this.noteEntry.hint_text = editing ? _("Type here…") : '';
+
+		this._btnEdit._setIcon(editing
+			? 'object-select-symbolic' // the "done" checkmark from the theme
+			: Common.getCustomIcon(Me.dir, 'edit'));
+
+		if (editing) {
+			this.noteEntry.grab_key_focus();
+		} else {
+			global.stage.set_key_focus(null);
+			// the text is saved when leaving the editing mode, but the initial
+			// call happening before _loadText must not wipe the saved file
+			if (this._textLoaded) {
+				this._saveText();
+			}
+		}
+	}
+
+	_copyToClipboard () {
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			this.noteEntry.get_text()
+		);
+	}
+
+	/*
+	 * 'text-changed' handler: every user edit (typing, deletion, native
+	 * paste…) feeds the history, which coalesces consecutive changes into
+	 * undo portions. The suspend flag keeps history restorations and the
+	 * initial text load out of the history.
+	 */
+	_onTextChanged () {
+		if (!this._history) { return; }
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.onChange(
+			clutterText.get_text(),
+			clutterText.get_cursor_position()
+		);
+	}
+
+	/*
+	 * Restore the previous/next state, in both modes, without switching
+	 * modes; nothing happens on an empty history. The restored text is
+	 * written to disk right away. Called from _onKeyPress and (from Ф3) the
+	 * text context menu.
+	 */
+	undo () {
+		if (!this._history) { return; }
+		let state = this._history.undo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	redo () {
+		if (!this._history) { return; }
+		let state = this._history.redo();
+		if (state != null) {
+			this._restoreHistoryState(state);
+		}
+	}
+
+	_restoreHistoryState (state) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this._history.suspend(() => {
+			clutterText.set_text(state.text);
+			clutterText.set_cursor_position(state.cursor);
+		});
+		this._saveText();
+	}
+
+	/*
+	 * Closes the currently open undo portion, making it one undo step (no-op
+	 * when the history doesn't exist yet, or when nothing is open). Called
+	 * before discrete operations: mode switch, headerbar paste, Ctrl+V, the
+	 * context menu's Cut/Copy/Paste.
+	 */
+	boundary () {
+		if (this._history) {
+			this._history.boundary();
+		}
+	}
+
+	canUndo () {
+		return this._history ? this._history.canUndo() : false;
+	}
+
+	canRedo () {
+		return this._history ? this._history.canRedo() : false;
+	}
+
+	//-------------------------- text actions ------------------------------------
+
+	/*
+	 * The text actions shared by the text context menu and the keyboard
+	 * shortcuts (task 003, see
+	 * docs/tasks/003-own-keyboard-text-actions/02-architecture.md §1): one
+	 * implementation per action; the callers only check their own
+	 * preconditions (the menu through its item sensitivity, the keyboard
+	 * through its key matrix) and invoke.
+	 *
+	 * Clutter.Text (GS 42) has no copy_clipboard/paste_clipboard/select_all:
+	 * the clipboard is driven directly through St.Clipboard, and selection
+	 * through set_selection — same approach as the upstream EntryMenu.
+	 *
+	 * Every mutating action opens an undo boundary first, so it stays one
+	 * undo step: the text-changed handler then records the change itself.
+	 */
+	copySelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+	}
+
+	cutSelection () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		St.Clipboard.get_default().set_text(
+			St.ClipboardType.CLIPBOARD,
+			clutterText.get_selection()
+		);
+		clutterText.delete_selection();
+	}
+
+	pasteClipboardAtCursor () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.boundary();
+		// the menu's modal grab took the key focus away from the text; give it
+		// back so the cursor sits where the user left it (a no-op when the
+		// entry already has the focus, i.e. when invoked from the keyboard)
+		this.noteEntry.grab_key_focus();
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => {
+				// the read is asynchronous: the note may be gone by then
+				if (this.actor == null || !text) { return; }
+				clutterText.delete_selection();
+				clutterText.insert_text(text, clutterText.get_cursor_position());
+			}
+		);
+	}
+
+	selectAllText () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		this.noteEntry.grab_key_focus();
+		clutterText.set_selection(0, clutterText.get_text().length);
+		// Closing the popup restores the key focus the menu had grabbed the
+		// stage with — null here, since in the read-only mode no click gives
+		// focus — and that drops the focus (and with it the matrix access)
+		// the grab above has just taken. Both are re-done once the menu
+		// teardown has settled; the redo is idempotent for every other
+		// caller (task 003, acceptance)
+		Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+			if (this.actor == null) { return; }
+			this.noteEntry.grab_key_focus();
+			clutterText.set_selection(0, clutterText.get_text().length);
+		});
+	}
+
+	//-------------------------- text context menu ------------------------------
+
+	/*
+	 * Opens the text context menu anchored at the stage point (stageX,
+	 * stageY); the menu and its manager are created on the first use.
+	 */
+	_openTextMenu (stageX, stageY) {
+		if (!this._textMenu) {
+			this._textMenu = new Menus.NoteTextContextMenu(this);
+			// same compat shim as NoteRoundButton.addMenu: before 3.33 the
+			// constructor takes the owner, after it the actor
+			try {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this);
+			} catch (e) {
+				this._textMenuManager = new PopupMenu.PopupMenuManager(this.actor);
+			}
+			this._textMenuManager.addMenu(this._textMenu.super_menu);
+		}
+		this._textMenu.popup(stageX, stageY);
+	}
+
+	/*
+	 * Keyboard opening (Menu key / Shift+F10, via the popup-menu signal):
+	 * anchored at the text cursor, falling back to the entry's corner when
+	 * the cursor position can't be translated to coordinates (e.g. no cursor
+	 * in the read-only mode).
+	 */
+	_onTextPopupMenu () {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let [transformed, entryX, entryY] = clutterText.get_transformed_position();
+		let [success, textX, textY, lineHeight] =
+			clutterText.position_to_coords(clutterText.get_cursor_position());
+		if (success) {
+			this._openTextMenu(entryX + textX, entryY + textY + lineHeight);
+		} else if (transformed) {
+			this._openTextMenu(entryX, entryY);
+		}
+		return true;
+	}
+
+	_pasteFromClipboard () {
+		St.Clipboard.get_default().get_text(
+			St.ClipboardType.CLIPBOARD,
+			(clipboard, text) => { this.appendClipboardText(text); }
+		);
+	}
+
+	/*
+	 * Appends `text` at the end of the note: straight into an empty (or new)
+	 * note, on a new line otherwise — without doubling a newline the note
+	 * already ends with. Public: the notes manager also calls it right after
+	 * creating a 'New from Clipboard' note. The clipboard read is
+	 * asynchronous, so the note may have been destroyed in the meantime.
+	 */
+	appendClipboardText (text) {
+		if (this.actor == null || !text) { return; }
+		// the headerbar's paste button is a discrete operation: any open
+		// typing portion closes here, the paste becomes its own undo step
+		this._history.boundary();
+		let noteText = this.noteEntry.get_text();
+		if (noteText && noteText.length > 0) {
+			if (!noteText.endsWith('\n')) {
+				noteText += '\n';
+			}
+			text = noteText + text;
+		}
+		this.noteEntry.set_text(text);
+		this._saveText();
+		if (this._editing) {
+			this.noteEntry.get_clutter_text().set_cursor_position(text.length);
+		}
+	}
+
+	/*
+	 * The keyboard matrix of task 003 (02-architecture.md §2), running before
+	 * the entry's own class handler. Every recognized key is executed here
+	 * and stopped, so the native path never takes part: St.Entry pastes and
+	 * cuts with no editable check, and the whole native path is unreviewable
+	 * (01-analysis.md). Paste and cut are served only in the editing mode —
+	 * in the read-only mode they are swallowed (pasting never switches the
+	 * mode, decision 2026-10-21), just like the context menu items they
+	 * mirror; copy, select-all and undo/redo work in both modes. A
+	 * recognized key failing its precondition (no selection, empty text) is
+	 * stopped all the same: the key is ours.
+	 */
+	_onKeyPress (actor, event) {
+		let state = event.get_state();
+		let key = event.get_key_symbol();
+		let control = state & Clutter.ModifierType.CONTROL_MASK;
+		let shift = state & Clutter.ModifierType.SHIFT_MASK;
+		let clutterText = this.noteEntry.get_clutter_text();
+
+		// undo / redo, both modes
+		if (control && (this._isKey(event, [Clutter.KEY_z, Clutter.KEY_Z], EVDEV_Z)
+				|| key == Clutter.KEY_Undo)) {
+			if (shift) {
+				this.redo();
+			} else {
+				this.undo();
+			}
+			return Clutter.EVENT_STOP;
+		}
+		if (control && key == Clutter.KEY_Redo) {
+			this.redo();
+			return Clutter.EVENT_STOP;
+		}
+
+		// paste in the editing mode, swallowed in the read-only mode:
+		// Ctrl+V / Shift+Insert / KEY_Paste (KP_Insert, like in St.Entry, is
+		// not served)
+		if ((control && this._isKey(event, [Clutter.KEY_v, Clutter.KEY_V], EVDEV_V))
+				|| key == Clutter.KEY_Paste
+				|| (shift && !control
+					&& this._isKey(event, [Clutter.KEY_Insert], EVDEV_INSERT))) {
+			if (this._editing) {
+				this.pasteClipboardAtCursor();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// cut, editing only, with a selection; swallowed when read-only
+		if ((control && this._isKey(event, [Clutter.KEY_x, Clutter.KEY_X], EVDEV_X))
+				|| key == Clutter.KEY_Cut) {
+			if (this._editing && clutterText.get_selection()) {
+				this.cutSelection();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// copy, both modes, only with a selection
+		if (control && this._isKey(event, [Clutter.KEY_c, Clutter.KEY_C], EVDEV_C)) {
+			if (clutterText.get_selection()) {
+				this.copySelection();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// select all, both modes, only with some text
+		if (control && this._isKey(event, [Clutter.KEY_a, Clutter.KEY_A], EVDEV_A)) {
+			if (clutterText.get_text()) {
+				this.selectAllText();
+			}
+			return Clutter.EVENT_STOP;
+		}
+
+		// not ours: typing, navigation, IM/preedit — the native path
+		return Clutter.EVENT_PROPAGATE;
+	}
+
+	/*
+	 * True when the event's keyval is one of `keyvals`, or when its hardware
+	 * keycode is `evdevCode` — a keyval depends on the active XKB group
+	 * (with Cyrillic active Ctrl+Z arrives as a Cyrillic keysym on the same
+	 * physical key), a keycode doesn't. Clutter reports the evdev code
+	 * unchanged on Wayland and offset by 8 (the X keycode) under X11, hence
+	 * both are accepted. The service keysyms (Undo, Redo, Paste, Cut) have
+	 * no physical key: pass 0 to skip the keycode check. Lower- and
+	 * uppercase keyvals are both listed by the callers, so Caps Lock doesn't
+	 * matter either.
+	 */
+	_isKey (event, keyvals, evdevCode) {
+		if (keyvals.includes(event.get_key_symbol())) { return true; }
+		if (evdevCode == 0) { return false; }
+		let code = event.get_key_code();
+		return code == evdevCode || code == evdevCode + 8;
 	}
 
 	_openDeleteDialog () {
@@ -224,7 +683,7 @@ var NoteBox = class NoteBox {
 		}
 
 		let description_label = new St.Label({
-			style: 'padding-top: 16px;',
+			style_class: 'notesDialogDescription',
 			x_align: Clutter.ActorAlign.CENTER,
 			text: noteText,
 		});
@@ -267,59 +726,73 @@ var NoteBox = class NoteBox {
 	//--------------------------------------------------------------------------
 	// "Public" methods called by NotesManager ---------------------------------
 
-	loadIntoCorrectLayer () {
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
-			Main.layoutManager.addChrome(this.actor, {
-				affectsInputRegion: true
-			});
-		} else {
-			Main.layoutManager._backgroundGroup.add_child(this.actor);
-		}
+	get manager () {
+		return this._manager;
 	}
 
-	removeFromCorrectLayer () {
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
-//			Main.layoutManager.untrackChrome(this.actor);
-			Main.layoutManager.removeChrome(this.actor);
-		} else {
-			Main.layoutManager._backgroundGroup.remove_actor(this.actor);
-		}
+	loadIntoCorrectLayer () {
+		Main.layoutManager.addChrome(this.actor, {
+			affectsInputRegion: true
+		});
 	}
 
 	show () {
+		// a visible note is already in the chrome; trackChrome would throw
+		// ('trying to re-track existing chrome actor'), e.g. when the color
+		// filter reset shows the hidden notes next to the already visible
+		// ones, or when a note created through 'New note' while the notes
+		// are globally hidden survives into the next global show
+		if (this.actor.visible) { return; }
 		this.actor.visible = true;
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
-			Main.layoutManager.trackChrome(this.actor);
-		}
+		Main.layoutManager.trackChrome(this.actor);
 	}
 
 	onlyHide () {
 		this.actor.visible = false;
-		if (Extension.NOTES_MANAGER.notesNeedChromeTracking()) {
-			Main.layoutManager.untrackChrome(this.actor);
-		}
+		Main.layoutManager.untrackChrome(this.actor);
+	}
+
+	/*
+	 * Smooth variant of onlyHide(), used by the color filter: the note fades
+	 * out and leaves the chrome only once the animation is over. The guard
+	 * keeps hidden notes (for instance a filter change during a fade) from
+	 * restarting the animation. The note leaves the edit mode right away, so
+	 * it is never editable while dissolving.
+	 */
+	fadeOutAndHide () {
+		if (!this.actor.visible) { return; }
+		this.setEditMode(false);
+		this.actor.ease({
+			opacity: 0,
+			duration: FILTER_FADE_MS,
+			mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+			onComplete: () => {
+				this.onlyHide();
+				this.actor.opacity = 255;
+			}
+		});
+	}
+
+	/*
+	 * Cancels a fade-out in progress, called by the manager before showing
+	 * the notes back (resetting the filter mid-fade must not let the deferred
+	 * onlyHide() run on a note that is shown again). The shell's ease() helper
+	 * fires onComplete only for transitions that finished by themselves, so
+	 * detaching the transitions is enough; remove_all_transitions() is part
+	 * of the gnome-shell 42 Clutter API (verified on this build).
+	 */
+	cancelFadeOut () {
+		this.actor.remove_all_transitions();
+		this.actor.opacity = 255;
 	}
 
 	onlySave (withMetadata=true) {
 		if(withMetadata) {
-			this._saveState();
+			// one disk write for the whole set of notes (positions +
+			// attributes), see NotesManager.saveLayout
+			this._manager.saveLayout();
 		}
 		this._saveText();
-	}
-
-	fixState () {
-		let outX = (this._x < 0 || this._x > Main.layoutManager.primaryMonitor.width - 20);
-		let outY = (this._y < 0 || this._y > Main.layoutManager.primaryMonitor.height - 20);
-		if (outX || outY) {
-			[this._x, this._y] = this._computeRandomPosition();
-			this._setNotePosition();
-		}
-		if (Number.isNaN(this._x)) { this._x = 10; }
-		if (Number.isNaN(this._y)) { this._y = 10; }
-		if (Number.isNaN(this.actor.width)) { this.actor.width = 250; }
-		if (Number.isNaN(this.actor.height)) { this.actor.height = 200; }
-		if (Number.isNaN(this._fontSize)) { this._fontSize = 10; }
-		this._saveState();
 	}
 
 	//--------------------------------------------------------------------------
@@ -332,13 +805,8 @@ var NoteBox = class NoteBox {
 
 	_applyActorStyle () {
 		if (this.actor == null) { return; }
-		let is_hovered = this.actor.hover;
-		let temp;
-		if (is_hovered) {
-			temp = 'background-color: rgba(' + this.customColor + ', 0.8);';
-		} else {
-			temp = 'background-color: rgba(' + this.customColor + ', 0.6);';
-		}
+		let temp = 'background-color: rgb(' + this.customColor + ');'
+			+ 'border: 1px solid ' + this._getBorderColor() + ';';
 		if(this._fontColor != '') {
 			temp += 'color: ' + this._fontColor + ';';
 		}
@@ -346,7 +814,7 @@ var NoteBox = class NoteBox {
 	}
 
 	_applyNoteStyle () {
-		let temp = 'background-color: rgba(' + this.customColor + ', 0.8);';
+		let temp = 'background-color: transparent;';
 		if(this._fontColor != '') {
 			temp += 'color: ' + this._fontColor + ';';
 		}
@@ -356,16 +824,43 @@ var NoteBox = class NoteBox {
 		this.noteEntry.style = temp;
 	}
 
+	/*
+	 * Border matching the note's background: the palette's own border when the
+	 * color is one of the presets (COLOR.md §2), else the background darkened
+	 * by ~10%, which is how the palette's borders relate to their backgrounds.
+	 */
+	_getBorderColor () {
+		let presets = Common.PRESET_COLORS;
+		for (let name in presets) {
+			if (presets[name].rgb.join(',') === this.customColor) {
+				return presets[name].border;
+			}
+		}
+		let rgb = this.customColor.split(',').map(Number);
+		return 'rgb(' + Math.round(rgb[0] * 0.9) + ','
+			+ Math.round(rgb[1] * 0.9) + ','
+			+ Math.round(rgb[2] * 0.9) + ')';
+	}
+
+	/*
+	 * WCAG relative luminance (0 = black, 1 = white). The pivot 0.18 is
+	 * mid-gray: lighter backgrounds get the light theme's dark text token,
+	 * darker ones get the dark theme's light text token.
+	 */
+	_getLuminance (r, g, b) {
+		let channel = function (c) {
+			c = c / 255;
+			if (c <= 0.03928) { return c / 12.92; }
+			return Math.pow((c + 0.055) / 1.055, 2.4);
+		};
+		return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+	}
+
 	_getKeyFocus () {
-		if (this.entry_is_visible) {
-			this._grabHelper.grab({ actor: this.noteEntry });
+		if (this._editing) {
 			this.noteEntry.grab_key_focus();
 		}
 		this._redraw();
-	}
-
-	_leaveKeyFocus () {
-		this._grabHelper.ungrab({ actor: this.noteEntry });
 	}
 
 	_redraw () {
@@ -377,20 +872,15 @@ var NoteBox = class NoteBox {
 	// Sticky note's size and position -----------------------------------------
 
 	_setNotePosition () {
-		let monitor = Main.layoutManager.primaryMonitor;
-
+		// the note's coordinates are global scene coordinates (valid across
+		// all the monitors), not relative to the primary monitor anymore
 		this.actor.set_position(
-			monitor.x + Math.floor(this._x),
-			monitor.y + Math.floor(this._y)
+			Math.floor(this._x),
+			Math.floor(this._y)
 		);
 	}
 
 	_onMovePress (actor, event) {
-		let mouseButton = event.get_button();
-		if (mouseButton == 3) {
-			this._entryBox.visible = !this._entryBox.visible;
-			this.entry_is_visible = this._entryBox.visible;
-		}
 		this._onPressCommon(event);
 		this._isMoving = true;
 		this._isResizing = false;
@@ -475,13 +965,13 @@ var NoteBox = class NoteBox {
 	applyColorAndSave (r, g, b) {
 		this._applyColor(r, g, b)
 		this.onlySave();
+		// a visible note whose new color doesn't match the active filter has
+		// to fade away (the manager ignores the notes hidden by the filter:
+		// their menu is unreachable, so no reverse case)
+		this._manager.refreshFilterForNote(this);
 	}
 
 	//--------------------------------------------------------------------------
-
-	_createNote () {
-		Extension.NOTES_MANAGER.createNote(this.customColor, this._fontSize);
-	}
 
 	/*
 	 * This applies the color, from the menu (`applyColorAndSave`) or the
@@ -493,14 +983,16 @@ var NoteBox = class NoteBox {
 		if (Number.isNaN(r)) r = 255;
 		if (Number.isNaN(g)) g = 255;
 		if (Number.isNaN(b)) b = 255;
-		r = Math.min(Math.max(0, r), 255);
-		g = Math.min(Math.max(0, g), 255);
-		b = Math.min(Math.max(0, b), 255);
+		// rounding also normalizes float values coming from the settings
+		// (stored as 0..1 doubles) or from legacy state files
+		r = Math.round(Math.min(Math.max(0, r), 255));
+		g = Math.round(Math.min(Math.max(0, g), 255));
+		b = Math.round(Math.min(Math.max(0, b), 255));
 		this.customColor = r.toString() + ',' + g.toString() + ',' + b.toString();
-		if (r + g + b > 250) {
-			this._fontColor = '#000000';
+		if (this._getLuminance(r, g, b) > 0.18) {
+			this._fontColor = Common.TEXT_COLORS.primary;
 		} else {
-			this._fontColor = '#ffffff';
+			this._fontColor = Common.TEXT_COLORS.primaryDark;
 		}
 		this._applyNoteStyle();
 		this._applyActorStyle();
@@ -519,7 +1011,14 @@ var NoteBox = class NoteBox {
 		}
 		let content = stringFromArray(contents);
 
-		this.noteEntry.set_text(content);
+		// the loaded text is the baseline: the initial set_text fires
+		// 'text-changed' (the connection predates this method), so it runs
+		// under suspend and opens no undo step
+		this._history = new TextHistory({ text: content, cursor: 0 });
+		this._history.suspend(() => {
+			this.noteEntry.set_text(content);
+		});
+		this._textLoaded = true;
 	}
 
 	_saveText () {
@@ -531,87 +1030,23 @@ var NoteBox = class NoteBox {
 		GLib.file_set_contents(file, noteText);
 	}
 
-	/*
-	 * This tries to find a random [x,y] which doesn't overlap with an existing
-	 * note's header and which isn't out of the primary monitor. Of course, if
-	 * there is notes everywhere, it just abandons computation, and sets the
-	 * note in a random position (within the monitor or course).
-	 */
-	_computeRandomPosition () {
-		let x;
-		let y;
-		for(var i = 0; i < 15; i++) {
-			x = Math.random() * (Main.layoutManager.primaryMonitor.width - 300);
-			y = Math.random() * (Main.layoutManager.primaryMonitor.height - 100);
-
-			if (Extension.NOTES_MANAGER.areCoordsUsable(x, y)) {
-				return [x, y];
-			}
-		}
-		return [x, y];
-	}
-
-	_createDefaultState (fileName) {
-		let defaultPosition = this._computeRandomPosition();
-		let defaultContent = defaultPosition[0].toString() + ';'
-		                   + defaultPosition[1].toString() + ';'
-		                   + this.customColor + ';250;180;'
-		                   + this._fontSize + ';true;'
-		GLib.file_set_contents(fileName, defaultContent);
-		return defaultContent;
-	}
-
-	_loadState () {
-		let fname = GLib.build_filenamev([PATH, this.id.toString() + '_state']);
-		if (!GLib.file_test(fname, GLib.FileTest.EXISTS)) {
-			// If a _text file has no corresponding _state file
-			this._createDefaultState(fname);
-		}
-
-		let file = Gio.file_new_for_path(fname);
-		let [result, contents] = file.load_contents(null);
-		let stringContent;
-		if (!result) {
-			log("Could not read sticky note state file: " + fname);
-			stringContent = this._createDefaultState(fname);
-		} else {
-			stringContent = stringFromArray(contents);
-		}
-
-		let state = stringContent.split(';');
-		this._x = Number(state[0]);
-		this._y = Number(state[1]);
-		this.customColor = state[2];
-		this.actor.width = Number(state[3]);
-		this.actor.height = Number(state[4]);
-		this._fontSize = Number(state[5]);
-		this.entry_is_visible = (state[6] == 'true');
-	}
-
-	_saveState () {
-		let noteState = '';
-		noteState += this._x.toString() + ';';
-		noteState += this._y.toString() + ';';
-		noteState += this.customColor.toString() + ';';
-		noteState += this.actor.width.toString() + ';';
-		noteState += this.actor.height.toString() + ';';
-		noteState += this._fontSize.toString() + ';';
-		noteState += this.entry_is_visible.toString() + ';';
-
-		//log('_saveState | ' + this.id.toString() + ' | ' + noteState);
-		let file = GLib.build_filenamev([PATH, this.id.toString() + '_state']);
-		GLib.file_set_contents(file, noteState);
-	}
-
 	//--------------------------------------------------------------------------
 
 	_deleteNoteObject () {
 		let noteId = this.id;
 		this.destroy();
-		Extension.NOTES_MANAGER.postDelete(noteId);
+		this._manager.postDelete(noteId);
 	}
 
 	destroy () {
+		// Clutter doesn't drop the stage's key focus when the focused actor
+		// is destroyed: the shell-side focus trackers (SearchController,
+		// modal dialogs) would then be handed a disposed Clutter.Text, log
+		// errors, and can even crash the whole shell
+		let focus = global.stage.get_key_focus();
+		if (focus != null && this.actor.contains(focus)) {
+			global.stage.set_key_focus(null);
+		}
 		this.actor.destroy_all_children();
 		this.actor.destroy();
 		this.actor = null;

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: notes-extension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2020-01-24 23:57+0100\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: \n"
@@ -27,38 +27,69 @@ msgstr "Prikaži bilješke"
 msgid "Notes extension error: failed to load a note"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Bilješke"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Prikaži bilješke"
 
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
+msgid "New from Clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Prilagođena boja"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Postavke"
 
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Primijeni"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Custom color"
+msgid "Filter by color"
+msgstr "Prilagođena boja"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Veličina fonta"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Tipkaj ovdje …"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Nova"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -73,6 +104,10 @@ msgid "Resize"
 msgstr "Promijeni veličinu"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Tipkaj ovdje …"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr ""
 
@@ -83,6 +118,10 @@ msgstr "Izbrisati ovu bilješku?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Primijeni"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -97,35 +136,6 @@ msgstr "Standardna vrijednost je %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Verzija %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Položaj bilježaka"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "Ispred svih"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "Na pozadini"
-
-#: notes@maestroschan.fr/prefs.ui
-#, fuzzy
-msgid "Incompatible with desktop icons"
-msgstr "„Na pozadini” nije kompatibilno s desktop ikonama."
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Automatski fokus"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -171,8 +181,9 @@ msgstr "Otvori mapu za spremanje"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
-msgstr "Datoteke s nastavkom „_state” sadrže boju i položaj tvojih bilježaka"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -205,6 +216,10 @@ msgstr ""
 #, fuzzy
 msgid "Bring back to the primary monitor"
 msgstr "Vrati sve bilješke na glavni monitor"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Bilješke"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -243,3 +258,30 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
+
+#~ msgid "Custom color"
+#~ msgstr "Prilagođena boja"
+
+#~ msgid "New"
+#~ msgstr "Nova"
+
+#~ msgid "Position of notes"
+#~ msgstr "Položaj bilježaka"
+
+#~ msgid "Above everything"
+#~ msgstr "Ispred svih"
+
+#~ msgid "On the background"
+#~ msgstr "Na pozadini"
+
+#, fuzzy
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "„Na pozadini” nije kompatibilno s desktop ikonama."
+
+#~ msgid "Automatic focus"
+#~ msgstr "Automatski fokus"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "Datoteke s nastavkom „_state” sadrže boju i položaj tvojih bilježaka"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2020-10-29 17:42+0300\n"
 "Last-Translator: Muha Aliss <muhaaliss@pm.me>\n"
 "Language-Team: Türkçe\n"
@@ -27,38 +27,69 @@ msgstr "Notları göster"
 msgid "Notes extension error: failed to load a note"
 msgstr "Notlar uzantısı hatası: not yüklenemedi"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Notlar"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Notları göster"
 
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "Değişiklikleri uygulamak için uzantıyı yeniden başlatın"
+msgid "New from Clipboard"
+msgstr ""
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Özel renk"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Uygula"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "First note's color"
+msgid "Filter by color"
+msgstr "İlk notun rengi"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Yazı boyutu"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Notunuzu buraya yazın…"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Yeni"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -73,6 +104,10 @@ msgid "Resize"
 msgstr "Boyutlandır"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Notunuzu buraya yazın…"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr ""
 
@@ -83,6 +118,10 @@ msgstr "Not silinsin mi ?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Uygula"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -97,34 +136,6 @@ msgstr "Öntanımlı değer %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Sürüm %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Notların konumu"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "Her şeyin üstünde"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "Arka planda"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "Masaüstü simgeleriyle uyumsuz"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Otomatik odaklama"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -168,8 +179,9 @@ msgstr "Notların depolandığı dizini aç"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
-msgstr "\"_state\" ile biten dosyalar notlarınızın rengini ve konumunu içerir"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -201,6 +213,10 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "Birincil monitöre geri dön"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Notlar"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -240,3 +256,32 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
+
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Değişiklikleri uygulamak için uzantıyı yeniden başlatın"
+
+#~ msgid "Custom color"
+#~ msgstr "Özel renk"
+
+#~ msgid "New"
+#~ msgstr "Yeni"
+
+#~ msgid "Position of notes"
+#~ msgstr "Notların konumu"
+
+#~ msgid "Above everything"
+#~ msgstr "Her şeyin üstünde"
+
+#~ msgid "On the background"
+#~ msgstr "Arka planda"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Masaüstü simgeleriyle uyumsuz"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Otomatik odaklama"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "\"_state\" ile biten dosyalar notlarınızın rengini ve konumunu içerir"

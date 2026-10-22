@@ -32,7 +32,7 @@ The settings dialog window provides several options:
 
 **Position of notes:** select whether you want the notes to be shown above the windows or underneath them.
 
-**Automatic focus:** if this is enabled, the notes will automatically get the keyboard focus when you hover them with the mouse pointer.
+<!-- **Automatic focus:** if this is enabled, the notes will automatically get the keyboard focus when you hover them with the mouse pointer. -->
 
 **Keyboard shortcut:** hide/show notes with a keyboard shortcut. If this is enabled, the icon in the top bar can be hidden.
 

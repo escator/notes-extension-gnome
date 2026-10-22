@@ -1,18 +1,28 @@
+/* Light-theme palette from .agent/COLOR.md. GNOME Shell's CSS engine has no
+   var() support, so the tokens are inlined here and mirrored by the JS side
+   in common.js (PRESET_COLORS / TEXT_COLORS). */
+
 /* Notes' "body" **************************************************************/
 
 .noteBoxStyle {
 	padding: 0px;
 	margin: 0px;
+	background-color: #E8D5B8; /* warm beige: default note background */
+	border: 1px solid #D1C0A6;
+	border-radius: 10px;
 }
 
 .noteBoxStyle:hover {
-	box-shadow: 0px 0px 10px #000;
+	box-shadow: 0px 0px 2px #dcdbdb;
 }
 
+/* Inherits the background of .noteBoxStyle; must not paint its own */
 .notesTextField {
 	border-width: 0px;
 	border-radius: 0px;
 	box-shadow: none;
+	background-color: transparent;
+	color: #2E2E2E;
 }
 
 .notesBackground {
@@ -24,12 +34,15 @@
 /* Notes' headers and the buttons in them *************************************/
 
 .noteHeaderStyle {
-	spacing: 10px;
+	/* tight spacing: the buttons must not eat the whole header of a
+	   minimum-width note, the drag area (notesTitleButton) needs to survive */
+	spacing: 4px;
 	margin: 5px;
 }
 
 .notesTitleButton {
 	text-align: center;
+	color: #2E2E2E;
 }
 
 .notesCircleButton {
@@ -38,13 +51,13 @@
 	height: 28px;
 	width: 28px;
 	border-style: solid;
-	border-color: black;
+	border-color: #2E2E2E;
 }
 
 /* Intended to be used with notesCircleButton */
 .notesHeaderboxButton {
 	border-style: solid;
-	border-color: grey; /* TODO should be the same as the note's text */
+	border-color: #5C5C5C; /* same as the note's secondary text (COLOR.md §5) */
 }
 
 .notesCircleButton:hover, .notesCircleButton:active {
@@ -52,6 +65,42 @@
 	border-radius: 10px;
 	height: 26px;
 	width: 26px;
+	border-color: #4F6BED;
 }
 
+/* The color filter badge on the panel button (task 004): only the shape is
+   here, the background color is set inline from the preset's ring (JS side) */
+.notesFilterBadge {
+	width: 8px;
+	height: 8px;
+	border-radius: 4px;
+}
 
+/* Modal dialogs (delete confirmation, edit title) ****************************/
+/* No palette text colors here: the dialog surface belongs to the shell theme,
+   which is dark in the default theme — the light text tokens would be
+   unreadable on it. */
+
+.notesDialogTitle {
+	font-weight: bold;
+	padding-bottom: 16px;
+	width: 400px;
+}
+
+.notesDialogDescription {
+	padding-top: 16px;
+}
+
+/* Note options menu **********************************************************/
+
+.notesMenuSizeButton {
+	margin: 0px;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+/* Placeholder colors hinting the R, G and B values of the custom color submenu */
+
+.notesCustomColorEntryR { background-color: #BB3322; color: #FFFFFF; }
+.notesCustomColorEntryG { background-color: #22BB33; color: #FFFFFF; }
+.notesCustomColorEntryB { background-color: #2233BB; color: #FFFFFF; }

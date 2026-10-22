@@ -17,83 +17,6 @@
         <property name="margin-bottom">24</property>
 
         <child>
-          <object class="GtkLabel">
-            <property name="halign">end</property>
-            <property name="hexpand">False</property>
-            <property name="label" translatable="yes">Position of notes</property>
-            <layout>
-              <property name="column">0</property>
-              <property name="row">0</property>
-            </layout>
-          </object>
-        </child>
-
-        <child>
-          <object class="GtkCheckButton" id="radio1">
-            <property name="label" translatable="yes">Above everything</property>
-            <property name="hexpand">False</property>
-            <layout>
-              <property name="column">1</property>
-              <property name="row">1</property>
-            </layout>
-          </object>
-        </child>
-
-        <child>
-          <object class="GtkCheckButton" id="radio2">
-            <property name="label" translatable="yes">On the background</property>
-            <property name="group">radio1</property>
-            <property name="hexpand">False</property>
-            <layout>
-              <property name="column">1</property>
-              <property name="row">3</property>
-            </layout>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="hexpand">False</property>
-            <property name="halign">end</property>
-            <property name="wrap">True</property>
-            <property name="label" translatable="yes">Incompatible with desktop icons</property>
-            <style>
-              <class name="dim-label"/>
-            </style>
-            <layout>
-              <property name="column">0</property>
-              <property name="row">3</property>
-            </layout>
-          </object>
-        </child>
-
-        <child>
-          <object class="GtkCheckButton" id="radio3">
-            <property name="label" translatable="yes">Cycle through 3 states</property>
-            <property name="group">radio1</property>
-            <property name="hexpand">False</property>
-            <layout>
-              <property name="column">1</property>
-              <property name="row">5</property>
-            </layout>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="hexpand">False</property>
-            <property name="wrap">True</property>
-            <property name="halign">end</property>
-            <property name="label" translatable="yes">Send to background, send to foreground, hide</property>
-            <style>
-              <class name="dim-label"/>
-            </style>
-            <layout>
-              <property name="column">0</property>
-              <property name="row">5</property>
-            </layout>
-          </object>
-        </child>
-
-        <child>
           <object class="GtkSeparator">
             <layout>
               <property name="column">0</property>
@@ -103,6 +26,8 @@
           </object>
         </child>
 
+        <!-- The "Automatic focus" option is disabled for now; the notes take
+             the key focus when pressed (see noteBox.js)
         <child>
           <object class="GtkLabel">
             <property name="halign">end</property>
@@ -124,6 +49,7 @@
             </layout>
           </object>
         </child>
+        -->
 
         <child>
           <object class="GtkSeparator">
@@ -250,10 +176,9 @@
           </object>
         </child>
         <child>
-          <object class="GtkColorButton" id="default_rgb_btn">
-            <property name="hexpand">False</property>
-            <property name="use-alpha">False</property>
+          <object class="GtkBox" id="preset_colors_box">
             <property name="halign">start</property>
+            <property name="spacing">6</property>
             <layout>
               <property name="column">1</property>
               <property name="row">22</property>
@@ -301,7 +226,7 @@
           <object class="GtkLabel">
             <property name="wrap">True</property>
             <property name="use-markup">True</property>
-            <property name="label" translatable="yes">Files ending with "_state" contain the color and position of your notes</property>
+            <property name="label" translatable="yes">The "layouts.json" file contains the color and position of your notes for each monitor configuration</property>
             <style>
               <class name="dim-label"/>
             </style>
@@ -389,85 +314,106 @@
     <!-- "About" page -->
     <child>
       <object class="GtkBox">
-        <property name="spacing">12</property>
-        <property name="margin-start">24</property>
-        <property name="margin-end">24</property>
-        <property name="margin-top">24</property>
-        <property name="margin-bottom">24</property>
+        <property name="spacing">8</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkLabel">
-            <property name="halign">center</property>
-            <property name="label" translatable="yes">Notes</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-              <attribute name="scale" value="2"/>
-            </attributes>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="label" translatable="yes">Sticky notes for the GNOME Shell desktop.</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkImage" id="about_icon">
-            <property name="pixel-size">163</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel" id="label_version">
-            <property name="halign">center</property>
-            <property name="label"></property>
-            <style>
-              <class name="dim-label"/>
-            </style>
-          </object>
-        </child>
-
-        <child>
           <object class="GtkBox">
-            <property name="spacing">12</property>
-            <property name="hexpand">True</property>
-            <property name="valign">end</property>
+            <property name="spacing">16</property>
             <child>
               <object class="GtkBox">
-                <property name="halign">start</property>
+                <property name="spacing">2</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">12</property>
                 <child>
-                  <object class="GtkLabel">
-                    <property name="label" translatable="yes">Author:</property>
+                  <object class="GtkImage" id="about_icon">
+                    <property name="pixel-size">96</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkLabel">
-                    <property name="label">Romain F. T.</property>
+                  <object class="GtkLabel" id="label_version">
+                    <property name="halign">start</property>
+                    <property name="label"></property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
             </child>
             <child>
               <object class="GtkBox">
-                <property name="halign">end</property>
+                <property name="spacing">2</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">12</property>
+                <property name="valign">center</property>
+                <property name="hexpand">True</property>
                 <child>
-                  <object class="GtkLabel" id="translation_label">
-                    <property name="label" translatable="yes">Translation:</property>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label">Sticky Notes 2</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                      <attribute name="scale" value="2"/>
+                    </attributes>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="translation_credits">
-                    <property name="label" translatable="yes">translator-credits</property>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="wrap">True</property>
+                    <property name="label" translatable="yes">(fork of the sticky notes extension for the GNOME Shell desktop)</property>
                   </object>
                 </child>
               </object>
             </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="about_description">
+            <property name="halign">start</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Reworked design and extended functionality:
+• Improved visual style and interface
+• Better sticky notes on the screen
+• Text context menu with edit history
+• New notes from the clipboard
+• Color filter in the panel menu
+• Proper multi-monitor support</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">start</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Based on the original extension by Romain F. T. (maoschanz)</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLinkButton" id="upstream_link_button">
+            <property name="halign">start</property>
+            <property name="uri">https://github.com/maoschanz/notes-extension-gnome</property>
+            <property name="label" translatable="yes">Fork  https://github.com/maoschanz/notes-extension-gnome</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="halign">start</property>
+            <property name="wrap">True</property>
+            <property name="label" translatable="yes">Developer: Pavel Chernyakov (escator)</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLinkButton" id="fork_link_button">
+            <property name="halign">start</property>
+            <property name="uri">https://github.com/escator/notes-extension-gnome</property>
+            <property name="label">Git fork: https://github.com/escator/notes-extension-gnome</property>
           </object>
         </child>
         <child>
           <object class="GtkLinkButton" id="report_link_button">
+            <property name="halign">start</property>
             <property name="label" translatable="yes">Report bugs or ideas</property>
           </object>
         </child>

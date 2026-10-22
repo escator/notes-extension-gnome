@@ -12,7 +12,7 @@ class CustomModalDialog extends ModalDialog.ModalDialog {
 		let messageBox = new St.BoxLayout({vertical: true});
 
 		let titleLabel = new St.Label({
-			style: 'font-weight: bold; padding-bottom: 16px; width: 400px;',
+			style_class: 'notesDialogTitle',
 			x_align: Clutter.ActorAlign.CENTER,
 			text: textTitle,
 		});

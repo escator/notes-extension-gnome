@@ -13,5 +13,5 @@
 	"url": "https://github.com/maoschanz/notes-extension-gnome",
 	"uuid": "notes@maestroschan.fr",
 	"settings-schema": "org.gnome.shell.extensions.notes-extension",
-	"version": 0
+	"version": "2.0"
 }

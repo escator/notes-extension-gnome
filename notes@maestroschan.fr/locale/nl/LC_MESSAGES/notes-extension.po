@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2022-03-28 13:56+0200\n"
 "Last-Translator: Heimen Stoffels <vistausss@fastmail.com>\n"
 "Language-Team: Dutch <vistausss@outlook.com>\n"
@@ -26,38 +26,69 @@ msgstr "Notities tonen"
 msgid "Notes extension error: failed to load a note"
 msgstr "Foutmelding: de notitie kan niet worden geladen"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Notities"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Notities tonen"
 
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "Herlaad de uitbreiding om de wijzigingen toe te passen"
+msgid "New from Clipboard"
+msgstr ""
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Eigen kleur kiezen"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Voorkeuren"
 
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Toepassen"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "First note's color"
+msgid "Filter by color"
+msgstr "Kleur van eerste notitie"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Tekstgrootte"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Typ hier…"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Nieuw"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -72,6 +103,10 @@ msgid "Resize"
 msgstr "Grootte aanpassen"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Typ hier…"
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr "Blanco notitie"
 
@@ -82,6 +117,10 @@ msgstr "Wilt u deze notitie verwijderen?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr "Naam wijzigen"
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Toepassen"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -96,34 +135,6 @@ msgstr "De standaardwaarde is %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Versie %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Notitiepositie"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "Altijd op voorgrond"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "Altijd op achtergrond"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "Niet te gebruiken i.c.m. bureaubladpictogrammen"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr "Schakelen tussen 3 statussen"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr "Altijd bovenop, altijd onderop, verbergen"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Automatisch focussen"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -165,9 +176,9 @@ msgstr "Opslagmap openen"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
 msgstr ""
-"Bestandsnamen die eindigen op ‘_state’ bevatten de notitiekleur en -positie"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -199,6 +210,10 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "Terugzetten op primair beeldscherm"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Notities"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
@@ -237,3 +252,38 @@ msgstr "Sneltoetsen dienen tussen chevrons te worden geplaatst"
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "Deze sneltoets is al in gebruik."
 
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Herlaad de uitbreiding om de wijzigingen toe te passen"
+
+#~ msgid "Custom color"
+#~ msgstr "Eigen kleur kiezen"
+
+#~ msgid "New"
+#~ msgstr "Nieuw"
+
+#~ msgid "Position of notes"
+#~ msgstr "Notitiepositie"
+
+#~ msgid "Above everything"
+#~ msgstr "Altijd op voorgrond"
+
+#~ msgid "On the background"
+#~ msgstr "Altijd op achtergrond"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Niet te gebruiken i.c.m. bureaubladpictogrammen"
+
+#~ msgid "Cycle through 3 states"
+#~ msgstr "Schakelen tussen 3 statussen"
+
+#~ msgid "Send to background, send to foreground, hide"
+#~ msgstr "Altijd bovenop, altijd onderop, verbergen"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Automatisch focussen"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "Bestandsnamen die eindigen op ‘_state’ bevatten de notitiekleur en -"
+#~ "positie"

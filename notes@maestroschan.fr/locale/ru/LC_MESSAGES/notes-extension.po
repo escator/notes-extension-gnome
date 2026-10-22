@@ -1,0 +1,264 @@
+# Russian translations for notes-extension.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-21 23:26+0700\n"
+"PO-Revision-Date: 2026-10-21 23:40+0700\n"
+"Last-Translator: Pavel Chernyakov\n"
+"Language-Team: none\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Show notes"
+msgstr "Показать заметки"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Notes extension error: failed to load a note"
+msgstr "Ошибка расширения заметок: не удалось загрузить заметку"
+
+#: notes@maestroschan.fr/extension.js
+msgid "New note"
+msgstr "Новая заметка"
+
+#: notes@maestroschan.fr/extension.js
+msgid "New from Clipboard"
+msgstr "Новая из буфера обмена"
+
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
+msgid "Settings"
+msgstr "Настройки"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Filter by color"
+msgstr "Фильтр по цвету"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr "Сбросить фильтр"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Font size"
+msgstr "Размер шрифта"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr "Вырезать"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr "Копировать"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr "Вставить"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr "Отменить"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr "Повторить"
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr "Выделить всё"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Edit"
+msgstr "Редактировать"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr "Копировать в буфер обмена"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr "Вставить из буфера обмена"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Delete"
+msgstr "Удалить"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Note options"
+msgstr "Параметры заметки"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Resize"
+msgstr "Изменить размер"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Введите текст…"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Empty note"
+msgstr "Пустая заметка"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Delete this note?"
+msgstr "Удалить эту заметку?"
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Edit title"
+msgstr "Изменить заголовок"
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Применить"
+
+#: notes@maestroschan.fr/prefs.js
+msgid "Modifications will be effective after reloading the extension."
+msgstr "Изменения вступят в силу после перезагрузки расширения."
+
+#: notes@maestroschan.fr/prefs.js
+#, javascript-format
+msgid "Default value is %s"
+msgstr "Значение по умолчанию: %s"
+
+#: notes@maestroschan.fr/prefs.js
+#, javascript-format
+msgid "Version %s"
+msgstr "Версия %s"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Use a keyboard shortcut"
+msgstr "Использовать комбинацию клавиш"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Use a keyboard shortcut to toggle notes visibility"
+msgstr "Использовать комбинацию клавиш для показа и скрытия заметок"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Help"
+msgstr "Справка"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Hide the icon"
+msgstr "Скрыть значок"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "First note's color"
+msgstr "Цвет первой заметки"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "The notes created afterwards will use the color of their parent"
+msgstr "Заметки, созданные позже, будут наследовать цвет родительской заметки"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"Your notes are saved to the disk on various occasions (mainly when you hide "
+"them). If you want to <b>get a copy of your notes</b>, this button opens the "
+"folder where they are."
+msgstr ""
+"Заметки сохраняются на диск в различных ситуациях (в основном, когда вы их "
+"скрываете). Если вы хотите <b>получить копию своих заметок</b>, эта кнопка "
+"откроет папку, в которой они находятся."
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Open the storage directory"
+msgstr "Открыть папку с заметками"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
+msgstr ""
+"Файл \"layouts.json\" содержит цвет и положение заметок для каждой "
+"конфигурации мониторов"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Files ending with \"_text\" contain the text written in your notes"
+msgstr ""
+"Файлы, оканчивающиеся на \"_text\", содержат текст ваших заметок"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Backup"
+msgstr "Резервное копирование"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Explanations about how to use this extension can be found here:"
+msgstr "О том, как пользоваться расширением, можно прочитать здесь:"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Online help manual"
+msgstr "Онлайн-руководство"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"Click on this button if you accidentally moved a note out of your primary "
+"monitor (example: if you had notes on a secondary monitor and unplugged it)."
+msgstr ""
+"Нажмите эту кнопку, если заметка случайно оказалась за пределами основного "
+"монитора (например, если заметки были на втором мониторе, а вы его "
+"отключили)."
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Bring back to the primary monitor"
+msgstr "Вернуть на основной монитор"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
+msgstr "(форк расширения для заметок на рабочем столе.)"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
+msgstr ""
+"Переработанный дизайн и расширенная функциональность:\n"
+"• Улучшен визуальный стиль и интерфейс\n"
+"• Улучшенная работа с заметками на экране\n"
+"• Контекстное меню текста с историей правок\n"
+"• Создание заметок из буфера обмена\n"
+"• Цветовой фильтр заметок в меню панели\n"
+"• Корректная работа на нескольких мониторах"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr "Основано на оригинальном расширении Romain F.T. (maoschanz)"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr "Форк  https://github.com/maoschanz/notes-extension-gnome"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr "Автор разработчик: Pavel Chernyakov (escator)"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Report bugs or ideas"
+msgstr "Сообщить об ошибке или предложить идею"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "About"
+msgstr "О расширении"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "List of valid key names"
+msgstr "Список допустимых названий клавиш"
+
+#. Context for translation: modifier keys are ctrl/shift/super/alt
+#: notes@maestroschan.fr/prefs.ui
+msgid "Modifier keys must be between chevrons"
+msgstr "Клавиши-модификаторы должны быть заключены в угловые скобки"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Don't use a keyboard shortcut that already exists."
+msgstr "Не используйте комбинацию клавиш, которая уже занята."

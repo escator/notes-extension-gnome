@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:26+0200\n"
+"POT-Creation-Date: 2026-10-21 23:00+0700\n"
 "PO-Revision-Date: 2022-09-06 17:25+0200\n"
 "Last-Translator: David Astillero Pérez <dastillero@gmail.com>\n"
 "Language-Team: Spanish\n"
@@ -27,38 +27,69 @@ msgstr "Mostrar notas"
 msgid "Notes extension error: failed to load a note"
 msgstr "Error de extensión de notas: Hubo un error al cargar la nota"
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Notas"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Mostrar notas"
 
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
-msgstr "Reinicia la extensión para aplicar los cambios"
+msgid "New from Clipboard"
+msgstr ""
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr "Personalizar color"
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr "Configuración"
 
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
-msgstr "Aplicar"
+#: notes@maestroschan.fr/extension.js
+#, fuzzy
+#| msgid "First note's color"
+msgid "Filter by color"
+msgstr "Color de la primera nota"
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
+msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr "Tamaño de fuente"
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
-msgstr "Escribe aquí..."
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
-msgstr "Nueva"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Delete"
@@ -73,6 +104,10 @@ msgid "Resize"
 msgstr "Modificar tamaño"
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr "Escribe aquí..."
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr "Nota vacía"
 
@@ -83,6 +118,10 @@ msgstr "¿Quieres eliminar esta nota?"
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
 msgstr "Editar título"
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
+msgstr "Aplicar"
 
 #: notes@maestroschan.fr/prefs.js
 msgid "Modifications will be effective after reloading the extension."
@@ -97,34 +136,6 @@ msgstr "El valor preestablecido es %s"
 #, javascript-format
 msgid "Version %s"
 msgstr "Versión %s"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr "Posición de las notas"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr "En primer plano"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr "En el fondo"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr "Incompatible con los iconos del escritorio"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr "Pasar por 3 estados"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr "Enviar al fondo, traer a primer plano, ocultar"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
-msgstr "Enfoque automático"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Use a keyboard shortcut"
@@ -158,9 +169,9 @@ msgid ""
 "them). If you want to <b>get a copy of your notes</b>, this button opens the "
 "folder where they are."
 msgstr ""
-"Tus notas se guardan en el disco en diferentes ocasiones (principalmente cuando "
-"las ocultas). Si quieres <b>obtener una copia de tus notas</b>, este botón "
-"abre la carpeta donde se encuentran."
+"Tus notas se guardan en el disco en diferentes ocasiones (principalmente "
+"cuando las ocultas). Si quieres <b>obtener una copia de tus notas</b>, este "
+"botón abre la carpeta donde se encuentran."
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Open the storage directory"
@@ -168,10 +179,9 @@ msgstr "Abrir el directorio de almacenamiento"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
 msgstr ""
-"Los archivos que acaban en \"_state\" contienen el color y la posición de "
-"tus notas"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
@@ -206,6 +216,10 @@ msgid "Bring back to the primary monitor"
 msgstr "Devolver a la pantalla principal"
 
 #: notes@maestroschan.fr/prefs.ui
+msgid "Notes"
+msgstr "Notas"
+
+#: notes@maestroschan.fr/prefs.ui
 msgid "Sticky notes for the GNOME Shell desktop."
 msgstr "Notas adhesivas para la interfaz GNOME Shell"
 
@@ -220,8 +234,8 @@ msgstr "Traducción:"
 #: notes@maestroschan.fr/prefs.ui
 msgid "translator-credits"
 msgstr ""
-"Carmen Ortega Mateos <ortegamateos.carmen@gmail.com>"
-"  David Astillero Pérez <datillero@gmail.com>"
+"Carmen Ortega Mateos <ortegamateos.carmen@gmail.com>  David Astillero Pérez "
+"<datillero@gmail.com>"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -243,3 +257,39 @@ msgstr "Las teclas modificadoras deben estar entre antilambdas"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "No usar un atajo de teclado que ya exista."
+
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Reinicia la extensión para aplicar los cambios"
+
+#~ msgid "Custom color"
+#~ msgstr "Personalizar color"
+
+#~ msgid "New"
+#~ msgstr "Nueva"
+
+#~ msgid "Position of notes"
+#~ msgstr "Posición de las notas"
+
+#~ msgid "Above everything"
+#~ msgstr "En primer plano"
+
+#~ msgid "On the background"
+#~ msgstr "En el fondo"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Incompatible con los iconos del escritorio"
+
+#~ msgid "Cycle through 3 states"
+#~ msgstr "Pasar por 3 estados"
+
+#~ msgid "Send to background, send to foreground, hide"
+#~ msgstr "Enviar al fondo, traer a primer plano, ocultar"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Enfoque automático"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "Los archivos que acaban en \"_state\" contienen el color y la posición de "
+#~ "tus notas"

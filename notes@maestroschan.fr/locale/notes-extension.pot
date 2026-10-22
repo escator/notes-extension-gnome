@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-07 16:28+0200\n"
+"POT-Creation-Date: 2026-10-22 01:28+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,37 +25,64 @@ msgstr ""
 msgid "Notes extension error: failed to load a note"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
-msgid "Notes"
+#: notes@maestroschan.fr/extension.js
+msgid "New note"
 msgstr ""
 
 #: notes@maestroschan.fr/extension.js
-msgid "Restart the extension to apply the changes"
+msgid "New from Clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
-msgid "Custom color"
-msgstr ""
-
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/prefs.ui
+#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
 msgid "Settings"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js notes@maestroschan.fr/noteBox.js
-#: notes@maestroschan.fr/prefs.ui
-msgid "Apply"
+#: notes@maestroschan.fr/extension.js
+msgid "Filter by color"
+msgstr ""
+
+#: notes@maestroschan.fr/extension.js
+msgid "Reset filter"
 msgstr ""
 
 #: notes@maestroschan.fr/menus.js
 msgid "Font size"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
-msgid "Type here…"
+#: notes@maestroschan.fr/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@maestroschan.fr/menus.js
+msgid "Select All"
 msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
-msgid "New"
+msgid "Edit"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
+msgid "Paste from clipboard"
 msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
@@ -71,6 +98,10 @@ msgid "Resize"
 msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
+msgid "Type here…"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js
 msgid "Empty note"
 msgstr ""
 
@@ -80,6 +111,10 @@ msgstr ""
 
 #: notes@maestroschan.fr/noteBox.js
 msgid "Edit title"
+msgstr ""
+
+#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+msgid "Apply"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.js
@@ -94,34 +129,6 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.js
 #, javascript-format
 msgid "Version %s"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Position of notes"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Above everything"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "On the background"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Incompatible with desktop icons"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Cycle through 3 states"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Send to background, send to foreground, hide"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Automatic focus"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
@@ -161,7 +168,8 @@ msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid ""
-"Files ending with \"_state\" contain the color and position of your notes"
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
@@ -191,19 +199,30 @@ msgid "Bring back to the primary monitor"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
