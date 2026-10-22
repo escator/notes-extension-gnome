@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
+"POT-Creation-Date: 2026-10-22 22:08+0700\n"
 "PO-Revision-Date: 2022-09-06 17:25+0200\n"
 "Last-Translator: David Astillero Pérez <dastillero@gmail.com>\n"
 "Language-Team: Spanish\n"
@@ -216,26 +216,33 @@ msgid "Bring back to the primary monitor"
 msgstr "Devolver a la pantalla principal"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Notas"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+#, fuzzy
+#| msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "Notas adhesivas para la interfaz GNOME Shell"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr "Autor:"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
-msgstr "Traducción:"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
 msgstr ""
-"Carmen Ortega Mateos <ortegamateos.carmen@gmail.com>  David Astillero Pérez "
-"<datillero@gmail.com>"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -257,6 +264,20 @@ msgstr "Las teclas modificadoras deben estar entre antilambdas"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "No usar un atajo de teclado que ya exista."
+
+#~ msgid "Notes"
+#~ msgstr "Notas"
+
+#~ msgid "Author:"
+#~ msgstr "Autor:"
+
+#~ msgid "Translation:"
+#~ msgstr "Traducción:"
+
+#~ msgid "translator-credits"
+#~ msgstr ""
+#~ "Carmen Ortega Mateos <ortegamateos.carmen@gmail.com>  David Astillero "
+#~ "Pérez <datillero@gmail.com>"
 
 #~ msgid "Restart the extension to apply the changes"
 #~ msgstr "Reinicia la extensión para aplicar los cambios"
