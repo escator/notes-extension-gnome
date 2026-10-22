@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: notes-extension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
+"POT-Creation-Date: 2026-10-22 22:08+0700\n"
 "PO-Revision-Date: 2020-01-24 23:57+0100\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: \n"
@@ -218,25 +218,33 @@ msgid "Bring back to the primary monitor"
 msgstr "Vrati sve bilješke na glavni monitor"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Bilješke"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+#, fuzzy
+#| msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "Bilješke za GNOME Shell desktop."
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr "Autor:"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-#, fuzzy
-msgid "Translation:"
-msgstr "Prevodioci:"
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
-msgstr "Milo Ivir <mail@milotype.de>, 2020."
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -258,6 +266,19 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
+
+#~ msgid "Notes"
+#~ msgstr "Bilješke"
+
+#~ msgid "Author:"
+#~ msgstr "Autor:"
+
+#, fuzzy
+#~ msgid "Translation:"
+#~ msgstr "Prevodioci:"
+
+#~ msgid "translator-credits"
+#~ msgstr "Milo Ivir <mail@milotype.de>, 2020."
 
 #~ msgid "Custom color"
 #~ msgstr "Prilagođena boja"
