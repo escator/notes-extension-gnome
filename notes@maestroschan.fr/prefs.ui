@@ -372,7 +372,7 @@
         </child>
         <child>
           <object class="GtkLabel" id="about_description">
-            <property name="halign">center</property>
+            <property name="halign">start</property>
             <property name="wrap">True</property>
             <property name="label" translatable="yes">Reworked design and extended functionality:
 • Improved visual style and interface
@@ -385,14 +385,14 @@
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="halign">center</property>
+            <property name="halign">start</property>
             <property name="wrap">True</property>
             <property name="label" translatable="yes">Based on the original extension by Romain F. T. (maoschanz)</property>
           </object>
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="halign">center</property>
+            <property name="halign">start</property>
             <property name="wrap">True</property>
             <property name="label" translatable="yes">Fork  https://github.com/maoschanz/notes-extension-gnome</property>
             <style>
@@ -402,20 +402,21 @@
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="halign">center</property>
+            <property name="halign">start</property>
             <property name="wrap">True</property>
             <property name="label" translatable="yes">Developer: Pavel Chernyakov (escator)</property>
           </object>
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="halign">center</property>
+            <property name="halign">start</property>
             <property name="wrap">True</property>
             <property name="label">Git fork: https://github.com/escator/notes-extension-gnome</property>
           </object>
         </child>
         <child>
           <object class="GtkLinkButton" id="report_link_button">
+            <property name="halign">start</property>
             <property name="label" translatable="yes">Report bugs or ideas</property>
           </object>
         </child>
