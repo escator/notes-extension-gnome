@@ -391,13 +391,10 @@
           </object>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkLinkButton" id="upstream_link_button">
             <property name="halign">start</property>
-            <property name="wrap">True</property>
+            <property name="uri">https://github.com/maoschanz/notes-extension-gnome</property>
             <property name="label" translatable="yes">Fork  https://github.com/maoschanz/notes-extension-gnome</property>
-            <style>
-              <class name="dim-label"/>
-            </style>
           </object>
         </child>
         <child>
@@ -408,9 +405,9 @@
           </object>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkLinkButton" id="fork_link_button">
             <property name="halign">start</property>
-            <property name="wrap">True</property>
+            <property name="uri">https://github.com/escator/notes-extension-gnome</property>
             <property name="label">Git fork: https://github.com/escator/notes-extension-gnome</property>
           </object>
         </child>
