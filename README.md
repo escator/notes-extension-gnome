@@ -44,6 +44,14 @@ Compared to the original extension:
 - **Clipboard features.** A *paste from clipboard* button in the note header,
   and a *New from Clipboard* item in the panel menu that creates a read-only
   note prefilled with the current clipboard text.
+- **Note expanding.** A double click on the note header unfolds the note
+  (with a short animation) so the whole text is visible; another double
+  click folds it back. The layouts on the disk always keep the normal size.
+- **Quick clicks.** A double click on the panel icon creates a new note in
+  the editing mode. While the notes are visible, a click anywhere outside
+  of their area hides them all — like the main toggle (optional, enabled by
+  default; the dismissing click is consumed by the notes layer, like with
+  GNOME menus).
 - **Multi-monitor layouts.** The position of the notes is saved per monitor
   configuration (signature `WxH+X+Y` in a `layouts.json` registry, last 8
   configurations kept). When monitors are added, removed or re-arranged, the
@@ -92,7 +100,9 @@ positions are migrated to the new layout registry automatically.
 
 ### Panel button
 
-- **Left-click** the icon in the top bar to show/hide all notes.
+- **Left-click** the icon in the top bar to show/hide all notes. The action
+  fires after the system double-click timeout (~0.4 s), which is what lets a
+  **double-click** create a new note in the editing mode instead.
 - **Right-click** opens the panel menu:
   - *New note* — create a note;
   - *New from Clipboard* — create a read-only note with the clipboard text
@@ -105,7 +115,12 @@ positions are migrated to the new layout registry automatically.
 - **Create:** the `+` button on the left of a note header creates a new note
   with the same color and font size; the panel menu item also works.
 - **Move:** drag the blank space in the center of the note header.
-- **Resize:** drag the resize grip on the right of the note header.
+- **Resize:** drag the resize grip on the right of the note header; a double
+  click on the grip resets the note to its starting size (300×180).
+- **Expand:** a double click on the blank space of the header unfolds the
+  note so the whole text is visible; another double click folds it back.
+- **Hide:** a click anywhere outside of the visible notes hides them all
+  (can be disabled in the settings; see the settings window below).
 - **Edit:** the edit (pencil) button toggles between the read-only and the
   editing mode; the same button finishes editing.
 - **Copy / paste:** the header has dedicated copy-to-clipboard and
@@ -140,7 +155,9 @@ last 8 configurations are remembered.
 - *Position of notes* — whether notes are shown above or underneath other
   windows;
 - *Keyboard shortcut* — show/hide all notes with a shortcut; with it enabled
-  the top-bar icon can be hidden.
+  the top-bar icon can be hidden;
+- *Hide the notes on a click outside* — while the notes are visible, a click
+  anywhere outside of their area hides them (enabled by default).
 
 ## Storage
 
@@ -210,6 +227,14 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 - **Буфер обмена.** Кнопка *вставить из буфера* в заголовке заметки и пункт
   *Создать из буфера* в меню панели, создающий заметку «только для чтения»
   с текстом из буфера.
+- **Разворачивание заметки.** Двойной клик по заголовку заметки плавно
+  разворачивает её так, чтобы был виден весь текст; повторный двойной клик
+  сворачивает обратно. На диск всегда сохраняется обычный (домашний) размер.
+- **Быстрые клики.** Двойной клик по значку панели создаёт новую заметку в
+  режиме редактирования. Пока заметки видимы, клик в любое место вне их
+  области скрывает их все — как основной переключатель (опционально,
+  включено по умолчанию; сам клик «съедается» слоем заметок, как у меню
+  GNOME).
 - **Мультимониторные раскладки.** Положение заметок сохраняется для каждой
   конфигурации мониторов (подпись `WxH+X+Y` в реестре `layouts.json`,
   хранятся последние 8 конфигураций). При добавлении, отключении или смене
@@ -259,6 +284,9 @@ gnome-extensions enable notes@maestroschan.fr
 ### Кнопка панели
 
 - **Левый клик** по иконке в верхней панели — показать/скрыть все заметки.
+  Действие срабатывает через таймаут двойного клика системы (~0,4 с) —
+  именно поэтому **двойной клик** успевает создать новую заметку в режиме
+  редактирования.
 - **Правый клик** открывает меню панели:
   - *Новая заметка* — создать заметку;
   - *Создать из буфера* — заметка «только для чтения» с текстом из буфера
@@ -272,7 +300,12 @@ gnome-extensions enable notes@maestroschan.fr
   с тем же цветом и размером шрифта; работает и пункт меню панели.
 - **Переместить:** перетащите пустое место в центре заголовка заметки.
 - **Изменить размер:** потяните за рычаг изменения размера справа в
-  заголовке.
+  заголовке; двойной клик по рычагу возвращает стартовый размер (300×180).
+- **Развернуть:** двойной клик по пустому месту заголовка разворачивает
+  заметку так, чтобы был виден весь текст; повторный двойной клик
+  сворачивает обратно.
+- **Скрыть:** клик в любое место вне видимых заметок скрывает их все (можно
+  отключить в настройках; см. окно настроек ниже).
 - **Редактировать:** кнопка-карандаш переключает режимы «только для чтения»
   и редактирования; той же кнопкой редактирование завершается.
 - **Скопировать / вставить:** в заголовке есть отдельные кнопки копирования
@@ -305,7 +338,9 @@ gnome-extensions enable notes@maestroschan.fr
 
 - *Положение заметок* — показывать заметки поверх окон или под ними;
 - *Горячая клавиша* — показывать/скрывать все заметки сочетанием клавиш; при
-  включённой опции иконку в верхней панели можно скрыть.
+  включённой опции иконку в верхней панели можно скрыть;
+- *Скрывать заметки по клику вне их* — пока заметки видимы, клик в любое
+  место вне их области скрывает их (включено по умолчанию).
 
 ## Хранение данных
 

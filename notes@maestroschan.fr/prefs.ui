@@ -402,6 +402,9 @@
 • Better sticky notes on the screen
 • Text context menu with edit history
 • New notes from the clipboard
+• Note expanding for long texts
+• New notes with a double click on the panel icon
+• A click outside the notes hides them (optional)
 • Color filter in the panel menu
 • Proper multi-monitor support</property>
           </object>
