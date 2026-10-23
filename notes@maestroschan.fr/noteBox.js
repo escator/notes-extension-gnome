@@ -832,6 +832,30 @@ var NoteBox = class NoteBox {
 		this._saveText();
 	}
 
+	/*
+	 * The geometry the manager persists (task 005, 02-architecture §1): while
+	 * expanded — the home rect, since the disk always holds the home geometry
+	 * and the expanded size is a view state; otherwise the live one. While a
+	 * rect animation is in flight (collapse, reset), the bookkeeping is
+	 * already the target — a save landing mid-flight (e.g. the toggling
+	 * release's onlySave) must observe the final geometry, never an
+	 * intermediate one.
+	 */
+	getPersistedRect () {
+		if (this._expanded) {
+			return {
+				x: this._homeRect.x,
+				y: this._homeRect.y,
+				w: this._homeRect.w,
+				h: this._homeRect.h
+			};
+		}
+		if (this._rectAnimating) {
+			return { x: this._x, y: this._y, w: this._targetW, h: this._targetH };
+		}
+		return this._liveRect();
+	}
+
 	//--------------------------------------------------------------------------
 
 	_applyTitleChange () {
@@ -1016,6 +1040,14 @@ var NoteBox = class NoteBox {
 		this._targetW = Math.round(rect.w);
 		this._targetH = Math.round(rect.h);
 		if (!animated) {
+			// an instant application must also detach an in-flight ease
+			// (monitors-changed or the fold landing mid-animation), or the
+			// stale transition would fight the snap and _rectAnimating would
+			// never clear (same pattern as the mid-flight press)
+			if (this._rectAnimating) {
+				this.actor.remove_all_transitions();
+				this._rectAnimating = false;
+			}
 			this._snapToRect();
 			if (onComplete) { onComplete(); }
 			return;
