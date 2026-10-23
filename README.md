@@ -21,12 +21,10 @@ is written and maintained by Romain F. T. (maoschanz), Copyright 2018–2021.
 This fork starts from the upstream `master` as of July 2023 (commit `b5a5080`,
 the last upstream commit so far) and extends it with a redesigned note, text
 editing improvements, clipboard features, multi-monitor layouts and a color
-filter. The fork is developed and maintained by **Pavel Chernyakov** (2026);
+filter. The fork is developed and maintained by
+**Pavel Chernyakov (escator)** (2026);
 the whole work remains free software under the **GNU GPL v3**, same as the
 original.
-
-**This fork is not published on extensions.gnome.org** — install it from
-source (see below).
 
 ## What's changed in this fork
 
@@ -185,8 +183,8 @@ the terms of the **GNU General Public License version 3** as published by the
 Free Software Foundation, see [LICENSE](./LICENSE).
 
 - The original extension — Copyright 2018–2021 Romain F. T. (maoschanz).
-- Fork modifications — Copyright 2026 Pavel Chernyakov (including the Russian
-  translation).
+- Fork modifications — Copyright 2026 Pavel Chernyakov (escator), including
+  the Russian translation.
 - Some bundled symbolic icons are based on the GNOME Adwaita icon theme,
   dual-licensed LGPL-3.0-or-later / CC-BY-SA-3.0 and used here under the
   LGPL-3.0 terms; `notes.png` was drawn for this fork.
@@ -204,11 +202,8 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 (коммит `b5a5080` — последний коммит апстрима на сегодня) и расширяет его
 переработанной заметкой, улучшениями редактирования текста, работой с буфером
 обмена, мультимониторными раскладками и цветовым фильтром. Форк развивает
-**Павел Черняков** (2026); вся работа остаётся свободным ПО под лицензией
-**GNU GPL v3**, как и оригинал.
-
-**Этот форк не опубликован на extensions.gnome.org** — устанавливайте его из
-исходников (см. ниже).
+**Павел Черняков (escator)** (2026); вся работа остаётся свободным ПО под
+лицензией **GNU GPL v3**, как и оригинал.
 
 ## Что изменено в этом форке
 
@@ -369,8 +364,8 @@ gjs test/smokeExtension.js    # extension.js на стабах импортов 
 Software Foundation; см. [LICENSE](./LICENSE).
 
 - Оригинальное расширение — Copyright 2018–2021 Romain F. T. (maoschanz).
-- Доработки форка — Copyright 2026 Павел Черняков (включая перевод на
-  русский язык).
+- Доработки форка — Copyright 2026 Павел Черняков (escator), включая перевод
+  на русский язык.
 - Часть вложенных символических иконок основана на теме иконок GNOME Adwaita
   (двойная лицензия LGPL-3.0-or-later / CC-BY-SA-3.0, здесь используются на
   условиях LGPL-3.0); `notes.png` нарисована для этого форка.
