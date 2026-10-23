@@ -227,7 +227,7 @@ class NotesManager {
 		// rectangles (the deterministic replacement of the former random
 		// placement); the 250x180 default size mirrors the legacy behavior
 		let occupied = this._allNotes.map(function (n) {
-			return { x: n._x, y: n._y, w: n.actor.width, h: n.actor.height };
+			return n.getPersistedRect();
 		});
 		let slot = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
@@ -289,28 +289,33 @@ class NotesManager {
 		this._currentKey = Layouts.signature(this._monitorRects());
 		let positions = {};
 		this._allNotes.forEach((n) => {
+			let r = n.getPersistedRect();
 			positions[n.id] = {
-				x: n._x,
-				y: n._y,
-				w: Math.floor(n.actor.width),
-				h: Math.floor(n.actor.height)
+				x: r.x,
+				y: r.y,
+				w: Math.floor(r.w),
+				h: Math.floor(r.h)
 			};
 			this._store.setNoteAttrs(n.id, { color: n.customColor, fontSize: n._fontSize });
 		});
 		this._store.put(this._currentKey, positions);
 	}
 
-	// The note's geometry, in the shape the layouts.js helpers expect.
+	// The note's geometry, in the shape the layouts.js helpers expect: the
+	// single geometry source for the manager (home rect while expanded —
+	// task 005, 02-architecture §1).
 	_noteRect (note) {
-		return {
-			x: note._x,
-			y: note._y,
-			w: note.actor.width,
-			h: note.actor.height
-		};
+		return note.getPersistedRect();
 	}
 
 	_applyRectToNote (note, rect) {
+		// the applied layout is made of saved (home) rectangles: an expanded
+		// note leaves the expanded mode first, instantly (monitors-changed
+		// and 'bring back to the primary monitor' never lay out the
+		// expanded view)
+		if (note._expanded) {
+			note._collapseNote(false);
+		}
 		note._x = Math.floor(rect.x);
 		note._y = Math.floor(rect.y);
 		note.actor.width = Math.floor(rect.w);
@@ -362,7 +367,8 @@ class NotesManager {
 		let slots = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
 			lost.map(function (n) {
-				return { id: n.id, w: n.actor.width, h: n.actor.height };
+				let r = n.getPersistedRect();
+				return { id: n.id, w: r.w, h: r.h };
 			}),
 			occupied
 		);
@@ -383,7 +389,8 @@ class NotesManager {
 		let slots = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
 			this._allNotes.map(function (n) {
-				return { id: n.id, w: n.actor.width, h: n.actor.height };
+				let r = n.getPersistedRect();
+				return { id: n.id, w: r.w, h: r.h };
 			}),
 			[]
 		);

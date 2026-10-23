@@ -52,13 +52,13 @@ function _intersectionArea(rect, monitor) {
 }
 
 /*
- * Fits a rect into the monitor it overlaps the most: a note hanging off an
- * edge is pulled back inside, a note larger than the monitor is resized.
- * Safety net for every position coming from the disk.
+ * The monitor a rect belongs to: the one it overlaps the most. A rect outside
+ * every monitor falls back to the first entry, an empty list yields null.
+ * Shared by clampRect and the expand algorithm (task 005 / ADR-0004).
  */
-function clampRect(rect, monitors) {
+function bestMonitor(rect, monitors) {
 	if (!monitors || monitors.length === 0) {
-		return { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+		return null;
 	}
 
 	let best = monitors[0];
@@ -70,12 +70,76 @@ function clampRect(rect, monitors) {
 			best = m;
 		}
 	});
+	return best;
+}
+
+/*
+ * Fits a rect into the monitor it overlaps the most: a note hanging off an
+ * edge is pulled back inside, a note larger than the monitor is resized.
+ * Safety net for every position coming from the disk.
+ */
+function clampRect(rect, monitors) {
+	const best = bestMonitor(rect, monitors);
+	if (best === null) {
+		return { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+	}
 
 	const w = Math.min(rect.w, best.width);
 	const h = Math.min(rect.h, best.height);
 	return {
 		x: _clamp(rect.x, best.x, best.x + best.width - w),
 		y: _clamp(rect.y, best.y, best.y + best.height - h),
+		w: w,
+		h: h,
+	};
+}
+
+//------------------------------------------------------------------------------
+// Expand algorithm (task 005 / ADR-0004) --------------------------------------
+
+// Width increment between the search steps: small enough to keep the expanded
+// rect near-minimal, large enough to keep the number of neededH() calls low.
+const EXPAND_STEP_PX = 40;
+
+/*
+ * Computes the expanded geometry of a note (the double-click toggle): the
+ * smallest rect holding the 3:4 portrait proportion (height = 4/3 · width,
+ * capped by the monitor) whose height fits `neededH(w)` — the caller's
+ * measurement of the height the text needs at width w.
+ *
+ * `baseRect` is the note's rect {x, y, w, h} the expansion starts from; the
+ * search floor is its width (a base wider than the monitor never grows past
+ * it), each step widens by EXPAND_STEP_PX. Position keeps baseRect's x and y
+ * unless the rect would cross the monitor's right/bottom edge: it then slides
+ * left/up and never leaves the monitor. The maximum is a safety net, not a
+ * regular mode: when no width makes the text fit (a note bigger than the
+ * screen), the width is fixed at the monitor's and the text tail stays
+ * hidden — same when the monitor's height has to cut the 3:4 proportion.
+ * Returns {x, y, w, h}.
+ */
+function fitExpandRect(baseRect, monitors, neededH) {
+	const monitor = bestMonitor(baseRect, monitors);
+	if (monitor === null) {
+		return { x: baseRect.x, y: baseRect.y, w: baseRect.w, h: baseRect.h };
+	}
+
+	let w = Math.min(baseRect.w, monitor.width);
+	let found = false;
+	for (; w <= monitor.width; w += EXPAND_STEP_PX) {
+		if (neededH(w) <= Math.min(4 / 3 * w, monitor.height)) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		// the text doesn't fit even at the monitor's width
+		w = monitor.width;
+	}
+	// may violate the 3:4 proportion when the monitor's height cuts in
+	const h = Math.min(4 / 3 * w, monitor.height);
+	return {
+		x: _clamp(baseRect.x, monitor.x, monitor.x + monitor.width - w),
+		y: _clamp(baseRect.y, monitor.y, monitor.y + monitor.height - h),
 		w: w,
 		h: h,
 	};

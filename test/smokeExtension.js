@@ -192,6 +192,8 @@ class FakeNoteBox {
 		this.spec = spec;
 		this._x = Math.floor(spec.x);
 		this._y = Math.floor(spec.y);
+		this._expanded = false;
+		this._homeRect = null;
 		this.customColor = (spec.color === '') ? '184,217,242' : spec.color;
 		this._fontSize = spec.fontSize;
 		this.actor = {
@@ -211,6 +213,23 @@ class FakeNoteBox {
 	}
 	_setNotePosition () {
 		this.actor.set_position(Math.floor(this._x), Math.floor(this._y));
+	}
+	// the manager-facing geometry contract (task 005): home rect while
+	// expanded, live geometry otherwise
+	getPersistedRect () {
+		if (this._expanded) { return this._homeRect; }
+		return { x: this._x, y: this._y, w: this.actor.width, h: this.actor.height };
+	}
+	// outcome-level mirror of an instant collapse: snap to the home rect
+	_collapseNote () {
+		this._expanded = false;
+		if (this._homeRect) {
+			this._x = this._homeRect.x;
+			this._y = this._homeRect.y;
+			this.actor.width = this._homeRect.w;
+			this.actor.height = this._homeRect.h;
+			this._homeRect = null;
+		}
 	}
 	onlyHide() {
 		this.actor.visible = false;
@@ -668,6 +687,47 @@ check('global show respects the filter',
 
 manager4.destroy();
 check('destroy cancelled the debounce', pendingTimeouts.length === 0);
+
+//------------------------------------------------------------------------------
+// Phase 5: expanded view vs home geometry on disk (task 005, phase 3)
+
+print('== phase 5: expanded notes keep the home geometry on disk ==');
+
+extension.enable();
+const manager5 = extension.getNotesManager();
+manager5._loadAllNotes();
+
+function m5note(id) {
+	return manager5._allNotes.find(function (n) { return n.id === id; });
+}
+
+// an expanded note (the state a double click leaves the real NoteBox in):
+// the actor shows the inflated view, _homeRect is the geometry that must
+// reach the disk
+let n5 = m5note(2);
+let home5 = savedPositions(SIG_TWO)['2'];
+n5._expanded = true;
+n5._homeRect = { x: home5.x, y: home5.y, w: home5.w, h: home5.h };
+n5.actor.width = 1200;
+n5.actor.height = 1600;
+
+// README scenario 4: any action that saves the layout writes the home size,
+// never the inflated view
+manager5.saveLayout();
+eq('expanded note saved with its home rect', savedPositions(SIG_TWO)['2'], home5);
+
+// the layout application paths (monitors-changed, the fold button) apply
+// saved home rectangles: the note leaves the expanded mode first
+settingsHandlers['changed::ugly-hack']();
+check('layout application folded the expanded note back',
+	!n5._expanded && n5._homeRect === null);
+check('folded note got a real slot, not the inflated view',
+	n5.actor.width === home5.w && n5.actor.height === home5.h);
+eq('folded layout saved clean', savedPositions(SIG_TWO)['2'],
+	{ x: n5._x, y: n5._y, w: n5.actor.width, h: n5.actor.height });
+
+manager5.destroy();
+check('destroy cancelled the debounce (manager5)', pendingTimeouts.length === 0);
 
 //------------------------------------------------------------------------------
 
