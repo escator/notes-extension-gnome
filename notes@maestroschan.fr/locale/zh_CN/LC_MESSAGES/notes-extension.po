@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 00:01+0700\n"
+"POT-Creation-Date: 2026-10-24 01:10+0700\n"
 "PO-Revision-Date: 2022-04-27 10:41+0800\n"
 "Last-Translator: Aerowolf <aerowolf@tom.com>\n"
 "Language-Team: \n"
@@ -153,16 +153,6 @@ msgid "Hide the icon"
 msgstr "隐藏图标"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Hide the notes on a click outside"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid ""
-"While the notes are visible, a click anywhere outside of their area hides "
-"them, like the main toggle"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
 msgid "First note's color"
 msgstr "首个便签的色彩"
 
@@ -232,7 +222,6 @@ msgid ""
 "• New notes from the clipboard\n"
 "• Note expanding for long texts\n"
 "• New notes with a double click on the panel icon\n"
-"• A click outside the notes hides them (optional)\n"
 "• Color filter in the panel menu\n"
 "• Proper multi-monitor support"
 msgstr ""

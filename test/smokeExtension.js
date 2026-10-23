@@ -89,7 +89,7 @@ let nextTimeoutId = 1;
 // the last 'monitors-changed' callback connected by the manager under test
 let monitorsChangedCb = null;
 
-// the chrome bookkeeping (task 007): what the catcher added/removed
+// the chrome bookkeeping: what was added/removed through the chrome
 let chromeAdded = [];
 let chromeRemoved = [];
 
@@ -208,7 +208,6 @@ const settingsHandlers = {};
 const boolSettings = {
 	'use-shortcut': false,
 	'hide-icon': false,
-	'hide-on-click-outside': true,
 };
 const fakeSettings = {
 	get_boolean: function (key) { return boolSettings[key]; },
@@ -880,83 +879,6 @@ leftClick6();
 check('toggle pending before destroy', pendingToggleCount() === 1);
 manager6.destroy();
 check('destroy cancelled the pending toggle', pendingTimeouts.length === 0);
-
-//------------------------------------------------------------------------------
-// Phase 7: the light-dismiss catcher (task 007 / ADR-0005)
-
-print('== phase 7: click outside dismisses ==');
-
-extension.enable();
-const manager7 = extension.getNotesManager();
-manager7._loadAllNotes(); // starts hidden
-
-function fireDeferredSave() {
-	// _hideNotes defers its save by 10 ms; the real shell fires that timeout
-	// on its own, the manual scheduler needs an explicit drain
-	let t = pendingTimeouts.shift();
-	if (!t) { throw new Error('no deferred save to fire'); }
-	t.cb();
-}
-
-check('no catcher while hidden', manager7._clickCatcher === null);
-
-manager7._showNotes();
-check('catcher created on the first show', manager7._clickCatcher !== null);
-check('catcher is visible and reactive', manager7._clickCatcher.visible === true
-	&& manager7._clickCatcher.reactive === true);
-check('catcher went through addChrome',
-	chromeAdded.indexOf(manager7._clickCatcher) !== -1);
-check('catcher pinned right above the window group',
-	uiGroup.pinnedBelow !== null
-		&& uiGroup.pinnedBelow.actor === manager7._clickCatcher
-		&& uiGroup.pinnedBelow.sibling === uiGroup.children[1]);
-
-// pressing the catcher: the full hide path, the catcher withdrawn
-manager7._clickCatcher.handlers['button-press-event']();
-check('dismissal hid the notes', manager7._notesAreVisible === false
-	&& manager7._allNotes.every(function (n) { return !n.actor.visible; }));
-check('catcher withdrawn after the dismissal', manager7._clickCatcher.visible === false);
-
-// the deferred save of the dismissal
-fireDeferredSave();
-check('dismissal saved the layout', pendingTimeouts.length === 0);
-
-// the setting is honored live
-manager7._showNotes();
-boolSettings['hide-on-click-outside'] = false;
-settingsHandlers['changed::hide-on-click-outside']();
-check('setting off withdraws the catcher instantly',
-	manager7._clickCatcher.visible === false);
-boolSettings['hide-on-click-outside'] = true;
-settingsHandlers['changed::hide-on-click-outside']();
-check('setting on restores the catcher (notes still visible)',
-	manager7._clickCatcher.visible === true);
-
-// the dismissal cancels the delayed single click of the panel button
-manager7._onButtonPressed(null, { get_button: function () { return 1; } });
-let armedToggle = manager7._pendingToggleId;
-check('single click armed while the catcher is up', armedToggle !== null);
-manager7._clickCatcher.handlers['button-press-event']();
-check('dismissal cancelled the pending toggle', manager7._pendingToggleId === null);
-check('armed toggle left the scheduler', pendingTimeouts.every(function (t) {
-	return t.id !== armedToggle;
-}));
-// the dismissal's own deferred save (the real shell fires it on its own)
-fireDeferredSave();
-
-// hiding through the menus/settings path withdraws the catcher too
-manager7._showNotes();
-manager7.hideNotes();
-fireDeferredSave();
-check('hideNotes withdrew the catcher', manager7._clickCatcher.visible === false);
-
-// destroy removes the catcher from the chrome
-manager7._showNotes();
-let theCatcher = manager7._clickCatcher;
-manager7.destroy();
-check('destroy removed the catcher from the chrome',
-	chromeRemoved.indexOf(theCatcher) !== -1 && theCatcher.destroyed === true);
-check('destroy drained every timeout', pendingTimeouts.length === 0);
 
 //------------------------------------------------------------------------------
 

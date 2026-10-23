@@ -48,10 +48,7 @@ Compared to the original extension:
   (with a short animation) so the whole text is visible; another double
   click folds it back. The layouts on the disk always keep the normal size.
 - **Quick clicks.** A double click on the panel icon creates a new note in
-  the editing mode. While the notes are visible, a click anywhere outside
-  of their area hides them all — like the main toggle (optional, enabled by
-  default; the dismissing click is consumed by the notes layer, like with
-  GNOME menus).
+  the editing mode.
 - **Multi-monitor layouts.** The position of the notes is saved per monitor
   configuration (signature `WxH+X+Y` in a `layouts.json` registry, last 8
   configurations kept). When monitors are added, removed or re-arranged, the
@@ -119,8 +116,6 @@ positions are migrated to the new layout registry automatically.
   click on the grip resets the note to its starting size (300×180).
 - **Expand:** a double click on the blank space of the header unfolds the
   note so the whole text is visible; another double click folds it back.
-- **Hide:** a click anywhere outside of the visible notes hides them all
-  (can be disabled in the settings; see the settings window below).
 - **Edit:** the edit (pencil) button toggles between the read-only and the
   editing mode; the same button finishes editing.
 - **Copy / paste:** the header has dedicated copy-to-clipboard and
@@ -156,8 +151,6 @@ last 8 configurations are remembered.
   windows;
 - *Keyboard shortcut* — show/hide all notes with a shortcut; with it enabled
   the top-bar icon can be hidden;
-- *Hide the notes on a click outside* — while the notes are visible, a click
-  anywhere outside of their area hides them (enabled by default).
 
 ## Storage
 
@@ -231,10 +224,7 @@ Free Software Foundation, see [LICENSE](./LICENSE).
   разворачивает её так, чтобы был виден весь текст; повторный двойной клик
   сворачивает обратно. На диск всегда сохраняется обычный (домашний) размер.
 - **Быстрые клики.** Двойной клик по значку панели создаёт новую заметку в
-  режиме редактирования. Пока заметки видимы, клик в любое место вне их
-  области скрывает их все — как основной переключатель (опционально,
-  включено по умолчанию; сам клик «съедается» слоем заметок, как у меню
-  GNOME).
+  режиме редактирования.
 - **Мультимониторные раскладки.** Положение заметок сохраняется для каждой
   конфигурации мониторов (подпись `WxH+X+Y` в реестре `layouts.json`,
   хранятся последние 8 конфигураций). При добавлении, отключении или смене
@@ -338,9 +328,7 @@ gnome-extensions enable notes@maestroschan.fr
 
 - *Положение заметок* — показывать заметки поверх окон или под ними;
 - *Горячая клавиша* — показывать/скрывать все заметки сочетанием клавиш; при
-  включённой опции иконку в верхней панели можно скрыть;
-- *Скрывать заметки по клику вне их* — пока заметки видимы, клик в любое
-  место вне их области скрывает их (включено по умолчанию).
+  включённой опции иконку в верхней панели можно скрыть.
 
 ## Хранение данных
 

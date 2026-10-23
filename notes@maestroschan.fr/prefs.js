@@ -58,13 +58,6 @@ const NotesSettingsWidget = new GObject.Class({
 			SETTINGS.set_boolean('hide-icon', widget.active);
 		});
 
-		// A click outside of the visible notes hides them, like the toggle
-		let hide_outside_switch = builder.get_object('hide_outside_switch');
-		hide_outside_switch.set_state(SETTINGS.get_boolean('hide-on-click-outside'));
-		hide_outside_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('hide-on-click-outside', widget.active);
-		});
-
 		//----------------------------------------------------------------------
 
 		// Context: %s will be replaced with the default keyboard shortcut

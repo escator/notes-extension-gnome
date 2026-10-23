@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 00:01+0700\n"
+"POT-Creation-Date: 2026-10-24 01:10+0700\n"
 "PO-Revision-Date: 2020-10-29 17:42+0300\n"
 "Last-Translator: Muha Aliss <muhaaliss@pm.me>\n"
 "Language-Team: Türkçe\n"
@@ -156,16 +156,6 @@ msgid "Hide the icon"
 msgstr "Simgeyi gizle"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Hide the notes on a click outside"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid ""
-"While the notes are visible, a click anywhere outside of their area hides "
-"them, like the main toggle"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
 msgid "First note's color"
 msgstr "İlk notun rengi"
 
@@ -239,7 +229,6 @@ msgid ""
 "• New notes from the clipboard\n"
 "• Note expanding for long texts\n"
 "• New notes with a double click on the panel icon\n"
-"• A click outside the notes hides them (optional)\n"
 "• Color filter in the panel menu\n"
 "• Proper multi-monitor support"
 msgstr ""

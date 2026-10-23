@@ -121,10 +121,6 @@ class NotesManager {
 		// distinguishable from a double click (task 006 / ADR-0005)
 		this._pendingToggleId = null;
 
-		// the light-dismiss catcher of the clicks made outside of the notes
-		// (task 007 / ADR-0005), created lazily
-		this._clickCatcher = null;
-
 		// Initialisation of the signals connections
 		this._bindKeyboardShortcut();
 		this._connectAllSignals();
@@ -423,7 +419,6 @@ class NotesManager {
 		this._allNotes.filter(this._passesFilter, this).forEach(function (n) {
 			n.show();
 		});
-		this._updateClickCatcher();
 	}
 
 	_hideNotes () {
@@ -449,68 +444,6 @@ class NotesManager {
 			n.onlyHide();
 		});
 		this._notesAreVisible = false;
-		this._updateClickCatcher();
-	}
-
-	//--------------------------------------------------------------------------
-	// Clicks made outside of the notes (task 007 / ADR-0005) -------------------
-
-	/*
-	 * Shows (or withdraws) the light-dismiss catcher: an invisible reactive
-	 * actor covering the whole stage while the notes are visible and the
-	 * 'hide-on-click-outside' setting is on. It lives in the chrome, pinned
-	 * directly above the window group, so the clicks of the panel, of the
-	 * notes and of the menus never reach it — only the clicks nothing above
-	 * owns (the empty desktop, the application windows). On the X11 backend
-	 * such a chrome actor is also what extends the shell input region to the
-	 * screen: this is why a passive stage listener couldn't do the job
-	 * (01-analysis of the task).
-	 */
-	_updateClickCatcher () {
-		let want = this._notesAreVisible
-			&& this._settings.get_boolean('hide-on-click-outside');
-		if (want && !this._clickCatcher) {
-			this._clickCatcher = new Clutter.Actor({
-				reactive: true,
-				visible: false,
-				constraints: [new Clutter.BindConstraint({
-					source: global.stage,
-					coordinate: Clutter.BindCoordinate.ALL
-				})]
-			});
-			this._clickCatcher.connect('button-press-event', () => {
-				this._dismissNotes();
-				return Clutter.EVENT_STOP;
-			});
-			Main.layoutManager.addChrome(this._clickCatcher);
-			// addChrome inserts below the top window group, that is above the
-			// notes; the catcher has to be the lowest chrome instead, so a
-			// single click outside of the notes is the only thing it sees
-			let children = Main.uiGroup.get_children();
-			let idx = children.indexOf(global.window_group);
-			if (idx !== -1 && children[idx + 1]) {
-				Main.uiGroup.set_child_below_sibling(
-					this._clickCatcher, children[idx + 1]);
-			}
-		}
-		if (this._clickCatcher) {
-			this._clickCatcher.visible = want;
-		}
-	}
-
-	/*
-	 * The effect of a click anywhere outside of the notes: the same as the
-	 * hide of the main toggle. The click is consumed by the catcher (light
-	 * dismiss, like the GNOME menus): the desktop or the window under the
-	 * pointer gets the next one.
-	 */
-	_dismissNotes () {
-		// a pending single click of the panel button must not show the notes
-		// back right after the dismissal
-		this._cancelPendingToggle();
-		if (this._notesAreVisible) {
-			this._hideNotes();
-		}
 	}
 
 	//--------------------------------------------------------------------------
@@ -889,10 +822,6 @@ refreshFilterForNote (note) {
 			'changed::notes-kb-shortcut',
 			this._updateShortcut.bind(this)
 		);
-		this._settingsSignals['click-outside'] = this._settings.connect(
-			'changed::hide-on-click-outside',
-			this._updateClickCatcher.bind(this)
-		);
 		this._monitorsChangedId = Main.layoutManager.connect(
 			'monitors-changed',
 			this._onMonitorsChanged.bind(this)
@@ -977,7 +906,6 @@ refreshFilterForNote (note) {
 		this._settings.disconnect(this._settingsSignals['hide-icon']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-2']);
-		this._settings.disconnect(this._settingsSignals['click-outside']);
 		//this._settings.disconnect(this._settingsSignals['auto-focus']);
 		Main.layoutManager.disconnect(this._monitorsChangedId);
 
@@ -1011,13 +939,6 @@ refreshFilterForNote (note) {
 
 		// a delayed single click may still be pending
 		this._cancelPendingToggle();
-
-		// the light-dismiss catcher lives in the chrome
-		if (this._clickCatcher) {
-			Main.layoutManager.removeChrome(this._clickCatcher);
-			this._clickCatcher.destroy();
-			this._clickCatcher = null;
-		}
 	}
 };
 

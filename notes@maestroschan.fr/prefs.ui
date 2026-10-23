@@ -154,29 +154,6 @@
         </child>
 
         <child>
-          <object class="GtkLabel">
-            <property name="halign">end</property>
-            <property name="hexpand">False</property>
-            <property name="label" translatable="yes">Hide the notes on a click outside</property>
-            <property name="tooltip-text" translatable="yes">While the notes are visible, a click anywhere outside of their area hides them, like the main toggle</property>
-            <layout>
-              <property name="column">0</property>
-              <property name="row">20</property>
-            </layout>
-          </object>
-        </child>
-        <child>
-          <object class="GtkSwitch" id="hide_outside_switch">
-            <property name="hexpand">False</property>
-            <property name="halign">start</property>
-            <layout>
-              <property name="column">1</property>
-              <property name="row">20</property>
-            </layout>
-          </object>
-        </child>
-
-        <child>
           <object class="GtkSeparator">
             <layout>
               <property name="column">0</property>
@@ -404,7 +381,6 @@
 • New notes from the clipboard
 • Note expanding for long texts
 • New notes with a double click on the panel icon
-• A click outside the notes hides them (optional)
 • Color filter in the panel menu
 • Proper multi-monitor support</property>
           </object>
