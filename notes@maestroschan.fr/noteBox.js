@@ -10,6 +10,7 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
 const Common = Me.imports.common;
+const Layouts = Me.imports.layouts;
 const Menus = Me.imports.menus;
 const Dialog = Me.imports.dialog;
 const TextHistory = Me.imports.textHistory.TextHistory;
@@ -22,6 +23,15 @@ const PATH = Common.DATA_PATH;
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
+
+// duration of the expand/collapse animation of the double-click toggle
+// (task 005 / ADR-0004)
+const EXPAND_ANIM_MS = 250;
+// a second press counts as a double click when it lands within the system
+// double-click time and this distance of the first press
+const DBL_CLICK_DIST_PX = 8;
+// fallback double-click time when Clutter.Settings is unreachable
+const DBL_CLICK_MS = 400;
 
 // duration of the fade-out used by fadeOutAndHide: the color filter's way of
 // sending a note off the screen (task 004 phase 3)
@@ -68,6 +78,19 @@ var NoteBox = class NoteBox {
 		this._fontSize = spec.fontSize;
 		this._x = Math.floor(spec.x);
 		this._y = Math.floor(spec.y);
+		// expanded mode (double-click toggle, task 005): _homeRect is the
+		// snapshot the note collapses back to; the press tracker feeds the
+		// double-click detector; _targetW/_targetH are the bookkeeping sizes
+		// an in-flight animation can be snapped to
+		this._expanded = false;
+		this._homeRect = null;
+		this._rectAnimating = false;
+		this._targetW = 0;
+		this._targetH = 0;
+		this._lastPressTime = 0;
+		this._lastPressX = 0;
+		this._lastPressY = 0;
+		this._gestureMoved = false;
 		if (spec.color && spec.color.split(',').length == 3) {
 			this.customColor = spec.color;
 		} else {
@@ -379,6 +402,10 @@ var NoteBox = class NoteBox {
 			clutterText.get_text(),
 			clutterText.get_cursor_position()
 		);
+		// an expanded note re-fits instantly around the new content (task 005)
+		if (this._expanded) {
+			this._expandNote(false);
+		}
 	}
 
 	/*
@@ -743,6 +770,11 @@ var NoteBox = class NoteBox {
 		// ones, or when a note created through 'New note' while the notes
 		// are globally hidden survives into the next global show
 		if (this.actor.visible) { return; }
+		// hidden notes never stay expanded: the next show starts from the
+		// home size, instantly (decision 6, 02-architecture §1)
+		if (this._expanded) {
+			this._collapseNote(false);
+		}
 		this.actor.visible = true;
 		Main.layoutManager.trackChrome(this.actor);
 	}
@@ -880,19 +912,164 @@ var NoteBox = class NoteBox {
 		);
 	}
 
+	//--------------------------------------------------------------------------
+	// Expand / collapse (the double-click toggle, task 005 / ADR-0004) --------
+
+	/*
+	 * Height the actor needs at width `width` for the text to be fully
+	 * visible: the chrome (headerbar, borders, padding) plus the natural
+	 * height pango wraps the text to at that width. Measured through
+	 * get_preferred_height, which stays correct where the GNOME 42
+	 * natural-size bookkeeping of a wrapping ClutterText does not (the
+	 * reason the whole task 005 exists).
+	 */
+	_neededH (width) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let chromeW = this.actor.width - clutterText.width;
+		let chromeH = this.actor.height - clutterText.height;
+		return chromeH + clutterText.get_preferred_height(width - chromeW)[1];
+	}
+
+	_isTextFullyVisible () {
+		return this._neededH(this.actor.width) <= this.actor.height + 2;
+	}
+
+	_liveRect () {
+		return { x: this._x, y: this._y, w: this.actor.width, h: this.actor.height };
+	}
+
+	_toggleExpanded () {
+		if (this._expanded) {
+			this._collapseNote(true);
+		} else {
+			this._expandNote(true);
+		}
+	}
+
+	/*
+	 * Expands (or re-fits, when already expanded) the note so the whole text
+	 * is visible: Layouts.fitExpandRect picks the smallest 3:4 rect around
+	 * the current position; a no-op when nothing is hidden.
+	 */
+	_expandNote (animated) {
+		if (this.actor == null || this._isTextFullyVisible()) { return; }
+		if (!this._expanded) {
+			this._homeRect = this._liveRect();
+			this._expanded = true;
+		}
+		// the search floor is the home width: a manual widening done in the
+		// expanded mode is not rolled back by a re-fit (02-architecture §5)
+		let base = this._liveRect();
+		base.w = Math.max(base.w, this._homeRect.w);
+		let target = Layouts.fitExpandRect(
+			base, this._manager._monitorRects(), (w) => this._neededH(w)
+		);
+		this._applyRectAnimated(target, animated);
+	}
+
+	_collapseNote (animated) {
+		if (!this._expanded) { return; }
+		let target = this._homeRect;
+		this._expanded = false;
+		this._homeRect = null;
+		this._applyRectAnimated(target, animated);
+	}
+
+	/*
+	 * Applies a target rect: the bookkeeping (_x/_y and the target size)
+	 * jumps right away — release handling and the manager's saves must never
+	 * observe an intermediate geometry — while the actor's visuals either
+	 * snap (animated = false) or ease towards the target.
+	 */
+	_applyRectAnimated (rect, animated) {
+		this._x = Math.floor(rect.x);
+		this._y = Math.floor(rect.y);
+		this._targetW = Math.round(rect.w);
+		this._targetH = Math.round(rect.h);
+		if (!animated) {
+			this._snapToRect();
+			return;
+		}
+		this._rectAnimating = true;
+		this.actor.ease({
+			x: this._x,
+			y: this._y,
+			width: this._targetW,
+			height: this._targetH,
+			duration: EXPAND_ANIM_MS,
+			mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+			onComplete: () => {
+				this._rectAnimating = false;
+				this._snapToRect();
+			}
+		});
+	}
+
+	_snapToRect () {
+		if (this.actor == null) { return; }
+		this.actor.set_position(this._x, this._y);
+		this.actor.width = this._targetW;
+		this.actor.height = this._targetH;
+	}
+
+	/*
+	 * The double-click detector (02-architecture §2): button 1 pressed again
+	 * within the system double-click time and DBL_CLICK_DIST_PX of the
+	 * previous press. Every button-1 press refreshes the tracker, whether or
+	 * not it completes a pair.
+	 */
+	_isDoubleClick (event) {
+		if (event.get_button() != 1) { return false; }
+		let [x, y] = event.get_coords();
+		let now = event.get_time();
+		let dblTime = DBL_CLICK_MS;
+		try {
+			dblTime = Clutter.Settings.get_default().double_click_time;
+		} catch (e) { /* older shell: constant fallback */ }
+		let isDouble = this._lastPressTime > 0
+			&& (now - this._lastPressTime) <= dblTime
+			&& Math.abs(x - this._lastPressX) <= DBL_CLICK_DIST_PX
+			&& Math.abs(y - this._lastPressY) <= DBL_CLICK_DIST_PX;
+		this._lastPressTime = now;
+		this._lastPressX = x;
+		this._lastPressY = y;
+		return isDouble;
+	}
+
 	_onMovePress (actor, event) {
+		// a double click on the move area toggles the expanded mode instead
+		// of starting a drag (task 005): stopped here, so neither the drag
+		// state (the first press of the pair may have armed it) nor the
+		// common press bookkeeping run
+		if (this._isDoubleClick(event)) {
+			this._isMoving = false;
+			this._isResizing = false;
+			this._gestureMoved = false;
+			this._toggleExpanded();
+			return Clutter.EVENT_STOP;
+		}
 		this._onPressCommon(event);
 		this._isMoving = true;
 		this._isResizing = false;
+		this._gestureMoved = false;
 	}
 
 	_onResizePress (actor, event) {
 		this._onPressCommon(event);
 		this._isResizing = true;
 		this._isMoving = false;
+		this._gestureMoved = false;
 	}
 
 	_onPressCommon (event) {
+		// a press in the middle of an expand/collapse animation snaps the
+		// actor to the bookkeeping (already the target): drag/resize always
+		// start from the actual geometry (cancelFadeOut pattern)
+		if (this._rectAnimating) {
+			this.actor.remove_all_transitions();
+			this._rectAnimating = false;
+			this._snapToRect();
+		}
 		this._redraw();
 		this.grabX = Math.floor(event.get_coords()[0]);
 		this.grabY = Math.floor(event.get_coords()[1]);
@@ -917,6 +1094,7 @@ var NoteBox = class NoteBox {
 		this.actor.height = newHeight;
 		this._y = newY;
 		this._setNotePosition();
+		this._gestureMoved = true;
 
 		this.grabX = event_x;
 		this.grabY = event_y;
@@ -936,6 +1114,7 @@ var NoteBox = class NoteBox {
 		this._y = Math.floor(newY);
 		this._x = Math.floor(newX);
 		this._setNotePosition();
+		this._gestureMoved = true;
 
 		this.grabX = event_x;
 		this.grabY = event_y;
@@ -944,6 +1123,13 @@ var NoteBox = class NoteBox {
 	_onRelease (actor, event) {
 		this._isResizing = false;
 		this._isMoving = false;
+		// only the end of an actual drag/resize rebases the home rect: the
+		// release of the double click that toggled the mode, or of a plain
+		// click, must not turn the expanded geometry into the home one, or
+		// collapsing back would become a no-op (02-architecture §1)
+		if (this._expanded && this._gestureMoved) {
+			this._homeRect = this._liveRect();
+		}
 		this.onlySave();
 	}
 
@@ -954,6 +1140,12 @@ var NoteBox = class NoteBox {
 		if (this._fontSize + delta > 1) {
 			this._fontSize += delta;
 			this._applyNoteStyle();
+			// the new metrics change how the text wraps: an expanded note
+			// re-fits instantly (task 005; a measure lagging one frame
+			// behind the restyle is a known accepted risk — 03-plan)
+			if (this._expanded) {
+				this._expandNote(false);
+			}
 		}
 		this.onlySave();
 	}
