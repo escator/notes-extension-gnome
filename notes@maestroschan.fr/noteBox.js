@@ -32,6 +32,10 @@ const EXPAND_ANIM_MS = 250;
 const DBL_CLICK_DIST_PX = 8;
 // fallback double-click time when Clutter.Settings is unreachable
 const DBL_CLICK_MS = 400;
+// accumulated drag/resize path (px, Manhattan) a press-release gesture must
+// cover to count as a real gesture: the hand jitter between the clicks of a
+// double click (a few px) must not rebase the home rect
+const GESTURE_MIN_DIST_PX = 6;
 
 // duration of the fade-out used by fadeOutAndHide: the color filter's way of
 // sending a note off the screen (task 004 phase 3)
@@ -90,7 +94,7 @@ var NoteBox = class NoteBox {
 		this._lastPressTime = 0;
 		this._lastPressX = 0;
 		this._lastPressY = 0;
-		this._gestureMoved = false;
+		this._gestureDistance = 0;
 		if (spec.color && spec.color.split(',').length == 3) {
 			this.customColor = spec.color;
 		} else {
@@ -1015,8 +1019,11 @@ var NoteBox = class NoteBox {
 	/*
 	 * The double-click detector (02-architecture §2): button 1 pressed again
 	 * within the system double-click time and DBL_CLICK_DIST_PX of the
-	 * previous press. Every button-1 press refreshes the tracker, whether or
-	 * not it completes a pair.
+	 * previous press. A completed pair is consumed: the next press always
+	 * starts a fresh one, so however fast the user fires double clicks one
+	 * after another, each completes exactly one toggle (without this, the
+	 * first click of the second pair lands within the window of the click
+	 * that toggled the first pair and re-toggles it back).
 	 */
 	_isDoubleClick (event) {
 		if (event.get_button() != 1) { return false; }
@@ -1030,10 +1037,14 @@ var NoteBox = class NoteBox {
 			&& (now - this._lastPressTime) <= dblTime
 			&& Math.abs(x - this._lastPressX) <= DBL_CLICK_DIST_PX
 			&& Math.abs(y - this._lastPressY) <= DBL_CLICK_DIST_PX;
+		if (isDouble) {
+			this._lastPressTime = 0;
+			return true;
+		}
 		this._lastPressTime = now;
 		this._lastPressX = x;
 		this._lastPressY = y;
-		return isDouble;
+		return false;
 	}
 
 	_onMovePress (actor, event) {
@@ -1044,21 +1055,21 @@ var NoteBox = class NoteBox {
 		if (this._isDoubleClick(event)) {
 			this._isMoving = false;
 			this._isResizing = false;
-			this._gestureMoved = false;
+			this._gestureDistance = 0;
 			this._toggleExpanded();
 			return Clutter.EVENT_STOP;
 		}
 		this._onPressCommon(event);
 		this._isMoving = true;
 		this._isResizing = false;
-		this._gestureMoved = false;
+		this._gestureDistance = 0;
 	}
 
 	_onResizePress (actor, event) {
 		this._onPressCommon(event);
 		this._isResizing = true;
 		this._isMoving = false;
-		this._gestureMoved = false;
+		this._gestureDistance = 0;
 	}
 
 	_onPressCommon (event) {
@@ -1094,7 +1105,8 @@ var NoteBox = class NoteBox {
 		this.actor.height = newHeight;
 		this._y = newY;
 		this._setNotePosition();
-		this._gestureMoved = true;
+		this._gestureDistance += Math.abs(event_x - this.grabX)
+			+ Math.abs(event_y - this.grabY);
 
 		this.grabX = event_x;
 		this.grabY = event_y;
@@ -1114,7 +1126,8 @@ var NoteBox = class NoteBox {
 		this._y = Math.floor(newY);
 		this._x = Math.floor(newX);
 		this._setNotePosition();
-		this._gestureMoved = true;
+		this._gestureDistance += Math.abs(event_x - this.grabX)
+			+ Math.abs(event_y - this.grabY);
 
 		this.grabX = event_x;
 		this.grabY = event_y;
@@ -1126,8 +1139,10 @@ var NoteBox = class NoteBox {
 		// only the end of an actual drag/resize rebases the home rect: the
 		// release of the double click that toggled the mode, or of a plain
 		// click, must not turn the expanded geometry into the home one, or
-		// collapsing back would become a no-op (02-architecture §1)
-		if (this._expanded && this._gestureMoved) {
+		// collapsing back would become a no-op (02-architecture §1). The
+		// accumulated path separates a real gesture from the hand jitter
+		// between the clicks of a double click (GESTURE_MIN_DIST_PX)
+		if (this._expanded && this._gestureDistance >= GESTURE_MIN_DIST_PX) {
 			this._homeRect = this._liveRect();
 		}
 		this.onlySave();
