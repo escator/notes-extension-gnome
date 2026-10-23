@@ -6,7 +6,7 @@
 | [002](002-text-context-menu/README.md) | Контекстное меню текста заметки (копировать/вставить/undo) | merged | [0002](../adr/0002-note-text-actions.md) |
 | [003](003-own-keyboard-text-actions/README.md) | Собственные клавиатурные текстовые действия (полный отказ от натива) | merged | [0002](../adr/0002-note-text-actions.md) |
 | [004](004-color-filter/README.md) | Фильтр заметок по цвету в меню панели | merged | [0003](../adr/0003-color-filter.md) |
-| [005](005-note-expand/README.md) | Разворачивание заметки двойным кликом (просмотр длинного текста) | planned | [0004](../adr/0004-note-expand-toggle.md) |
+| [005](005-note-expand/README.md) | Разворачивание заметки двойным кликом (просмотр длинного текста) | merged | [0004](../adr/0004-note-expand-toggle.md) |
 
 Статусы: `planned` / `in progress` / `implemented` / `merged` / `cancelled`.
 
