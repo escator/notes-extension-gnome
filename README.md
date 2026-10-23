@@ -59,12 +59,14 @@ Compared to the original extension:
   as a dot on the panel icon. The filter lives for the current session only.
 - **Colors.** The free-form color picker is replaced by 8 preset colors
   (shared by the note menu, the settings window and the filter); a new note
-  takes the first color not currently in use.
+  takes the active filter color, or the *First note's color* from the
+  settings when no filter is active.
 - **Panel icon.** The panel shows the bundled full-color application icon
   instead of a generic symbolic one.
 - **Localization.** Full Russian translation; other languages are partially
   updated (untranslated strings fall back to English).
 - **Removed.** The custom color submenu, the *Quit* item of the panel menu,
+  the *Position of notes* option (notes are always shown above the windows),
   and the *Automatic focus* option (currently disabled).
 
 ## Compatibility
@@ -109,8 +111,10 @@ positions are migrated to the new layout registry automatically.
 
 ### Notes
 
-- **Create:** the `+` button on the left of a note header creates a new note
-  with the same color and font size; the panel menu item also works.
+- **Create:** a double click on the panel icon, or the *New note* item of
+  the panel menu. The new note opens in the editing mode, at a free spot;
+  it takes the filter color when a filter is active, the *First note's
+  color* otherwise.
 - **Move:** drag the blank space in the center of the note header.
 - **Resize:** drag the resize grip on the right of the note header; a double
   click on the grip resets the note to its starting size (300×180).
@@ -147,10 +151,13 @@ last 8 configurations are remembered.
 
 ### Settings window
 
-- *Position of notes* — whether notes are shown above or underneath other
-  windows;
-- *Keyboard shortcut* — show/hide all notes with a shortcut; with it enabled
-  the top-bar icon can be hidden;
+- *Keyboard shortcut* — show/hide all notes with a shortcut
+  (`<Super><Alt>n` by default); with it enabled the top-bar icon can be
+  hidden;
+- *First note's color* — the color new notes get when no filter is active;
+- *Backup* — opens the storage directory (see *Storage* below);
+- *Help* — the online help manual and a *Bring back to the primary monitor*
+  button.
 
 ## Storage
 
@@ -218,7 +225,8 @@ Free Software Foundation, see [LICENSE](./LICENSE).
   обрабатывает текстовые клавиши — заодно исправлены несколько ошибок фокуса
   и буфера обмена штатного текстового поля.
 - **Буфер обмена.** Кнопка *вставить из буфера* в заголовке заметки и пункт
-  *Создать из буфера* в меню панели, создающий заметку «только для чтения»
+  *Новая из буфера обмена* в меню панели, создающий заметку «только для
+  чтения»
   с текстом из буфера.
 - **Разворачивание заметки.** Двойной клик по заголовку заметки плавно
   разворачивает её так, чтобы был виден весь текст; повторный двойной клик
@@ -235,13 +243,15 @@ Free Software Foundation, see [LICENSE](./LICENSE).
   затуханием); новые заметки наследуют цвет фильтра. Активный фильтр показан
   точкой на иконке панели. Фильтр действует только в текущей сессии.
 - **Цвета.** Произвольный подбор цвета заменён 8 предустановленными цветами
-  (общими для меню заметки, окна настроек и фильтра); новая заметка берёт
-  первый незанятый цвет.
+  (общими для меню заметки, окна настроек и фильтра); новая заметка получает
+  цвет активного фильтра, а без фильтра — цвет *Цвет первой заметки* из
+  настроек.
 - **Иконка панели.** На панели отображается вложенная полноцветная иконка
   приложения вместо безликой символической.
 - **Локализация.** Полный перевод на русский язык; остальные языки обновлены
   частично (непереведённые строки откатываются к английским).
-- **Убрано.** Подменю произвольного цвета, пункт *Quit* в меню панели и опция
+- **Убрано.** Подменю произвольного цвета, пункт *Quit* в меню панели, опция
+  *Положение заметок* (заметки всегда отображаются поверх окон) и опция
   *Автоматический фокус* (сейчас отключена).
 
 ## Совместимость
@@ -279,23 +289,23 @@ gnome-extensions enable notes@maestroschan.fr
   редактирования.
 - **Правый клик** открывает меню панели:
   - *Новая заметка* — создать заметку;
-  - *Создать из буфера* — заметка «только для чтения» с текстом из буфера
+  - *Новая из буфера обмена* — заметка «только для чтения» с текстом из буфера
     (пункт потушен, пока в буфере нет текста);
   - *Фильтр по цвету* — 8 цветных свотчей и пункт *Сбросить фильтр*;
   - *Настройки* — окно настроек.
 
 ### Заметки
 
-- **Создать:** кнопка `+` слева в заголовке заметки создаёт новую заметку
-  с тем же цветом и размером шрифта; работает и пункт меню панели.
+- **Создать:** двойной клик по значку панели или пункт *Новая заметка* в
+  меню панели. Новая заметка открывается в режиме редактирования, на
+  свободном месте; она получает цвет активного фильтра, а без фильтра —
+  цвет *Цвет первой заметки*.
 - **Переместить:** перетащите пустое место в центре заголовка заметки.
 - **Изменить размер:** потяните за рычаг изменения размера справа в
   заголовке; двойной клик по рычагу возвращает стартовый размер (300×180).
 - **Развернуть:** двойной клик по пустому месту заголовка разворачивает
   заметку так, чтобы был виден весь текст; повторный двойной клик
   сворачивает обратно.
-- **Скрыть:** клик в любое место вне видимых заметок скрывает их все (можно
-  отключить в настройках; см. окно настроек ниже).
 - **Редактировать:** кнопка-карандаш переключает режимы «только для чтения»
   и редактирования; той же кнопкой редактирование завершается.
 - **Скопировать / вставить:** в заголовке есть отдельные кнопки копирования
@@ -326,9 +336,13 @@ gnome-extensions enable notes@maestroschan.fr
 
 ### Окно настроек
 
-- *Положение заметок* — показывать заметки поверх окон или под ними;
-- *Горячая клавиша* — показывать/скрывать все заметки сочетанием клавиш; при
-  включённой опции иконку в верхней панели можно скрыть.
+- *Использовать комбинацию клавиш* — показывать/скрывать все заметки
+  сочетанием клавиш (по умолчанию `<Super><Alt>n`); при включённой опции
+  значок в верхней панели можно скрыть;
+- *Цвет первой заметки* — цвет новых заметок, когда фильтр не активен;
+- *Резервное копирование* — открывает каталог хранения данных (см.
+  «Хранение данных» ниже);
+- *Справка* — онлайн-руководство и кнопка «Вернуть на основной монитор».
 
 ## Хранение данных
 
