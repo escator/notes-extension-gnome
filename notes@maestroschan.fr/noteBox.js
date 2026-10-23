@@ -269,7 +269,8 @@ var NoteBox = class NoteBox {
 	 *   empty space. It simulates a kind of wacky window dragging.
 	 * - The 'options' button, showing a menu defined in menus.js
 	 * - The 'resize' button, which uses the same dragging mecanism as 'move',
-	 *   to resize the note from its upper-right corner.
+	 *   to resize the note from its upper-right corner. A double click on it
+	 *   resets the note to its starting size (task 005, 02-architecture §8).
 	 */
 	_buildHeaderbar () {
 		// This is the regular header, as described above.
@@ -980,18 +981,43 @@ var NoteBox = class NoteBox {
 	}
 
 	/*
+	 * Resets the note to its starting size (the default of a brand-new
+	 * note) at the current position: the double click on the resize button,
+	 * the quick way to shrink a grown note (02-architecture §8). A discrete
+	 * manual resize: the expanded mode ends here — its geometry is
+	 * deliberately abandoned — and the result persists through the regular
+	 * save path. Animated, like the toggle.
+	 */
+	_resetSize () {
+		if (this.actor == null) { return; }
+		this._expanded = false;
+		this._homeRect = null;
+		this._applyRectAnimated({
+			x: this._x,
+			y: this._y,
+			w: Layouts.DEFAULT_WIDTH,
+			h: Layouts.DEFAULT_HEIGHT,
+		}, true, () => { this.onlySave(); });
+	}
+
+	/*
 	 * Applies a target rect: the bookkeeping (_x/_y and the target size)
 	 * jumps right away — release handling and the manager's saves must never
 	 * observe an intermediate geometry — while the actor's visuals either
-	 * snap (animated = false) or ease towards the target.
+	 * snap (animated = false) or ease towards the target. `onComplete` (a
+	 * save that must observe the target geometry, not the in-flight one)
+	 * runs once the target is actually reached; it is skipped when the
+	 * transition is cancelled by a mid-flight press — the gesture taking
+	 * over saves on its own release.
 	 */
-	_applyRectAnimated (rect, animated) {
+	_applyRectAnimated (rect, animated, onComplete) {
 		this._x = Math.floor(rect.x);
 		this._y = Math.floor(rect.y);
 		this._targetW = Math.round(rect.w);
 		this._targetH = Math.round(rect.h);
 		if (!animated) {
 			this._snapToRect();
+			if (onComplete) { onComplete(); }
 			return;
 		}
 		this._rectAnimating = true;
@@ -1005,6 +1031,7 @@ var NoteBox = class NoteBox {
 			onComplete: () => {
 				this._rectAnimating = false;
 				this._snapToRect();
+				if (onComplete) { onComplete(); }
 			}
 		});
 	}
@@ -1066,6 +1093,16 @@ var NoteBox = class NoteBox {
 	}
 
 	_onResizePress (actor, event) {
+		// a double click on the resize button resets the note to its
+		// starting size — the quick way to shrink a grown note (task 005,
+		// 02-architecture §8): stopped here, so no resize gesture arms
+		if (this._isDoubleClick(event)) {
+			this._isResizing = false;
+			this._isMoving = false;
+			this._gestureDistance = 0;
+			this._resetSize();
+			return Clutter.EVENT_STOP;
+		}
 		this._onPressCommon(event);
 		this._isResizing = true;
 		this._isMoving = false;
