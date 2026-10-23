@@ -21,12 +21,10 @@ is written and maintained by Romain F. T. (maoschanz), Copyright 2018–2021.
 This fork starts from the upstream `master` as of July 2023 (commit `b5a5080`,
 the last upstream commit so far) and extends it with a redesigned note, text
 editing improvements, clipboard features, multi-monitor layouts and a color
-filter. The fork is developed and maintained by **Pavel Chernyakov** (2026);
+filter. The fork is developed and maintained by
+**Pavel Chernyakov (escator)** (2026);
 the whole work remains free software under the **GNU GPL v3**, same as the
 original.
-
-**This fork is not published on extensions.gnome.org** — install it from
-source (see below).
 
 ## What's changed in this fork
 
@@ -59,12 +57,14 @@ Compared to the original extension:
   as a dot on the panel icon. The filter lives for the current session only.
 - **Colors.** The free-form color picker is replaced by 8 preset colors
   (shared by the note menu, the settings window and the filter); a new note
-  takes the first color not currently in use.
+  takes the active filter color, or the *First note's color* from the
+  settings when no filter is active.
 - **Panel icon.** The panel shows the bundled full-color application icon
   instead of a generic symbolic one.
 - **Localization.** Full Russian translation; other languages are partially
   updated (untranslated strings fall back to English).
 - **Removed.** The custom color submenu, the *Quit* item of the panel menu,
+  the *Position of notes* option (notes are always shown above the windows),
   and the *Automatic focus* option (currently disabled).
 
 ## Compatibility
@@ -109,8 +109,10 @@ positions are migrated to the new layout registry automatically.
 
 ### Notes
 
-- **Create:** the `+` button on the left of a note header creates a new note
-  with the same color and font size; the panel menu item also works.
+- **Create:** a double click on the panel icon, or the *New note* item of
+  the panel menu. The new note opens in the editing mode, at a free spot;
+  it takes the filter color when a filter is active, the *First note's
+  color* otherwise.
 - **Move:** drag the blank space in the center of the note header.
 - **Resize:** drag the resize grip on the right of the note header; a double
   click on the grip resets the note to its starting size (300×180).
@@ -147,10 +149,13 @@ last 8 configurations are remembered.
 
 ### Settings window
 
-- *Position of notes* — whether notes are shown above or underneath other
-  windows;
-- *Keyboard shortcut* — show/hide all notes with a shortcut; with it enabled
-  the top-bar icon can be hidden;
+- *Keyboard shortcut* — show/hide all notes with a shortcut
+  (`<Super><Alt>n` by default); with it enabled the top-bar icon can be
+  hidden;
+- *First note's color* — the color new notes get when no filter is active;
+- *Backup* — opens the storage directory (see *Storage* below);
+- *Help* — the online help manual and a *Bring back to the primary monitor*
+  button.
 
 ## Storage
 
@@ -178,8 +183,8 @@ the terms of the **GNU General Public License version 3** as published by the
 Free Software Foundation, see [LICENSE](./LICENSE).
 
 - The original extension — Copyright 2018–2021 Romain F. T. (maoschanz).
-- Fork modifications — Copyright 2026 Pavel Chernyakov (including the Russian
-  translation).
+- Fork modifications — Copyright 2026 Pavel Chernyakov (escator), including
+  the Russian translation.
 - Some bundled symbolic icons are based on the GNOME Adwaita icon theme,
   dual-licensed LGPL-3.0-or-later / CC-BY-SA-3.0 and used here under the
   LGPL-3.0 terms; `notes.png` was drawn for this fork.
@@ -197,11 +202,8 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 (коммит `b5a5080` — последний коммит апстрима на сегодня) и расширяет его
 переработанной заметкой, улучшениями редактирования текста, работой с буфером
 обмена, мультимониторными раскладками и цветовым фильтром. Форк развивает
-**Павел Черняков** (2026); вся работа остаётся свободным ПО под лицензией
-**GNU GPL v3**, как и оригинал.
-
-**Этот форк не опубликован на extensions.gnome.org** — устанавливайте его из
-исходников (см. ниже).
+**Павел Черняков (escator)** (2026); вся работа остаётся свободным ПО под
+лицензией **GNU GPL v3**, как и оригинал.
 
 ## Что изменено в этом форке
 
@@ -218,7 +220,8 @@ Free Software Foundation, see [LICENSE](./LICENSE).
   обрабатывает текстовые клавиши — заодно исправлены несколько ошибок фокуса
   и буфера обмена штатного текстового поля.
 - **Буфер обмена.** Кнопка *вставить из буфера* в заголовке заметки и пункт
-  *Создать из буфера* в меню панели, создающий заметку «только для чтения»
+  *Новая из буфера обмена* в меню панели, создающий заметку «только для
+  чтения»
   с текстом из буфера.
 - **Разворачивание заметки.** Двойной клик по заголовку заметки плавно
   разворачивает её так, чтобы был виден весь текст; повторный двойной клик
@@ -235,13 +238,15 @@ Free Software Foundation, see [LICENSE](./LICENSE).
   затуханием); новые заметки наследуют цвет фильтра. Активный фильтр показан
   точкой на иконке панели. Фильтр действует только в текущей сессии.
 - **Цвета.** Произвольный подбор цвета заменён 8 предустановленными цветами
-  (общими для меню заметки, окна настроек и фильтра); новая заметка берёт
-  первый незанятый цвет.
+  (общими для меню заметки, окна настроек и фильтра); новая заметка получает
+  цвет активного фильтра, а без фильтра — цвет *Цвет первой заметки* из
+  настроек.
 - **Иконка панели.** На панели отображается вложенная полноцветная иконка
   приложения вместо безликой символической.
 - **Локализация.** Полный перевод на русский язык; остальные языки обновлены
   частично (непереведённые строки откатываются к английским).
-- **Убрано.** Подменю произвольного цвета, пункт *Quit* в меню панели и опция
+- **Убрано.** Подменю произвольного цвета, пункт *Quit* в меню панели, опция
+  *Положение заметок* (заметки всегда отображаются поверх окон) и опция
   *Автоматический фокус* (сейчас отключена).
 
 ## Совместимость
@@ -279,23 +284,23 @@ gnome-extensions enable notes@maestroschan.fr
   редактирования.
 - **Правый клик** открывает меню панели:
   - *Новая заметка* — создать заметку;
-  - *Создать из буфера* — заметка «только для чтения» с текстом из буфера
+  - *Новая из буфера обмена* — заметка «только для чтения» с текстом из буфера
     (пункт потушен, пока в буфере нет текста);
   - *Фильтр по цвету* — 8 цветных свотчей и пункт *Сбросить фильтр*;
   - *Настройки* — окно настроек.
 
 ### Заметки
 
-- **Создать:** кнопка `+` слева в заголовке заметки создаёт новую заметку
-  с тем же цветом и размером шрифта; работает и пункт меню панели.
+- **Создать:** двойной клик по значку панели или пункт *Новая заметка* в
+  меню панели. Новая заметка открывается в режиме редактирования, на
+  свободном месте; она получает цвет активного фильтра, а без фильтра —
+  цвет *Цвет первой заметки*.
 - **Переместить:** перетащите пустое место в центре заголовка заметки.
 - **Изменить размер:** потяните за рычаг изменения размера справа в
   заголовке; двойной клик по рычагу возвращает стартовый размер (300×180).
 - **Развернуть:** двойной клик по пустому месту заголовка разворачивает
   заметку так, чтобы был виден весь текст; повторный двойной клик
   сворачивает обратно.
-- **Скрыть:** клик в любое место вне видимых заметок скрывает их все (можно
-  отключить в настройках; см. окно настроек ниже).
 - **Редактировать:** кнопка-карандаш переключает режимы «только для чтения»
   и редактирования; той же кнопкой редактирование завершается.
 - **Скопировать / вставить:** в заголовке есть отдельные кнопки копирования
@@ -326,9 +331,13 @@ gnome-extensions enable notes@maestroschan.fr
 
 ### Окно настроек
 
-- *Положение заметок* — показывать заметки поверх окон или под ними;
-- *Горячая клавиша* — показывать/скрывать все заметки сочетанием клавиш; при
-  включённой опции иконку в верхней панели можно скрыть.
+- *Использовать комбинацию клавиш* — показывать/скрывать все заметки
+  сочетанием клавиш (по умолчанию `<Super><Alt>n`); при включённой опции
+  значок в верхней панели можно скрыть;
+- *Цвет первой заметки* — цвет новых заметок, когда фильтр не активен;
+- *Резервное копирование* — открывает каталог хранения данных (см.
+  «Хранение данных» ниже);
+- *Справка* — онлайн-руководство и кнопка «Вернуть на основной монитор».
 
 ## Хранение данных
 
@@ -355,8 +364,8 @@ gjs test/smokeExtension.js    # extension.js на стабах импортов 
 Software Foundation; см. [LICENSE](./LICENSE).
 
 - Оригинальное расширение — Copyright 2018–2021 Romain F. T. (maoschanz).
-- Доработки форка — Copyright 2026 Павел Черняков (включая перевод на
-  русский язык).
+- Доработки форка — Copyright 2026 Павел Черняков (escator), включая перевод
+  на русский язык.
 - Часть вложенных символических иконок основана на теме иконок GNOME Adwaita
   (двойная лицензия LGPL-3.0-or-later / CC-BY-SA-3.0, здесь используются на
   условиях LGPL-3.0); `notes.png` нарисована для этого форка.
