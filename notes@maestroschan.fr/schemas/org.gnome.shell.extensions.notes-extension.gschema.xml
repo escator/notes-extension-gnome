@@ -49,6 +49,14 @@
       <summary>Hide the icon</summary>
       <description>Should be true only if there is shortcut.</description>
     </key>
+    <key type="b" name="hide-on-click-outside">
+      <default>true</default>
+      <summary>Hide the notes on a click made outside of them</summary>
+      <description>
+        While the notes are visible, a click anywhere outside of their area
+        hides them, like the main toggle. The click itself is consumed.
+      </description>
+    </key>
 
     <!-- -->
 
