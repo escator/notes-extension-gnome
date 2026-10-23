@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: notes-extension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-22 22:08+0700\n"
+"POT-Creation-Date: 2026-10-24 00:01+0700\n"
 "PO-Revision-Date: 2020-01-24 23:57+0100\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: \n"
@@ -156,6 +156,16 @@ msgid "Hide the icon"
 msgstr "Sakrij ikonu"
 
 #: notes@maestroschan.fr/prefs.ui
+msgid "Hide the notes on a click outside"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"While the notes are visible, a click anywhere outside of their area hides "
+"them, like the main toggle"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
 #, fuzzy
 #| msgid "Custom color"
 msgid "First note's color"
@@ -230,6 +240,9 @@ msgid ""
 "• Better sticky notes on the screen\n"
 "• Text context menu with edit history\n"
 "• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• A click outside the notes hides them (optional)\n"
 "• Color filter in the panel menu\n"
 "• Proper multi-monitor support"
 msgstr ""

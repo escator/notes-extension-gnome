@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:26+0700\n"
+"POT-Creation-Date: 2026-10-24 00:01+0700\n"
 "PO-Revision-Date: 2026-10-21 23:40+0700\n"
 "Last-Translator: Pavel Chernyakov\n"
 "Language-Team: none\n"
@@ -149,6 +149,18 @@ msgid "Hide the icon"
 msgstr "Скрыть значок"
 
 #: notes@maestroschan.fr/prefs.ui
+msgid "Hide the notes on a click outside"
+msgstr "Скрывать заметки по клику вне их"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid ""
+"While the notes are visible, a click anywhere outside of their area hides "
+"them, like the main toggle"
+msgstr ""
+"Пока заметки видимы, клик в любое место вне их области скрывает их — как "
+"основной переключатель"
+
+#: notes@maestroschan.fr/prefs.ui
 msgid "First note's color"
 msgstr "Цвет первой заметки"
 
@@ -180,8 +192,7 @@ msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
-msgstr ""
-"Файлы, оканчивающиеся на \"_text\", содержат текст ваших заметок"
+msgstr "Файлы, оканчивающиеся на \"_text\", содержат текст ваших заметок"
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Backup"
@@ -219,6 +230,9 @@ msgid ""
 "• Better sticky notes on the screen\n"
 "• Text context menu with edit history\n"
 "• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• A click outside the notes hides them (optional)\n"
 "• Color filter in the panel menu\n"
 "• Proper multi-monitor support"
 msgstr ""
@@ -227,6 +241,9 @@ msgstr ""
 "• Улучшенная работа с заметками на экране\n"
 "• Контекстное меню текста с историей правок\n"
 "• Создание заметок из буфера обмена\n"
+"• Разворачивание заметки для длинных текстов\n"
+"• Новые заметки двойным кликом по значку панели\n"
+"• Клик вне заметок скрывает их (опционально)\n"
 "• Цветовой фильтр заметок в меню панели\n"
 "• Корректная работа на нескольких мониторах"
 
