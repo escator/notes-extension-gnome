@@ -117,6 +117,10 @@ class NotesManager {
 		this._currentKey = null;
 		this._monitorsDebounceId = null;
 
+		// the single click of the panel button is delayed to stay
+		// distinguishable from a double click (task 006 / ADR-0005)
+		this._pendingToggleId = null;
+
 		// Initialisation of the signals connections
 		this._bindKeyboardShortcut();
 		this._connectAllSignals();
@@ -525,16 +529,63 @@ refreshFilterForNote (note) {
 
 	_onButtonPressed (actor, event) {
 		// the keyboard shortcut arrives without any Clutter event
-		if (event && typeof event.get_button === 'function') {
-			if (event.get_button() === Clutter.BUTTON_SECONDARY) {
-				this._menu.toggle();
-				return;
-			}
+		if (!event || typeof event.get_button !== 'function') {
+			this._toggleNotes();
+			return;
 		}
-		this._toggleNotes();
+		if (event.get_button() === Clutter.BUTTON_SECONDARY) {
+			this._cancelPendingToggle();
+			this._menu.toggle();
+			return;
+		}
+		// The single click is delayed by the double-click time of the system
+		// settings, so that a double click can cancel it: the second press
+		// creates a new note instead of toggling (ADR-0005)
+		if (this._pendingToggleId) {
+			this._cancelPendingToggle();
+			this._onButtonDoublePressed();
+			return;
+		}
+		this._pendingToggleId = Mainloop.timeout_add(
+			this._doubleClickTime(),
+			() => {
+				this._pendingToggleId = null;
+				this._toggleNotes();
+				return GLib.SOURCE_REMOVE;
+			}
+		);
+	}
+
+	/* The double-click time of the system settings, in milliseconds. */
+	_doubleClickTime () {
+		return Clutter.Settings.get_default().double_click_time || 400;
+	}
+
+	/*
+	 * The second press of a double click on the panel button: a new note in
+	 * the edit mode (like the menu's "New note"), shown together with the
+	 * other ones if they were hidden. No toggle happens: the visibility
+	 * doesn't blink during the pair of clicks.
+	 */
+	_onButtonDoublePressed () {
+		if (!this._notesLoaded) {
+			this._loadAllNotes();
+		}
+		this.createNote(this._filterColorString(), 16, true);
+		if (!this._notesAreVisible) {
+			this._showNotes();
+		}
+	}
+
+	_cancelPendingToggle () {
+		if (this._pendingToggleId) {
+			Mainloop.source_remove(this._pendingToggleId);
+			this._pendingToggleId = null;
+		}
 	}
 
 	_toggleNotes () {
+		this._cancelPendingToggle();
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
@@ -885,6 +936,9 @@ refreshFilterForNote (note) {
 			Mainloop.source_remove(this._monitorsDebounceId);
 			this._monitorsDebounceId = null;
 		}
+
+		// a delayed single click may still be pending
+		this._cancelPendingToggle();
 	}
 };
 
