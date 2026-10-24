@@ -631,7 +631,7 @@ refreshFilterForNote (note) {
 	_buildPanelMenu () {
 		this._menu = new PopupMenu.PopupMenu(this.panel_button, 0.0, St.Side.TOP);
 		this._menu.actor.add_style_class_name('panel-menu');
-		Main.uiGroup.add_actor(this._menu.actor);
+		Main.uiGroup.add_child(this._menu.actor);
 		this._menu.actor.hide();
 
 		this._addIconAction(_("New note"), Common.getCustomIcon(this._extensionDir, 'new-note'),

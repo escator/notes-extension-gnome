@@ -204,7 +204,7 @@ export class NoteBox {
 		});
 
 		this._entryBox.add_child(this.noteEntry);
-		this._scrollView.add_actor(this._entryBox); // yes, actually add_actor
+		this._scrollView.add_child(this._entryBox);
 		this.actor.add_child(this._scrollView);
 
 		//----------------------------------------------------------------------
