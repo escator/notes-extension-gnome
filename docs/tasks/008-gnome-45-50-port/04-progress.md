@@ -4,7 +4,7 @@
 |---|---|---|
 | Ф0 legacy-заморозка | **готово** | тег `v2.1` (ca946c4); живой смок сценария 1 — за пользователем |
 | Ф1 ESM shell-часть | **готово** | 4bf7800; чистые модули зелёные (82/82+51/51, gjs -m) |
-| Ф2 ESM prefs + Adw | pending | |
+| Ф2 ESM prefs + Adw | **готово** | prefs на `ExtensionPreferences`; приём в контейнерах 45.10 и 47.1; попутно починен баг Ф1 для 47 (`add_actor`) |
 | Ф3 смок на ESM + CI | pending | |
 | Ф4 релиз | pending | |
 
@@ -167,3 +167,64 @@
   - тестирование — контейнер 45+ (podman, сценарий 3 prefs-часть);
     gjs-харнесс на X11 для ESM-prefs неприменим (как и shell-часть).
   Изменения не вносились.
+- **2026-10-24. Ф2 готово.** `prefs.js` → ESM `ExtensionPreferences`
+  (02 §4): дефолт-экспорт класса с `fillPreferencesWindow(window)`
+  (страница Adw + группа + ноутбук, `set_default_size(496, 405)`);
+  `NotesSettingsWidget` — обычный ES-класс (GObject-обёртка была не
+  виджетом и в дерево не входила), зависимости параметрами
+  `(settings, path, version)` — стиль Ф1. Отклонения/находки против
+  01–02:
+  - **`builder.set_translation_domain('notes-extension')`** — добавление
+    сверх плана: база 45 в конструкторе зовёт только `bindtextdomain`
+    (проверено по 45.0 sharedInternals.js), legacy `initTranslations`
+    ставил ещё и `textdomain`, на котором держалась трансляция
+    GtkBuilder; без явного домена prefs.ui остаётся непереведённым;
+  - **About обрезался** в окне 496×405 (45 и 47): на legacy-линии окно
+    prefs авторазмером под контент (на живом 42.9 ≈ 640×576), Adw-окно
+    фиксированное, а список фич About рос задачами 001/004/005/006 —
+    контент ≈ 530px против ≈ 300px вьюпорта. Фикс: вкладка About обёрнута
+    в `GtkScrolledWindow` (`hscrollbar-policy: never`) — отклонение от
+    «prefs.ui без правок» в рамках рисковой оговорки «правки
+    размеров/CSS допустимы», прецедент — «скроллбар на 44 — косметика»
+    (Ф0). Прокрутка проверена на 45 и 47 (низ About с «Report bugs or
+    ideas» достижим);
+  - **найден и починен баг Ф1 (не видимый на 45)**: mutter 47 удалил
+    алиасы `Clutter.Actor.add_actor`/`remove_actor` —
+    `Main.uiGroup.add_actor` (extension.js:634, `_buildPanelMenu`) и
+    `this._scrollView.add_actor` (noteBox.js:207) роняли enable на 47.1
+    (State: ERROR, трейс в журнале); переведено на `add_child()`
+    (есть с 3.x) — на 47.1 стало ACTIVE, 45 не затронут. Аудит 01 §3
+    этот пункт пропустил — Ф3-матрица (CI) обязательна;
+  - размер окна: на 45 диалог показывается ДО `fillPreferencesWindow`
+    (лоадер зовёт `show()` синхронно, а prefs-модуль импортируется
+    async), но `set_default_size` всё равно применился (GTK мапит окно
+    по frame clock позже микротасок) — окно фактически 496×405
+    (X-геометрия 618×527 = 496/405 + 61px CSD-тени с каждой стороны,
+    сверено по скриншоту); на 47 `show()` зовётся только после
+    `fillPreferencesWindow` (сигнал `loaded`) — вызов работает «по
+    учебнику»;
+  - приёмка (сценарий 3, prefs-часть) в контейнерах: **45.10**
+    (pod-39, notes45) и **47.1** (pod-41, notes47) — install → enable →
+    ENABLED/ACTIVE; prefs открываются, 4 вкладки переключаются кликами
+    (скриншоты tmplog/gnome45-* и gnome47-*); свотчи с кольцом (CSS-путь
+    `load_from_data(css, -1)` на GTK 4.12/4.14); «Hide the icon»
+    false→true→false через prefs, подтверждено gsettings
+    (`GSETTINGS_SCHEMA_DIR`); журнал без ошибок расширения. Контейнеры
+    остановлены (не удалены).
+  - хозяйственное для будущих контейнерных прогонов: скриншоты — `maim`
+    (D-Bus Screenshot запрещён с 41, `xorg-x11-apps` в F39+ выпилен,
+    конвертация на хосте не понадобилась), ставить из архивов EOL-федор
+    (`sed metalink→# / #baseurl→archives`); `xdotool` в образах уже
+    есть; `wait-user-bus.sh` без env шины бесполезен — шина проверять
+    `ls /run/user/1000/bus`, команды только через `set-env.sh`; **ловушка
+    `eval` в set-env.sh ломает `bash -c '...'` каждый раз** — только
+    скрипт-файлы через `podman cp`; на 47 (GTK 4.14) окно prefs под
+    llvmpipe/zink рендерится чёрным — лечение
+    `dbus-update-activation-environment --systemd GSK_RENDERER=cairo` +
+    kill процесса `gjs -m .../org.gnome.Shell.Extensions` (артефакт
+    контейнера, не расширения); повторный рестарт юнита сессии —
+    `stop; sleep; start` (restart гонит TransactionIsDestructive).
+  - гейты по итоговому дереву: `node --check` ×7, юнит 82/82 + 51/51
+    (`gjs -m`), xgettext 54 msgid (строки не тронуты), ru 53/53.
+    master (legacy 42–44) не затронут: `add_actor` там валиден, prefs.ui
+    у линии свои (заморожены).
