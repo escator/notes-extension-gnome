@@ -42,9 +42,13 @@ for attempt in 1 2 3; do
 done
 [ "$pulled" = 1 ] || fail "podman pull $IMAGE failed after 3 attempts: $(echo "$pull_out" | tail -2)"
 podman rm -f "$NAME" >/dev/null 2>&1 || true
-# the images' default command is /usr/sbin/init: a full system boot; the
-# tty is REQUIRED — the autologin of the image is console-getty on
-# /dev/console, which is skipped without an allocated tty (no session then).
+# the images' default command is /usr/sbin/init with the kernel arg
+# systemd.unified_cgroup_hierarchy=0 (cgroup v1 inside); the GitHub runner
+# hosts are cgroup-v2-only and the newer systemd of the F40+ images dies
+# after the autologin there (the F39 systemd 254 tolerates the fallback),
+# so the command is overridden to a plain unified (v2) boot. The tty is
+# REQUIRED — the autologin of the image is console-getty on /dev/console,
+# which is skipped without an allocated tty (no session then).
 # seccomp/apparmor unconfined: on modern runner kernels (6.8+) the default
 # seccomp profile breaks systemd PID1 — "Failed to fork off sandboxing
 # environment for executing generators: Protocol error" (clone3 path) —
@@ -52,7 +56,7 @@ podman rm -f "$NAME" >/dev/null 2>&1 || true
 if ! run_out=$(podman run -dt --name "$NAME" \
 	--cap-add SYS_NICE --cap-add IPC_LOCK --cap-add CAP_SYS_ADMIN \
 	--security-opt seccomp=unconfined --security-opt apparmor=unconfined \
-	"$IMAGE" 2>&1); then
+	"$IMAGE" /usr/sbin/init 2>&1); then
 	fail "podman run failed: $(echo "$run_out" | tail -3)"
 fi
 echo "::endgroup::"
@@ -76,11 +80,10 @@ for attempt in 1 2 3; do
 	sleep 10
 done
 if [ "$bus_ok" != 1 ]; then
-	{
-		echo "::error::user session never came up (is-system-running: '${state:-<none>}')"
-		podman exec "$NAME" systemctl --no-pager --failed 2>&1 | tail -8 | sed 's/^/::error::sys /'
-		podman logs "$NAME" 2>&1 | tail -8 | sed 's/^/::error::con /'
-	} || true
+	diag=$(podman exec "$NAME" bash -c \
+		'journalctl -b --no-pager 2>&1 | tail -22; echo ===; ls /run/user/ 2>&1; systemctl is-active user@1000.service 2>&1' \
+		2>&1 | tr -d '\r' | tail -26 | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/%0A/g')
+	echo "::error::container diagnostics (user session never came up):%0A$diag"
 	exit 1
 fi
 echo "::endgroup::"
