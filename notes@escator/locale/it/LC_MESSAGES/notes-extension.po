@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 01:10+0700\n"
+"POT-Creation-Date: 2026-10-24 18:59+0700\n"
 "PO-Revision-Date: 2022-08-07 20:42+0100\n"
 "Last-Translator: Albano Battistella <albano_battistella@hotmail.com>\n"
 "Language-Team: \n"
@@ -18,151 +18,151 @@ msgstr ""
 "X-Generator: Poedit 2.0.6\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 msgid "Show notes"
 msgstr "Mostra note"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 msgid "Notes extension error: failed to load a note"
 msgstr "Errore estensione di Notes: caricamento di una nota non riuscito"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 #, fuzzy
 #| msgid "Show notes"
 msgid "New note"
 msgstr "Mostra note"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 msgid "New from Clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/manager.js notes@escator/prefs.ui
 msgid "Settings"
 msgstr "Impostazioni"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 #, fuzzy
 #| msgid "First note's color"
 msgid "Filter by color"
 msgstr "Colore della prima nota"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/manager.js
 msgid "Reset filter"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Font size"
 msgstr "Dimensione del font"
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Cut"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Copy"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Paste"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Undo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Redo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Select All"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Copy to clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Paste from clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete"
 msgstr "Elimina"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Note options"
 msgstr "Opzioni note"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Resize"
 msgstr "Ridimensiona"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Type here…"
 msgstr "Scrivi qui…"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Empty note"
 msgstr "Nota vuota"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete this note?"
 msgstr "Eliminare questa nota?"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit title"
 msgstr "Modifica titolo"
 
-#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/noteBox.js notes@escator/prefs.ui
 msgid "Apply"
 msgstr "Applica"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 msgid "Modifications will be effective after reloading the extension."
 msgstr "Le modifiche diventeranno effettive dopo aver ricaricato l'estensione."
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Default value is %s"
 msgstr "Il valore predefinito è %s"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Version %s"
 msgstr "Versione %s"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Use a keyboard shortcut"
 msgstr "Usa una scorciatoia da tastiera"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Use a keyboard shortcut to toggle notes visibility"
 msgstr ""
 "Usa una scorciatoia da tastiera per attivare o disattivare la visibilità "
 "delle note"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Help"
 msgstr "Aiuto"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Hide the icon"
 msgstr "Nascondi l'icona"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "First note's color"
 msgstr "Colore della prima nota"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "The notes created afterwards will use the color of their parent"
 msgstr "Le note create successivamente useranno il colore del loro genitore"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Your notes are saved to the disk on various occasions (mainly when you hide "
 "them). If you want to <b>get a copy of your notes</b>, this button opens the "
@@ -172,35 +172,35 @@ msgstr ""
 "quando le nascondi). Se vuoi una <b>copia delle tue note</b>, questo "
 "pulsante apre la cartella in cui si trovano."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Open the storage directory"
 msgstr "Apri la cartella di salvataggio"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "The \"layouts.json\" file contains the color and position of your notes for "
 "each monitor configuration"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
 msgstr ""
 "I file che terminano con \"_text\" contengono il testo scritto nelle note"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Backup"
 msgstr "Backup"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Explanations about how to use this extension can be found here:"
 msgstr ""
 "Spiegazioni su come utilizzare questa estensione possono essere trovate qui:"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Online help manual"
 msgstr "Manuale di aiuto in linea"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Click on this button if you accidentally moved a note out of your primary "
 "monitor (example: if you had notes on a secondary monitor and unplugged it)."
@@ -209,17 +209,17 @@ msgstr ""
 "dello schermo primario (esempio: se avevi delle note su uno schermo "
 "secondario che hai disconnesso)."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "Torna al monitor principale"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Sticky notes for the GNOME Shell desktop."
 msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "Note adesive per l'interfaccia GNOME Shell."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Reworked design and extended functionality:\n"
 "• Improved visual style and interface\n"
@@ -232,36 +232,36 @@ msgid ""
 "• Proper multi-monitor support"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Based on the original extension by Romain F. T. (maoschanz)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Developer: Pavel Chernyakov (escator)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Report bugs or ideas"
 msgstr "Segnala errori o invia idee"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "About"
 msgstr "Informazioni"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "List of valid key names"
 msgstr "Elenco di nomi di chiavi validi"
 
 #. Context for translation: modifier keys are ctrl/shift/super/alt
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Modifier keys must be between chevrons"
 msgstr "I tasti di modifica devono essere compresi tra chevrons"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "Non utilizzare una scorciatoia da tastiera già esistente."
 

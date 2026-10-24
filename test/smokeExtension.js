@@ -1,16 +1,20 @@
-// Offline smoke test for extension.js (NotesManager) — plain gjs, no shell:
-//     gjs test/smokeExtension.js     (from the repository root)
+// Offline smoke test for the NotesManager (manager.js) — plain gjs, no shell:
+//     gjs -m test/smokeExtension.js     (from the repository root)
 //
-// The manager runs against a fake `imports` tree (stubs for St/Shell/Clutter/
-// Main/PanelMenu/…) and a fake NoteBox, so the code under test is the real
-// extension.js: the one-time migration from the legacy `N_state` files, the
-// loading of layouts.json, the stable ids, saveLayout and postDelete.
+// manager.js is a pure module: everything the legacy code reached through
+// the global `imports` tree comes in as constructor arguments. The test
+// constructs it with fakes for exactly the dependencies extension.js hands
+// over in the shell — the shell namespaces (Main/PanelMenu/PopupMenu/St/
+// Clutter/Meta/Shell), GLib-compatible timers and a fake NoteBox — so the
+// code under test is the real manager.js: the one-time migration from the
+// legacy `N_state` files, the loading of layouts.json, the stable ids,
+// saveLayout and postDelete, the color filter and the panel button click
+// logic. The thin shell adapter extension.js itself only loads inside the
+// shell; it is covered by the container acceptance (task 008, scenarios 2–3).
 
-const { GLib, Gio } = imports.gi;
-const ByteArray = imports.byteArray;
-const System = imports.system;
-
-const EXT_DIR = GLib.get_current_dir() + '/notes@escator';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import System from 'system';
 
 //------------------------------------------------------------------------------
 
@@ -49,10 +53,21 @@ function fileExists(path) {
 	return GLib.file_test(path, GLib.FileTest.EXISTS);
 }
 
+function readFile(path) {
+	const [ok, data] = GLib.file_get_contents(path);
+	if (!ok) {
+		throw new Error('cannot read ' + path);
+	}
+	return new TextDecoder().decode(data);
+}
+
 //------------------------------------------------------------------------------
 
-// XDG_DATA_HOME must be redirected before common.js is evaluated: DATA_PATH is
-// computed from GLib.get_user_data_dir() at import time and caches
+// XDG_DATA_HOME must be redirected before ANY notes@escator module is
+// evaluated: common.js computes DATA_PATH from GLib.get_user_data_dir() at
+// import time. The extension modules are therefore imported dynamically,
+// below — a static import would be hoisted above the setenv and evaluated
+// with the host environment.
 const tmpBase = GLib.dir_make_tmp('notes-ext-smoke-XXXXXX');
 // mirrors Common.DATA_PATH, which deliberately keeps the legacy directory
 // name (the uuid has moved to notes@escator, the data has not)
@@ -60,19 +75,15 @@ const DATA_PATH = GLib.build_filenamev([tmpBase, 'notes@maestroschan.fr']);
 GLib.setenv('XDG_DATA_HOME', tmpBase, true);
 GLib.mkdir_with_parents(DATA_PATH, 0o755);
 
-function readFile(path) {
-	const [ok, data] = GLib.file_get_contents(path);
-	if (!ok) {
-		throw new Error('cannot read ' + path);
-	}
-	return ByteArray.toString(data);
-}
+const EXT_DIR = GLib.get_current_dir() + '/notes@escator';
 
-/* Evaluates a module the way the gjs importer would, with a hand-built
- * `imports` object, and returns the requested top-level exports. */
-function loadModule(path, importsObj, exportNames) {
-	const fn = new Function('imports', readFile(path) + '\n;return {' + exportNames + '};');
-	return fn(importsObj);
+const { NotesManager } = await import('../notes@escator/manager.js');
+const Common = await import('../notes@escator/common.js');
+const Layouts = await import('../notes@escator/layouts.js');
+
+// the redirect must have been in place before the modules got evaluated
+if (Common.DATA_PATH !== DATA_PATH) {
+	throw new Error('DATA_PATH escaped the sandbox: ' + Common.DATA_PATH);
 }
 
 //------------------------------------------------------------------------------
@@ -88,39 +99,30 @@ const MONITORS = [
 // pending callbacks themselves (flush-free determinism)
 let pendingTimeouts = [];
 let nextTimeoutId = 1;
+const fakeTimers = {
+	timeout_add: function (priority, delay, cb) {
+		pendingTimeouts.push({ id: nextTimeoutId, delay: delay, cb: cb });
+		return nextTimeoutId++;
+	},
+	source_remove: function (id) {
+		pendingTimeouts = pendingTimeouts.filter(function (t) {
+			return t.id !== id;
+		});
+	},
+};
+
 // the last 'monitors-changed' callback connected by the manager under test
 let monitorsChangedCb = null;
 
-// the chrome bookkeeping: what was added/removed through the chrome
-let chromeAdded = [];
-let chromeRemoved = [];
-
-// the free `global` object extension.js sees in the shell; the module under
-// test is evaluated with the Function constructor, so the binding must live
-// on globalThis (this script's consts are not in its scope chain)
-const global = {
-	stage: { name: 'stage' },
-	window_group: { name: 'window_group' },
-};
-globalThis.global = global;
-
-// uiGroup double keeping its children, so the catcher pinning can be checked
+// uiGroup double keeping its children
 const uiGroup = {
-	children: [global.window_group, { name: 'top_window_group' }],
-	pinnedBelow: null,
-	add_actor: function (a) {
+	children: [],
+	add_child: function (a) {
 		if (this.children.indexOf(a) === -1) { this.children.push(a); }
 	},
-	add_child: function (a) { this.add_actor(a); },
-	remove_actor: function (a) {
-		this.children = this.children.filter(function (c) { return c !== a; });
-	},
-	get_children: function () { return this.children; },
-	set_child_below_sibling: function (actor, sibling) {
-		this.pinnedBelow = { actor: actor, sibling: sibling };
-	},
 };
 
+// Fake Main, with exactly the surface manager.js touches.
 const Main = {
 	layoutManager: {
 		monitors: MONITORS,
@@ -132,10 +134,8 @@ const Main = {
 			return 1;
 		},
 		disconnect: function () {},
-		addChrome: function (a) { chromeAdded.push(a); },
-		removeChrome: function (a) { chromeRemoved.push(a); },
-		trackChrome: function () {},
-		untrackChrome: function () {},
+		addChrome: function () {},
+		removeChrome: function () {},
 	},
 	panel: { addToStatusArea: function () {} },
 	uiGroup: uiGroup,
@@ -307,115 +307,57 @@ class FakeNoteBox {
 
 //------------------------------------------------------------------------------
 
-const common = loadModule(EXT_DIR + '/common.js',
-	{ gi: { GLib: GLib, Gio: Gio } },
-	'DATA_PATH, MAX_LAYOUTS, PRESET_COLORS, TEXT_COLORS, CUSTOM_ICONS, getCustomIcon');
-
-const layouts = loadModule(EXT_DIR + '/layouts.js',
-	{ gi: { GLib: GLib }, byteArray: ByteArray },
-	'signature, clampRect, intersectsAnyMonitor, foldInto, LayoutStore, DEFAULT_FONT_SIZE, DEFAULT_WIDTH, DEFAULT_HEIGHT');
-
-const Me = {
-	uuid: 'notes@escator',
-	dir: Gio.File.new_for_path(EXT_DIR),
-	imports: { common: common, layouts: layouts, noteBox: { NoteBox: FakeNoteBox } },
-};
-
-/* The plain Clutter.Actor double (the light-dismiss catcher of task 007):
- * constructor props recorded, signal handlers kept so the tests can emit
- * them. */
-class FakeActor {
-	constructor(props) {
-		this.visible = true;
-		this.handlers = {};
-		Object.assign(this, props || {});
-	}
-	connect(sig, cb) {
-		this.handlers[sig] = cb;
-		return 1;
-	}
-	destroy() { this.destroyed = true; }
-}
-
-class FakeBindConstraint {
-	constructor(props) { Object.assign(this, props || {}); }
-}
-
-const fakeImports = {
-	gi: {
-		St: {
-			Icon: FakeIcon,
-			Bin: FakeWidget,
-			BoxLayout: FakeWidget,
-			Label: FakeWidget,
-			Button: FakeWidget,
-			Side: { TOP: 1 },
-			ClipboardType: { CLIPBOARD: 0 },
-			Clipboard: {
-				get_default: function () {
-					return {
-						// the test clipboard always has some text
-						get_text: function (type, cb) { cb(null, 'clipboard text'); },
-					};
-				},
-			},
-		},
-		Shell: { ActionMode: { ALL: 1 } },
-		GLib: GLib,
-		Gio: Gio,
-		Meta: { KeyBindingFlags: { NONE: 0 } },
-		Clutter: {
-			BUTTON_SECONDARY: 3,
-			ActorAlign: { START: 0, CENTER: 3, END: 2 },
-			Actor: FakeActor,
-			BindConstraint: FakeBindConstraint,
-			BindCoordinate: { ALL: 0 },
-			EVENT_STOP: 1,
-			EVENT_PROPAGATE: 0,
-			Settings: {
-				get_default: function () { return { double_click_time: 400 }; },
+// The fake shell namespaces, mirroring what manager.js destructures from the
+// `shell` dependency. If manager.js starts touching something not listed
+// here, the test fails loudly with an undefined constructor — that is the
+// point.
+const fakeShell = {
+	Main: Main,
+	PanelMenu: { Button: FakeButton },
+	PopupMenu: {
+		PopupMenu: FakeMenu,
+		PopupMenuManager: FakeMenuManager,
+		PopupBaseMenuItem: FakePopupItem,
+		PopupSeparatorMenuItem: FakePopupItem,
+	},
+	St: {
+		Icon: FakeIcon,
+		Bin: FakeWidget,
+		BoxLayout: FakeWidget,
+		Label: FakeWidget,
+		Button: FakeWidget,
+		Side: { TOP: 1 },
+		ClipboardType: { CLIPBOARD: 0 },
+		Clipboard: {
+			get_default: function () {
+				return {
+					// the test clipboard always has some text
+					get_text: function (type, cb) { cb(null, 'clipboard text'); },
+				};
 			},
 		},
 	},
-	// extension.js imports Mainloop from the top level, like in the shell
-	mainloop: {
-		timeout_add: function (delay, cb) {
-			pendingTimeouts.push({ id: nextTimeoutId, delay: delay, cb: cb });
-			return nextTimeoutId++;
-		},
-		source_remove: function (id) {
-			pendingTimeouts = pendingTimeouts.filter(function (t) {
-				return t.id !== id;
-			});
+	Clutter: {
+		BUTTON_SECONDARY: 3,
+		ActorAlign: { START: 0, CENTER: 3, END: 2 },
+		Settings: {
+			get_default: function () { return { double_click_time: 400 }; },
 		},
 	},
-	ui: {
-		panelMenu: { Button: FakeButton },
-		panel: {},
-		main: Main,
-		popupMenu: {
-			PopupMenu: FakeMenu,
-			PopupMenuManager: FakeMenuManager,
-			PopupBaseMenuItem: FakePopupItem,
-			PopupSeparatorMenuItem: FakePopupItem,
-		},
-	},
-	misc: {
-		extensionUtils: {
-			initTranslations: function () {},
-			getCurrentExtension: function () { return Me; },
-			getSettings: function () { return fakeSettings; },
-			openPrefs: undefined,
-		},
-		util: { spawn: function () {} },
-	},
-	gettext: {
-		domain: function () { return { gettext: function (s) { return s; } }; },
-	},
+	Meta: { KeyBindingFlags: { NONE: 0 } },
+	Shell: { ActionMode: { ALL: 1 } },
 };
 
-const extension = loadModule(EXT_DIR + '/extension.js', fakeImports,
-	'enable, disable, getNotesManager: function () { return NOTES_MANAGER; }');
+function makeManager() {
+	return new NotesManager({
+		settings: fakeSettings,
+		extensionDir: Gio.File.new_for_path(EXT_DIR),
+		openPrefs: function () {},
+		noteBoxClass: FakeNoteBox,
+		timers: fakeTimers,
+		shell: fakeShell,
+	});
+}
 
 //------------------------------------------------------------------------------
 
@@ -426,15 +368,14 @@ GLib.file_set_contents(DATA_PATH + '/1_state', '2100;120;255,240,168;300;200;12;
 GLib.file_set_contents(DATA_PATH + '/0_text', 'hello');
 GLib.file_set_contents(DATA_PATH + '/1_text', 'world');
 
-const SIG = layouts.signature(MONITORS);
+const SIG = Layouts.signature(MONITORS);
 
-extension.enable();
-const manager = extension.getNotesManager();
+const manager = makeManager();
 manager._loadAllNotes();
 
 check('registry file created at ' + DATA_PATH, fileExists(DATA_PATH + '/layouts.json'));
 
-let store = new layouts.LayoutStore(DATA_PATH + '/layouts.json', common.MAX_LAYOUTS);
+let store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
 check('registry loads back', store.load());
 eq('migrated note ids', store.noteIds(), [0, 1]);
 eq('note 0 attributes migrated', store.getNoteAttrs('0'),
@@ -474,7 +415,7 @@ manager.postDelete(0);
 check('0_text deleted', !fileExists(DATA_PATH + '/0_text'));
 check('legacy 0_state still kept', fileExists(DATA_PATH + '/0_state'));
 
-store = new layouts.LayoutStore(DATA_PATH + '/layouts.json', common.MAX_LAYOUTS);
+store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
 store.load();
 eq('deleted note left the registry', store.noteIds(), [1, 2]);
 lay = store.layoutFor(SIG);
@@ -490,11 +431,10 @@ eq('ids are never reused', createdSpecs[0].id, 3);
 // not drift, since the saved layout already covers every note)
 manager.destroy();
 createdSpecs = [];
-extension.enable();
-const manager2 = extension.getNotesManager();
+const manager2 = makeManager();
 manager2._loadAllNotes();
 
-store = new layouts.LayoutStore(DATA_PATH + '/layouts.json', common.MAX_LAYOUTS);
+store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
 store.load();
 lay = store.layoutFor(SIG);
 [1, 2, 3].forEach(function (id) {
@@ -516,7 +456,7 @@ print('== phase 3: monitors-changed and fold ==');
 
 const MON_A = MONITORS[0];
 const SIG_TWO = SIG;
-const SIG_MONO = layouts.signature([MON_A]);
+const SIG_MONO = Layouts.signature([MON_A]);
 
 function noteById(id) {
 	return manager3._allNotes.find(function (n) { return n.id === id; });
@@ -530,7 +470,7 @@ function inMonitorA(p) {
 		&& p.y + p.h <= MON_A.y + MON_A.height - 16;
 }
 function savedPositions(key) {
-	let s = new layouts.LayoutStore(DATA_PATH + '/layouts.json', common.MAX_LAYOUTS);
+	let s = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
 	s.load();
 	let l = s.layoutFor(key);
 	return l ? l.positions : null;
@@ -546,19 +486,17 @@ function fireDebounce() {
 // a fresh manager whose notes are never loaded: both the monitors-changed
 // handler and the ugly-hack button must be no-ops before the first load
 createdSpecs = [];
-extension.enable();
-const managerIdle = extension.getNotesManager();
+const managerIdle = makeManager();
 monitorsChangedCb();
 check('monitors-changed before load: nothing armed', pendingTimeouts.length === 0);
 check('monitors-changed before load: no store', managerIdle._store === null);
 settingsHandlers['changed::ugly-hack']();
 check('ugly-hack before load: no store', managerIdle._store === null);
-extension.disable();
+managerIdle.destroy();
 
 // the manager under test, loaded for the two-monitor configuration
 createdSpecs = [];
-extension.enable();
-const manager3 = extension.getNotesManager();
+const manager3 = makeManager();
 manager3._loadAllNotes();
 
 let twoPos = savedPositions(SIG_TWO);
@@ -633,17 +571,16 @@ manager3.destroy();
 
 print('== phase 4: color filter ==');
 
-extension.enable();
-const manager4 = extension.getNotesManager();
+const manager4 = makeManager();
 manager4._loadAllNotes();
 
 function m4note(id) {
 	return manager4._allNotes.find(function (n) { return n.id === id; });
 }
 
-const MINT = common.PRESET_COLORS['mint'].rgb.join(',');
-const SKY = common.PRESET_COLORS['sky'].rgb.join(',');
-const CREAM = common.PRESET_COLORS['cream'].rgb.join(',');
+const MINT = Common.PRESET_COLORS['mint'].rgb.join(',');
+const SKY = Common.PRESET_COLORS['sky'].rgb.join(',');
+const CREAM = Common.PRESET_COLORS['cream'].rgb.join(',');
 m4note(1).customColor = MINT;
 m4note(2).customColor = SKY;
 m4note(3).customColor = CREAM;
@@ -761,8 +698,7 @@ check('destroy cancelled the debounce', pendingTimeouts.length === 0);
 
 print('== phase 5: expanded notes keep the home geometry on disk ==');
 
-extension.enable();
-const manager5 = extension.getNotesManager();
+const manager5 = makeManager();
 manager5._loadAllNotes();
 
 function m5note(id) {
@@ -802,8 +738,7 @@ check('destroy cancelled the debounce (manager5)', pendingTimeouts.length === 0)
 
 print('== phase 6: panel button single vs double click ==');
 
-extension.enable();
-const manager6 = extension.getNotesManager();
+const manager6 = makeManager();
 manager6._loadAllNotes();
 
 function leftClick6() {
