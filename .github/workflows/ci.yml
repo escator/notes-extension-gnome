@@ -15,7 +15,7 @@ on:
 jobs:
   static:
     name: Static gates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install build tools
@@ -39,7 +39,11 @@ jobs:
 
   pod-test:
     name: gnome-shell-pod-${{ matrix.pod }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    # pinned: the ubuntu-latest pool migrates to Ubuntu 26 (kernel 6.17),
+    # where the container user session does not come up after the image's
+    # console autologin (run 40099035889: pod-39 green on the 24.04 pool,
+    # 40/41/rawhide dead on 6.17)
     strategy:
       fail-fast: false
       matrix:
