@@ -44,9 +44,14 @@ done
 podman rm -f "$NAME" >/dev/null 2>&1 || true
 # the images' default command is /usr/sbin/init: a full system boot; the
 # tty is REQUIRED — the autologin of the image is console-getty on
-# /dev/console, which is skipped without an allocated tty (no session then)
+# /dev/console, which is skipped without an allocated tty (no session then).
+# seccomp/apparmor unconfined: on modern runner kernels (6.8+) the default
+# seccomp profile breaks systemd PID1 — "Failed to fork off sandboxing
+# environment for executing generators: Protocol error" (clone3 path) —
+# acceptable for a disposable test container from a pinned public image
 if ! run_out=$(podman run -dt --name "$NAME" \
 	--cap-add SYS_NICE --cap-add IPC_LOCK --cap-add CAP_SYS_ADMIN \
+	--security-opt seccomp=unconfined --security-opt apparmor=unconfined \
 	"$IMAGE" 2>&1); then
 	fail "podman run failed: $(echo "$run_out" | tail -3)"
 fi
