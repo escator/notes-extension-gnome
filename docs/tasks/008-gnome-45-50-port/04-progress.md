@@ -107,3 +107,37 @@
   тега — только zip-бинарник и дата .pot). master дальше не
   развивается: это замороженная линия 42–44; 3.0 собирается на dev.
   Пуш master — по команде пользователя.
+- **2026-10-24. Решение по uuid: `notes@escator`, шаг 1 Ф4, переезжают
+  обе линии** (ADR-0006 п. 5). Дополнено против первоначального замысла:
+  на EGO нельзя опубликовать zip под чужим uuid, поэтому и legacy 42–44
+  переезжает — cherry-pick коммита переезда на master и пересборка
+  legacy-zip; на новой странице EGO multi-versioning раздаёт обе версии.
+  Числа `version` — целые по правилам EGO (рекомендация: legacy 2, порт
+  3). Реализация — по команде.
+- **2026-10-24. Ф2 подготовлена (старт — по команде).** Сверено с
+  исходниками тега 45.0 (`js/extensions/prefs.js`,
+  `js/extensions/sharedInternals.js`):
+  - `ExtensionPreferences extends ExtensionBase`,
+    `resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js`;
+    в 45 `fillPreferencesWindow(window)` ещё НЕ async (async станет в 47 —
+    наша реализация синхронна, конфликтов нет);
+  - база сама биндит домен локалей (конструктор вызывает
+    `initTranslations()` с `dir/locale`) и берёт схему из
+    `metadata['settings-schema']` c поиском в `dir/schemas` — ручной
+    инициализации не нужно; `path`/`dir`/`metadata` — геттеры базы;
+  - у базы есть `getPreferencesWidget()` + авторучка `_wrapWidget`
+    (страница/группа создастся сами), но по 02 §4 переопределяем
+    `fillPreferencesWindow` явно: `Adw.PreferencesPage` +
+    `Adw.PreferencesGroup` + наш виджет, `window.set_default_size(496,
+    405)`;
+  - текущий `prefs.js` (203 строки): GObject-класс собирает виджеты
+    поверх `prefs.ui`; `Me.path` (3 использования) → `this.path`;
+    `SETTINGS` на уровне модуля → `this.getSettings()`; импорт `Mainloop`
+    мёртвый — выпадает с шапкой; `buildPrefsWidget` → дефолт-класс
+    (constructor не нужен — вся работа в `fillPreferencesWindow`);
+  - `prefs.ui`: верхний объект — `GtkNotebook` `prefs_stack` (4 вкладки),
+    содержимое вкладок не трогаем; Gettext-строки prefса не меняются
+    (53/53 держится);
+  - тестирование — контейнер 45+ (podman, сценарий 3 prefs-часть);
+    gjs-харнесс на X11 для ESM-prefs неприменим (как и shell-часть).
+  Изменения не вносились.
