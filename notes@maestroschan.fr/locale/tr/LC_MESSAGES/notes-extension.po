@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
+"POT-Creation-Date: 2026-10-24 01:10+0700\n"
 "PO-Revision-Date: 2020-10-29 17:42+0300\n"
 "Last-Translator: Muha Aliss <muhaaliss@pm.me>\n"
 "Language-Team: Türkçe\n"
@@ -215,26 +215,35 @@ msgid "Bring back to the primary monitor"
 msgstr "Birincil monitöre geri dön"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Notlar"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+#, fuzzy
+#| msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "GNOME Kabuğu için masaüstü yapışkan notlar."
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr "Hazırlayan:"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
-msgstr "Çeviri:"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
 msgstr ""
-"Serdar Sağlam\n"
-"Muha Aliss"
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -256,6 +265,20 @@ msgstr ""
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
+
+#~ msgid "Notes"
+#~ msgstr "Notlar"
+
+#~ msgid "Author:"
+#~ msgstr "Hazırlayan:"
+
+#~ msgid "Translation:"
+#~ msgstr "Çeviri:"
+
+#~ msgid "translator-credits"
+#~ msgstr ""
+#~ "Serdar Sağlam\n"
+#~ "Muha Aliss"
 
 #~ msgid "Restart the extension to apply the changes"
 #~ msgstr "Değişiklikleri uygulamak için uzantıyı yeniden başlatın"

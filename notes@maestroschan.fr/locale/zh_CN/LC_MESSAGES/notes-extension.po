@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
+"POT-Creation-Date: 2026-10-24 01:10+0700\n"
 "PO-Revision-Date: 2022-04-27 10:41+0800\n"
 "Last-Translator: Aerowolf <aerowolf@tom.com>\n"
 "Language-Team: \n"
@@ -208,24 +208,35 @@ msgid "Bring back to the primary monitor"
 msgstr "带回主屏"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr ""
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+#, fuzzy
+#| msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "GNOME Shell 桌面便签"
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr "作者:"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
-msgstr "翻译者:"
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
-msgstr "请见翻译光荣榜"
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -247,6 +258,15 @@ msgstr "修改器按键必须位于V形之间"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "请勿使用已经存在的键盘快捷键。"
+
+#~ msgid "Author:"
+#~ msgstr "作者:"
+
+#~ msgid "Translation:"
+#~ msgstr "翻译者:"
+
+#~ msgid "translator-credits"
+#~ msgstr "请见翻译光荣榜"
 
 #~ msgid "Restart the extension to apply the changes"
 #~ msgstr "重启扩展并应用修改"

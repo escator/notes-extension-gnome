@@ -89,6 +89,36 @@ let nextTimeoutId = 1;
 // the last 'monitors-changed' callback connected by the manager under test
 let monitorsChangedCb = null;
 
+// the chrome bookkeeping: what was added/removed through the chrome
+let chromeAdded = [];
+let chromeRemoved = [];
+
+// the free `global` object extension.js sees in the shell; the module under
+// test is evaluated with the Function constructor, so the binding must live
+// on globalThis (this script's consts are not in its scope chain)
+const global = {
+	stage: { name: 'stage' },
+	window_group: { name: 'window_group' },
+};
+globalThis.global = global;
+
+// uiGroup double keeping its children, so the catcher pinning can be checked
+const uiGroup = {
+	children: [global.window_group, { name: 'top_window_group' }],
+	pinnedBelow: null,
+	add_actor: function (a) {
+		if (this.children.indexOf(a) === -1) { this.children.push(a); }
+	},
+	add_child: function (a) { this.add_actor(a); },
+	remove_actor: function (a) {
+		this.children = this.children.filter(function (c) { return c !== a; });
+	},
+	get_children: function () { return this.children; },
+	set_child_below_sibling: function (actor, sibling) {
+		this.pinnedBelow = { actor: actor, sibling: sibling };
+	},
+};
+
 const Main = {
 	layoutManager: {
 		monitors: MONITORS,
@@ -100,12 +130,13 @@ const Main = {
 			return 1;
 		},
 		disconnect: function () {},
-		addChrome: function () {},
+		addChrome: function (a) { chromeAdded.push(a); },
+		removeChrome: function (a) { chromeRemoved.push(a); },
 		trackChrome: function () {},
 		untrackChrome: function () {},
 	},
 	panel: { addToStatusArea: function () {} },
-	uiGroup: { add_actor: function () {} },
+	uiGroup: uiGroup,
 	wm: {
 		addKeybinding: function () { return 1; },
 		removeKeybinding: function () {},
@@ -139,6 +170,7 @@ class FakeButton {
 
 class FakeMenu {
 	constructor() {
+		this.toggleCount = 0;
 		this.actor = {
 			add_style_class_name: function () {},
 			hide: function () {},
@@ -154,7 +186,7 @@ class FakeMenu {
 	addMenuItem() {}
 	connect() { return 1; }
 	close() {}
-	toggle() {}
+	toggle() { this.toggleCount++; }
 	destroy() {}
 }
 
@@ -170,10 +202,16 @@ class FakeMenuManager {
 }
 
 // gsettings double: `changed::key` handlers are kept so the tests can emit
-// the signals (the ugly-hack channel used by the prefs fold button)
+// the signals (the ugly-hack channel used by the prefs fold button); the
+// boolean keys are stored per key (defaults from the gschema)
 const settingsHandlers = {};
+const boolSettings = {
+	'use-shortcut': false,
+	'hide-icon': false,
+};
 const fakeSettings = {
-	get_boolean: function () { return false; },
+	get_boolean: function (key) { return boolSettings[key]; },
+	set_boolean: function (key, v) { boolSettings[key] = v; },
 	get_strv: function () { return [0.5, 0.5, 0.5]; },
 	connect: function (key, cb) { settingsHandlers[key] = cb; return 1; },
 	disconnect: function () {},
@@ -192,6 +230,8 @@ class FakeNoteBox {
 		this.spec = spec;
 		this._x = Math.floor(spec.x);
 		this._y = Math.floor(spec.y);
+		this._expanded = false;
+		this._homeRect = null;
 		this.customColor = (spec.color === '') ? '184,217,242' : spec.color;
 		this._fontSize = spec.fontSize;
 		this.actor = {
@@ -211,6 +251,23 @@ class FakeNoteBox {
 	}
 	_setNotePosition () {
 		this.actor.set_position(Math.floor(this._x), Math.floor(this._y));
+	}
+	// the manager-facing geometry contract (task 005): home rect while
+	// expanded, live geometry otherwise
+	getPersistedRect () {
+		if (this._expanded) { return this._homeRect; }
+		return { x: this._x, y: this._y, w: this.actor.width, h: this.actor.height };
+	}
+	// outcome-level mirror of an instant collapse: snap to the home rect
+	_collapseNote () {
+		this._expanded = false;
+		if (this._homeRect) {
+			this._x = this._homeRect.x;
+			this._y = this._homeRect.y;
+			this.actor.width = this._homeRect.w;
+			this.actor.height = this._homeRect.h;
+			this._homeRect = null;
+		}
 	}
 	onlyHide() {
 		this.actor.visible = false;
@@ -262,6 +319,26 @@ const Me = {
 	imports: { common: common, layouts: layouts, noteBox: { NoteBox: FakeNoteBox } },
 };
 
+/* The plain Clutter.Actor double (the light-dismiss catcher of task 007):
+ * constructor props recorded, signal handlers kept so the tests can emit
+ * them. */
+class FakeActor {
+	constructor(props) {
+		this.visible = true;
+		this.handlers = {};
+		Object.assign(this, props || {});
+	}
+	connect(sig, cb) {
+		this.handlers[sig] = cb;
+		return 1;
+	}
+	destroy() { this.destroyed = true; }
+}
+
+class FakeBindConstraint {
+	constructor(props) { Object.assign(this, props || {}); }
+}
+
 const fakeImports = {
 	gi: {
 		St: {
@@ -288,6 +365,14 @@ const fakeImports = {
 		Clutter: {
 			BUTTON_SECONDARY: 3,
 			ActorAlign: { START: 0, CENTER: 3, END: 2 },
+			Actor: FakeActor,
+			BindConstraint: FakeBindConstraint,
+			BindCoordinate: { ALL: 0 },
+			EVENT_STOP: 1,
+			EVENT_PROPAGATE: 0,
+			Settings: {
+				get_default: function () { return { double_click_time: 400 }; },
+			},
 		},
 	},
 	// extension.js imports Mainloop from the top level, like in the shell
@@ -668,6 +753,132 @@ check('global show respects the filter',
 
 manager4.destroy();
 check('destroy cancelled the debounce', pendingTimeouts.length === 0);
+
+//------------------------------------------------------------------------------
+// Phase 5: expanded view vs home geometry on disk (task 005, phase 3)
+
+print('== phase 5: expanded notes keep the home geometry on disk ==');
+
+extension.enable();
+const manager5 = extension.getNotesManager();
+manager5._loadAllNotes();
+
+function m5note(id) {
+	return manager5._allNotes.find(function (n) { return n.id === id; });
+}
+
+// an expanded note (the state a double click leaves the real NoteBox in):
+// the actor shows the inflated view, _homeRect is the geometry that must
+// reach the disk
+let n5 = m5note(2);
+let home5 = savedPositions(SIG_TWO)['2'];
+n5._expanded = true;
+n5._homeRect = { x: home5.x, y: home5.y, w: home5.w, h: home5.h };
+n5.actor.width = 1200;
+n5.actor.height = 1600;
+
+// README scenario 4: any action that saves the layout writes the home size,
+// never the inflated view
+manager5.saveLayout();
+eq('expanded note saved with its home rect', savedPositions(SIG_TWO)['2'], home5);
+
+// the layout application paths (monitors-changed, the fold button) apply
+// saved home rectangles: the note leaves the expanded mode first
+settingsHandlers['changed::ugly-hack']();
+check('layout application folded the expanded note back',
+	!n5._expanded && n5._homeRect === null);
+check('folded note got a real slot, not the inflated view',
+	n5.actor.width === home5.w && n5.actor.height === home5.h);
+eq('folded layout saved clean', savedPositions(SIG_TWO)['2'],
+	{ x: n5._x, y: n5._y, w: n5.actor.width, h: n5.actor.height });
+
+manager5.destroy();
+check('destroy cancelled the debounce (manager5)', pendingTimeouts.length === 0);
+
+//------------------------------------------------------------------------------
+// Phase 6: the panel button clicks (task 006 / ADR-0005)
+
+print('== phase 6: panel button single vs double click ==');
+
+extension.enable();
+const manager6 = extension.getNotesManager();
+manager6._loadAllNotes();
+
+function leftClick6() {
+	manager6._onButtonPressed(null, { get_button: function () { return 1; } });
+}
+function rightClick6() {
+	manager6._onButtonPressed(null, { get_button: function () { return 3; } });
+}
+function pendingToggleCount() {
+	return pendingTimeouts.filter(function (t) {
+		return t.id === manager6._pendingToggleId;
+	}).length;
+}
+function firePendingToggle() {
+	let i = pendingTimeouts.findIndex(function (t) {
+		return t.id === manager6._pendingToggleId;
+	});
+	if (i === -1) { throw new Error('no pending toggle to fire'); }
+	// a GLib timeout returning SOURCE_REMOVE is retired once it has fired
+	pendingTimeouts.splice(i, 1)[0].cb();
+}
+
+// the keyboard shortcut: instant toggle, nothing armed
+check('manager starts hidden', manager6._notesAreVisible === false);
+manager6._onButtonPressed(null, null);
+check('keyboard toggle is instant', pendingTimeouts.length === 0
+	&& manager6._notesAreVisible === true);
+
+// a single left click is delayed, then toggles
+manager6._onlyHideNotes();
+leftClick6();
+check('single click arms exactly one delayed toggle', pendingToggleCount() === 1);
+check('single click is silent until the timeout', manager6._notesAreVisible === false);
+eq('delay is the double-click time', pendingTimeouts.find(function (t) {
+	return t.id === manager6._pendingToggleId;
+}).delay, 400);
+firePendingToggle();
+check('delayed toggle showed the notes', manager6._notesAreVisible === true
+	&& manager6._pendingToggleId === null);
+
+// a double click cancels the toggle and creates an edit-mode note
+manager6._onlyHideNotes();
+createdSpecs = [];
+leftClick6();
+leftClick6();
+eq('double click created exactly one note', createdSpecs.length, 1);
+check('double-click note is in the edit mode', createdSpecs[0].startInEditMode === true);
+check('double click cancelled the pending toggle', manager6._pendingToggleId === null
+	&& pendingTimeouts.length === 0);
+check('double click shows the notes without a toggle',
+	manager6._notesAreVisible === true);
+
+// a double click on visible notes does not hide them
+createdSpecs = [];
+leftClick6();
+leftClick6();
+eq('visible pair also creates one note', createdSpecs.length, 1);
+check('visible pair never hid the notes', manager6._notesAreVisible === true);
+
+// a right click cancels the pending toggle and opens the menu
+leftClick6();
+rightClick6();
+eq('right click opened the menu', manager6._menu.toggleCount, 1);
+check('right click cancelled the pending toggle', manager6._pendingToggleId === null
+	&& pendingTimeouts.length === 0);
+
+// a third click after the double behaves like a fresh single click
+leftClick6();
+check('third click arms a new toggle', pendingToggleCount() === 1);
+firePendingToggle();
+check('third click toggles like a single one', manager6._notesAreVisible === false);
+
+// destroy with a pending toggle
+leftClick6();
+check('toggle pending before destroy', pendingToggleCount() === 1);
+manager6.destroy();
+check('destroy cancelled the pending toggle', pendingTimeouts.length === 0);
 
 //------------------------------------------------------------------------------
 

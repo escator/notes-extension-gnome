@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 23:00+0700\n"
+"POT-Creation-Date: 2026-10-24 01:10+0700\n"
 "PO-Revision-Date: 2023-02-08 21:07+0100\n"
 "Last-Translator: Quentin PAGÈS\n"
 "Language-Team: \n"
@@ -203,24 +203,33 @@ msgid "Bring back to the primary monitor"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Notes"
-msgstr "Nòtas"
-
-#: notes@maestroschan.fr/prefs.ui
-msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Author:"
-msgstr "Autor :"
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "Translation:"
-msgstr "Traduccion :"
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
-msgid "translator-credits"
-msgstr "Quentin PAGÈS"
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@maestroschan.fr/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
 
 #: notes@maestroschan.fr/prefs.ui
 msgid "Report bugs or ideas"
@@ -242,6 +251,18 @@ msgstr "Las claus de modificacions devon èsser entre croquets"
 #: notes@maestroschan.fr/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr "Utilizetz pas un acorchi de clavièr qu'existís ja."
+
+#~ msgid "Notes"
+#~ msgstr "Nòtas"
+
+#~ msgid "Author:"
+#~ msgstr "Autor :"
+
+#~ msgid "Translation:"
+#~ msgstr "Traduccion :"
+
+#~ msgid "translator-credits"
+#~ msgstr "Quentin PAGÈS"
 
 #~ msgid "Restart the extension to apply the changes"
 #~ msgstr "Reaviar l’extension per aplicar las modificacions"

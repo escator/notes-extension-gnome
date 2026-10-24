@@ -117,6 +117,10 @@ class NotesManager {
 		this._currentKey = null;
 		this._monitorsDebounceId = null;
 
+		// the single click of the panel button is delayed to stay
+		// distinguishable from a double click (task 006 / ADR-0005)
+		this._pendingToggleId = null;
+
 		// Initialisation of the signals connections
 		this._bindKeyboardShortcut();
 		this._connectAllSignals();
@@ -227,7 +231,7 @@ class NotesManager {
 		// rectangles (the deterministic replacement of the former random
 		// placement); the 250x180 default size mirrors the legacy behavior
 		let occupied = this._allNotes.map(function (n) {
-			return { x: n._x, y: n._y, w: n.actor.width, h: n.actor.height };
+			return n.getPersistedRect();
 		});
 		let slot = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
@@ -289,28 +293,33 @@ class NotesManager {
 		this._currentKey = Layouts.signature(this._monitorRects());
 		let positions = {};
 		this._allNotes.forEach((n) => {
+			let r = n.getPersistedRect();
 			positions[n.id] = {
-				x: n._x,
-				y: n._y,
-				w: Math.floor(n.actor.width),
-				h: Math.floor(n.actor.height)
+				x: r.x,
+				y: r.y,
+				w: Math.floor(r.w),
+				h: Math.floor(r.h)
 			};
 			this._store.setNoteAttrs(n.id, { color: n.customColor, fontSize: n._fontSize });
 		});
 		this._store.put(this._currentKey, positions);
 	}
 
-	// The note's geometry, in the shape the layouts.js helpers expect.
+	// The note's geometry, in the shape the layouts.js helpers expect: the
+	// single geometry source for the manager (home rect while expanded —
+	// task 005, 02-architecture §1).
 	_noteRect (note) {
-		return {
-			x: note._x,
-			y: note._y,
-			w: note.actor.width,
-			h: note.actor.height
-		};
+		return note.getPersistedRect();
 	}
 
 	_applyRectToNote (note, rect) {
+		// the applied layout is made of saved (home) rectangles: an expanded
+		// note leaves the expanded mode first, instantly (monitors-changed
+		// and 'bring back to the primary monitor' never lay out the
+		// expanded view)
+		if (note._expanded) {
+			note._collapseNote(false);
+		}
 		note._x = Math.floor(rect.x);
 		note._y = Math.floor(rect.y);
 		note.actor.width = Math.floor(rect.w);
@@ -362,7 +371,8 @@ class NotesManager {
 		let slots = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
 			lost.map(function (n) {
-				return { id: n.id, w: n.actor.width, h: n.actor.height };
+				let r = n.getPersistedRect();
+				return { id: n.id, w: r.w, h: r.h };
 			}),
 			occupied
 		);
@@ -383,7 +393,8 @@ class NotesManager {
 		let slots = Layouts.foldInto(
 			Main.layoutManager.primaryMonitor,
 			this._allNotes.map(function (n) {
-				return { id: n.id, w: n.actor.width, h: n.actor.height };
+				let r = n.getPersistedRect();
+				return { id: n.id, w: r.w, h: r.h };
 			}),
 			[]
 		);
@@ -518,16 +529,63 @@ refreshFilterForNote (note) {
 
 	_onButtonPressed (actor, event) {
 		// the keyboard shortcut arrives without any Clutter event
-		if (event && typeof event.get_button === 'function') {
-			if (event.get_button() === Clutter.BUTTON_SECONDARY) {
-				this._menu.toggle();
-				return;
-			}
+		if (!event || typeof event.get_button !== 'function') {
+			this._toggleNotes();
+			return;
 		}
-		this._toggleNotes();
+		if (event.get_button() === Clutter.BUTTON_SECONDARY) {
+			this._cancelPendingToggle();
+			this._menu.toggle();
+			return;
+		}
+		// The single click is delayed by the double-click time of the system
+		// settings, so that a double click can cancel it: the second press
+		// creates a new note instead of toggling (ADR-0005)
+		if (this._pendingToggleId) {
+			this._cancelPendingToggle();
+			this._onButtonDoublePressed();
+			return;
+		}
+		this._pendingToggleId = Mainloop.timeout_add(
+			this._doubleClickTime(),
+			() => {
+				this._pendingToggleId = null;
+				this._toggleNotes();
+				return GLib.SOURCE_REMOVE;
+			}
+		);
+	}
+
+	/* The double-click time of the system settings, in milliseconds. */
+	_doubleClickTime () {
+		return Clutter.Settings.get_default().double_click_time || 400;
+	}
+
+	/*
+	 * The second press of a double click on the panel button: a new note in
+	 * the edit mode (like the menu's "New note"), shown together with the
+	 * other ones if they were hidden. No toggle happens: the visibility
+	 * doesn't blink during the pair of clicks.
+	 */
+	_onButtonDoublePressed () {
+		if (!this._notesLoaded) {
+			this._loadAllNotes();
+		}
+		this.createNote(this._filterColorString(), 16, true);
+		if (!this._notesAreVisible) {
+			this._showNotes();
+		}
+	}
+
+	_cancelPendingToggle () {
+		if (this._pendingToggleId) {
+			Mainloop.source_remove(this._pendingToggleId);
+			this._pendingToggleId = null;
+		}
 	}
 
 	_toggleNotes () {
+		this._cancelPendingToggle();
 		if(!this._notesLoaded) {
 			this._loadAllNotes();
 		}
@@ -878,6 +936,9 @@ refreshFilterForNote (note) {
 			Mainloop.source_remove(this._monitorsDebounceId);
 			this._monitorsDebounceId = null;
 		}
+
+		// a delayed single click may still be pending
+		this._cancelPendingToggle();
 	}
 };
 

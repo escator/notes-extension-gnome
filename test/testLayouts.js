@@ -128,6 +128,133 @@ eq(
 
 //------------------------------------------------------------------------------
 
+print('== bestMonitor ==');
+
+eq(
+	'biggest overlap wins',
+	Layouts.bestMonitor({ x: 1880, y: 0, w: 250, h: 180 }, [MONITOR_A, MONITOR_B]),
+	MONITOR_B
+);
+eq(
+	'outside every monitor: the first one',
+	Layouts.bestMonitor({ x: 5000, y: 5000, w: 250, h: 180 }, [MONITOR_A, MONITOR_B]),
+	MONITOR_A
+);
+check('empty monitor list is null', Layouts.bestMonitor(
+	{ x: 0, y: 0, w: 250, h: 180 }, []
+) === null);
+check(
+	'clampRect survives an empty list through bestMonitor',
+	JSON.stringify(Layouts.clampRect({ x: 7, y: 8, w: 250, h: 180 }, []))
+		=== JSON.stringify({ x: 7, y: 8, w: 250, h: 180 })
+);
+
+//------------------------------------------------------------------------------
+
+print('== fitExpandRect ==');
+
+// the height the text needs, as noteBox measures it; the test variants are
+// constant or hand-computed so the expectations below stay exact
+const NEEDED_COMPACT = function () { return 200; };
+const NEEDED_TALLISH = function () { return 600; };
+const NEEDED_HUGE = function () { return 2000; };
+
+// compact text: the search floor is the current width, found immediately,
+// nothing shifts — the rect just gets the 3:4 proportion
+eq(
+	'compact text keeps the position, floor width',
+	Layouts.fitExpandRect(
+		{ x: 100, y: 100, w: 250, h: 180 }, [MONITOR_A], NEEDED_COMPACT
+	),
+	{ x: 100, y: 100, w: 250, h: 4 / 3 * 250 }
+);
+
+// at the bottom edge: the search widens until the text fits, then the rect
+// slides up — its bottom stays inside the monitor
+eq(
+	'bottom edge: slides up',
+	Layouts.fitExpandRect(
+		{ x: 100, y: 1000, w: 250, h: 180 }, [MONITOR_A], NEEDED_TALLISH
+	),
+	{ x: 100, y: 1080 - 600, w: 450, h: 600 } // 4/3·450 = 600 fits
+);
+
+// at the right edge: slides left, its right edge stays inside the monitor;
+// the rect lies across the A/B border, A still owns it (bigger overlap)
+eq(
+	'right edge: slides left',
+	Layouts.fitExpandRect(
+		{ x: 1700, y: 100, w: 250, h: 180 }, [MONITOR_A, MONITOR_B], NEEDED_TALLISH
+	),
+	{ x: 1920 - 450, y: 100, w: 450, h: 600 }
+);
+
+// a rect fully on the second monitor expands with its geometry
+eq(
+	'expansion follows the owning monitor',
+	Layouts.fitExpandRect(
+		{ x: 3000, y: 100, w: 250, h: 180 }, [MONITOR_A, MONITOR_B], NEEDED_TALLISH
+	),
+	{ x: 3000, y: 100, w: 450, h: 600 }
+);
+
+// safety net A: neededH is satisfied nowhere, the width is fixed at the
+// monitor's — here the rect ends up being the whole monitor and the tail of
+// the text stays hidden (the "note bigger than the screen" corner case)
+eq(
+	'safety net A: full monitor, tail hidden',
+	Layouts.fitExpandRect(
+		{ x: 500, y: 500, w: 250, h: 180 }, [MONITOR_A], NEEDED_HUGE
+	),
+	{ x: 0, y: 0, w: 1920, h: 1080 }
+);
+
+// the height cap is min(4/3·W, monitor height), not always the monitor: on a
+// portrait monitor the pinned width keeps the proportion and still hides the
+// tail
+const PORTRAIT = { x: 0, y: 0, width: 1080, height: 1920 };
+eq(
+	'corner case: width pinned, height cut at 4/3, tail hidden',
+	Layouts.fitExpandRect(
+		{ x: 0, y: 0, w: 250, h: 180 }, [PORTRAIT], function () { return 1500; }
+	),
+	{ x: 0, y: 0, w: 1080, h: 1440 } // 4/3·1080 = 1440 < 1500
+);
+
+// safety net B: the monitor's height cuts the 3:4 proportion in favor of
+// fitting the rect into the monitor
+const SMALL = { x: 0, y: 0, width: 800, height: 300 };
+eq(
+	'safety net B: proportion cut by the monitor height',
+	Layouts.fitExpandRect(
+		{ x: 10, y: 10, w: 250, h: 100 }, [SMALL], NEEDED_COMPACT
+	),
+	{ x: 10, y: 0, w: 250, h: 300 } // 4/3·250 = 333 → 300
+);
+
+// a base wider than the monitor: the search floor is the monitor's width,
+// the rect never grows past it
+const TALL = { x: 0, y: 0, width: 800, height: 1200 };
+eq(
+	'base wider than the monitor: floor at monitor.width',
+	Layouts.fitExpandRect(
+		{ x: 0, y: 0, w: 1000, h: 400 }, [TALL], NEEDED_COMPACT
+	),
+	{ x: 0, y: 0, w: 800, h: 4 / 3 * 800 }
+);
+
+// no monitors at all: the base rect comes back untouched (same graceful
+// fallback as clampRect)
+eq(
+	'empty monitor list returns the base rect',
+	Layouts.fitExpandRect(
+		{ x: 5, y: 6, w: 250, h: 180 }, [], NEEDED_TALLISH
+	),
+	{ x: 5, y: 6, w: 250, h: 180 }
+);
+
+//------------------------------------------------------------------------------
+
 print('== intersectsAnyMonitor ==');
 
 check('rect inside a monitor', Layouts.intersectsAnyMonitor(
