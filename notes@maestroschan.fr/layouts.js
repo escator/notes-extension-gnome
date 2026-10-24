@@ -7,17 +7,15 @@
 // both inside gnome-shell and under plain `gjs` (unit tests: test/testLayouts.js,
 // run from the repository root).
 
-const { GLib } = imports.gi;
-
-const ByteArray = imports.byteArray;
+import GLib from 'gi://GLib';
 
 const REGISTRY_VERSION = 1;
 // Defaults mirror the legacy behavior: createNote('', 16) in extension.js and
-// the former _createDefaultState in noteBox.js. Exported as vars: the manager
-// uses them for the fold slot of a brand-new note.
-var DEFAULT_FONT_SIZE = 16;
-var DEFAULT_WIDTH = 300;
-var DEFAULT_HEIGHT = 180;
+// the former _createDefaultState in noteBox.js. Exported as constants: the
+// manager uses them for the fold slot of a brand-new note.
+export const DEFAULT_FONT_SIZE = 16;
+export const DEFAULT_WIDTH = 300;
+export const DEFAULT_HEIGHT = 180;
 
 //------------------------------------------------------------------------------
 // Monitor configuration signature --------------------------------------------
@@ -30,7 +28,7 @@ var DEFAULT_HEIGHT = 180;
  * for a key are valid wherever that key appears again (no hardware ids: the
  * same geometry at a different desk is the same layout, by design).
  */
-function signature(monitors) {
+export function signature(monitors) {
 	return monitors.map(function (m) {
 		return m.width + 'x' + m.height + '+' + m.x + '+' + m.y;
 	}).sort().join(',');
@@ -56,7 +54,7 @@ function _intersectionArea(rect, monitor) {
  * every monitor falls back to the first entry, an empty list yields null.
  * Shared by clampRect and the expand algorithm (task 005 / ADR-0004).
  */
-function bestMonitor(rect, monitors) {
+export function bestMonitor(rect, monitors) {
 	if (!monitors || monitors.length === 0) {
 		return null;
 	}
@@ -78,7 +76,7 @@ function bestMonitor(rect, monitors) {
  * edge is pulled back inside, a note larger than the monitor is resized.
  * Safety net for every position coming from the disk.
  */
-function clampRect(rect, monitors) {
+export function clampRect(rect, monitors) {
 	const best = bestMonitor(rect, monitors);
 	if (best === null) {
 		return { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
@@ -117,7 +115,7 @@ const EXPAND_STEP_PX = 40;
  * hidden — same when the monitor's height has to cut the 3:4 proportion.
  * Returns {x, y, w, h}.
  */
-function fitExpandRect(baseRect, monitors, neededH) {
+export function fitExpandRect(baseRect, monitors, neededH) {
 	const monitor = bestMonitor(baseRect, monitors);
 	if (monitor === null) {
 		return { x: baseRect.x, y: baseRect.y, w: baseRect.w, h: baseRect.h };
@@ -150,7 +148,7 @@ function fitExpandRect(baseRect, monitors, neededH) {
  * the union of the monitor geometries is the visible canvas. Used to decide
  * whether a note without a saved position may keep its current placement.
  */
-function intersectsAnyMonitor(rect, monitors) {
+export function intersectsAnyMonitor(rect, monitors) {
 	return (monitors || []).some(function (m) {
 		return rect.x < m.x + m.width && m.x < rect.x + rect.w
 			&& rect.y < m.y + m.height && m.y < rect.y + rect.h;
@@ -162,7 +160,7 @@ function intersectsAnyMonitor(rect, monitors) {
 const FOLD_PADDING = 16;
 const FOLD_STEP = 24;
 
-function _overlaps(a, b) {
+export function _overlaps(a, b) {
 	return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
@@ -184,7 +182,7 @@ function _overlapsAny(rect, rects) {
  * pure flow pass: they may overlap, but always stay inside the monitor.
  * Returns { id: {x, y, w, h} }.
  */
-function foldInto(monitor, notes, occupied) {
+export function foldInto(monitor, notes, occupied) {
 	const occ = (occupied || []).slice();
 	const sorted = notes.slice().sort(function (a, b) {
 		return a.id - b.id;
@@ -335,7 +333,7 @@ function _readString(path) {
 	if (!ok) {
 		return null;
 	}
-	return typeof raw === 'string' ? raw : ByteArray.toString(raw);
+	return typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
 }
 
 /*
@@ -343,7 +341,7 @@ function _readString(path) {
  * 02-architecture.md for the format. Saves are atomic (GLib.file_set_contents
  * writes to a temp file and renames) and rotate one .bak generation.
  */
-var LayoutStore = class LayoutStore {
+export class LayoutStore {
 
 	constructor(filePath, maxLayouts) {
 		this._path = filePath;
@@ -548,4 +546,4 @@ var LayoutStore = class LayoutStore {
 		}
 		return fields;
 	}
-};
+}

@@ -2,11 +2,16 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { St, Clutter, GObject } = imports.gi;
-const ModalDialog = imports.ui.modalDialog;
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
+import { ModalDialog } from 'resource:///org/gnome/shell/ui/modalDialog.js';
+import Gettext from 'gettext';
 
-var CustomModalDialog = GObject.registerClass(
-class CustomModalDialog extends ModalDialog.ModalDialog {
+const _ = Gettext.domain('notes-extension').gettext;
+
+export const CustomModalDialog = GObject.registerClass(
+class CustomModalDialog extends ModalDialog {
 	_init(textTitle, bodyWidget, textOkButton, callback) {
 		super._init();
 		let messageBox = new St.BoxLayout({vertical: true});
@@ -25,7 +30,7 @@ class CustomModalDialog extends ModalDialog.ModalDialog {
 		this.setButtons([{
 			label: _("Cancel"),
 			action: () => { this.close(); },
-			key: Clutter.Escape
+			key: Clutter.KEY_Escape
 		}, {
 			label: textOkButton,
 			action: () => {
@@ -35,4 +40,3 @@ class CustomModalDialog extends ModalDialog.ModalDialog {
 		}]);
 	}
 });
-

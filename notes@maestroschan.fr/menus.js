@@ -2,19 +2,16 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { Clutter, St } = imports.gi;
-const Main = imports.ui.main;
-const PopupMenu = imports.ui.popupMenu;
-const BoxPointer = imports.ui.boxpointer;
-const Signals = imports.signals;
+import Clutter from 'gi://Clutter';
+import St from 'gi://St';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
+import Gettext from 'gettext';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Common from './common.js';
 
-const Common = Me.imports.common;
-
-const Gettext = imports.gettext.domain('notes-extension');
-const _ = Gettext.gettext;
+const _ = Gettext.domain('notes-extension').gettext;
 
 //------------------------------------------------------------------------------
 
@@ -179,11 +176,10 @@ class NoteOptionsMenu {
 		this._source._note.changeFontSize(-1);
 	}
 };
-Signals.addSignalMethods(NoteOptionsMenu.prototype);
 
 //------------------------------------------------------------------------------
 
-var NoteRoundButton = class NoteRoundButton {
+export class NoteRoundButton {
 	/*
 	 * The icon argument is either an icon theme name, or a Gio.Icon (as
 	 * returned by Common.getCustomIcon) for the SVGs bundled with the
@@ -223,13 +219,7 @@ var NoteRoundButton = class NoteRoundButton {
 
 	addMenu () {
 		this._menu = null;
-		try {
-			// before 3.33, the constructor uses this.actor
-			this._menuManager = new PopupMenu.PopupMenuManager(this);
-		} catch (e) {
-			// after 3.33, the constructor uses directly the parameter
-			this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
-		}
+		this._menuManager = new PopupMenu.PopupMenuManager(this);
 		this.actor.connect('button-press-event', this.popupMenu.bind(this));
 	}
 
@@ -244,13 +234,11 @@ var NoteRoundButton = class NoteRoundButton {
 			});
 			this._menuManager.addMenu(this._menu.super_menu);
 		}
-		this.emit('menu-state-changed', true);
 		this.actor.set_hover(true);
 		this._menu.popup();
 		return false;
 	}
-};
-Signals.addSignalMethods(NoteRoundButton.prototype);
+}
 
 //------------------------------------------------------------------------------
 
@@ -273,7 +261,7 @@ Signals.addSignalMethods(NoteRoundButton.prototype);
  * selection, Undo/Redo on the note's history, Select all on the text being
  * non-empty.
  */
-var NoteTextContextMenu = class NoteTextContextMenu {
+export class NoteTextContextMenu {
 	constructor (note) {
 		this._note = note;
 		this._isDestroyed = false;
@@ -367,7 +355,7 @@ var NoteTextContextMenu = class NoteTextContextMenu {
 	_appendSeparator () {
 		this.super_menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 	}
-};
+}
 
 //------------------------------------------------------------------------------
 

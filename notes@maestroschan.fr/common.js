@@ -1,23 +1,22 @@
 // notes@maestroschan.fr/common.js
 // GPL v3
 
-const { GLib, Gio } = imports.gi;
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 /*
  * Shared constants, imported by extension.js, noteBox.js and prefs.js. This
  * lives in its own module because prefs.js can't import extension.js (which
- * depends on modules that only exist inside the shell process), and because
- * the circular import between extension.js and noteBox.js makes their module
- * initialization order unreliable.
+ * depends on modules that only exist inside the shell process).
  */
 
 // Data directory of the extension, usually ~/.local/share/notes@maestroschan.fr
-var DATA_PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
+export const DATA_PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
 
 // Maximum number of monitor-configuration layouts kept in layouts.json;
 // over the limit the least recently used one is evicted (see layouts.js and
 // docs/adr/0001-multi-monitor-layout-registry.md)
-var MAX_LAYOUTS = 8;
+export const MAX_LAYOUTS = 8;
 
 /*
  * Light-theme color palette, from .agent/COLOR.md. GNOME Shell's CSS engine
@@ -28,7 +27,7 @@ var MAX_LAYOUTS = 8;
  * menu). The dark-theme counterparts exist in .agent/COLOR.md but aren't
  * wired yet.
  */
-var PRESET_COLORS = {
+export const PRESET_COLORS = {
 	'peach':    { rgb: [255, 217, 191], border: '#E6C3AC', ring: '#E89A66' },
 	'cream':    { rgb: [255, 240, 168], border: '#E6D897', ring: '#D9B84D' },
 	'mint':     { rgb: [184, 230, 201], border: '#A6CFB5', ring: '#5FB87C' },
@@ -44,7 +43,7 @@ var PRESET_COLORS = {
  * backgrounds (dark backgrounds are only reachable via custom colors until a
  * dark palette gets wired).
  */
-var TEXT_COLORS = {
+export const TEXT_COLORS = {
 	primary: '#2E2E2E',
 	secondary: '#5C5C5C',
 	primaryDark: '#EDEDED',
@@ -58,9 +57,9 @@ var TEXT_COLORS = {
  * can't find them, as they aren't part of the system icon theme). Returns
  * null when the icon doesn't exist.
  */
-var CUSTOM_ICONS = ['edit', 'edit-copy', 'edit-paste', 'new-note', 'setting'];
+export const CUSTOM_ICONS = ['edit', 'edit-copy', 'edit-paste', 'new-note', 'setting'];
 
-var getCustomIcon = function (extensionDir, name) {
+export function getCustomIcon(extensionDir, name) {
 	let filenames = [name + '-symbolic.svg', name + '.png'];
 	for (let i = 0; i < filenames.length; i++) {
 		let file = Gio.File.new_for_path(GLib.build_filenamev([
@@ -71,4 +70,4 @@ var getCustomIcon = function (extensionDir, name) {
 		}
 	}
 	return null;
-};
+}

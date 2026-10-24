@@ -2,21 +2,23 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { Clutter, St, GLib, Gio, Meta } = imports.gi;
-const Main = imports.ui.main;
-const PopupMenu = imports.ui.popupMenu;
+import Clutter from 'gi://Clutter';
+import St from 'gi://St';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import Meta from 'gi://Meta';
+import Pango from 'gi://Pango';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import Gettext from 'gettext';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Common from './common.js';
+import * as Layouts from './layouts.js';
+import * as Menus from './menus.js';
+import * as Dialog from './dialog.js';
+import { TextHistory } from './textHistory.js';
 
-const Common = Me.imports.common;
-const Layouts = Me.imports.layouts;
-const Menus = Me.imports.menus;
-const Dialog = Me.imports.dialog;
-const TextHistory = Me.imports.textHistory.TextHistory;
-
-const Gettext = imports.gettext.domain('notes-extension');
-const _ = Gettext.gettext;
+const _ = Gettext.domain('notes-extension').gettext;
 
 // ~/.local/share/notes@maestroschan.fr
 const PATH = Common.DATA_PATH;
@@ -58,7 +60,7 @@ const EVDEV_INSERT = 118;
 
 function stringFromArray(data){
 	if (data instanceof Uint8Array) {
-		return imports.byteArray.toString(data);
+		return new TextDecoder().decode(data);
 	} else {
 		return data.toString();
 	}
@@ -75,7 +77,7 @@ function stringFromArray(data){
  * the other methods are here for managing note state through buttons, or to
  * interact with the NotesManager singleton.
  */
-var NoteBox = class NoteBox {
+export class NoteBox {
 	constructor (manager, spec) {
 		this._manager = manager;
 		this.id = spec.id;
@@ -149,7 +151,7 @@ var NoteBox = class NoteBox {
 		clutterText.set_single_line_mode(false);
 		clutterText.set_activatable(false); // we can press Enter
 		clutterText.set_line_wrap(true);
-		clutterText.set_line_wrap_mode(imports.gi.Pango.WrapMode.WORD_CHAR);
+		clutterText.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
 		// a non-editable ClutterText only answers Ctrl+C / Ctrl+A when it is
 		// selectable, and notes are read-only by default
 		clutterText.set_selectable(true);
@@ -285,7 +287,7 @@ var NoteBox = class NoteBox {
 
 		this._btnEdit = new Menus.NoteRoundButton(
 			this,
-			Common.getCustomIcon(Me.dir, 'edit'),
+			Common.getCustomIcon(this._manager.extensionDir, 'edit'),
 			_("Edit")
 		);
 		this._btnEdit.actor.connect('clicked', this._toggleEditMode.bind(this));
@@ -293,7 +295,7 @@ var NoteBox = class NoteBox {
 
 		this._btnCopy = new Menus.NoteRoundButton(
 			this,
-			Common.getCustomIcon(Me.dir, 'edit-copy'),
+			Common.getCustomIcon(this._manager.extensionDir, 'edit-copy'),
 			_("Copy to clipboard")
 		);
 		this._btnCopy.actor.connect('clicked', this._copyToClipboard.bind(this));
@@ -301,7 +303,7 @@ var NoteBox = class NoteBox {
 
 		this._btnPaste = new Menus.NoteRoundButton(
 			this,
-			Common.getCustomIcon(Me.dir, 'edit-paste'),
+			Common.getCustomIcon(this._manager.extensionDir, 'edit-paste'),
 			_("Paste from clipboard")
 		);
 		this._btnPaste.actor.connect('clicked', this._pasteFromClipboard.bind(this));
@@ -373,7 +375,7 @@ var NoteBox = class NoteBox {
 
 		this._btnEdit._setIcon(editing
 			? 'object-select-symbolic' // the "done" checkmark from the theme
-			: Common.getCustomIcon(Me.dir, 'edit'));
+			: Common.getCustomIcon(this._manager.extensionDir, 'edit'));
 
 		if (editing) {
 			this.noteEntry.grab_key_focus();
@@ -544,13 +546,7 @@ var NoteBox = class NoteBox {
 	_openTextMenu (stageX, stageY) {
 		if (!this._textMenu) {
 			this._textMenu = new Menus.NoteTextContextMenu(this);
-			// same compat shim as NoteRoundButton.addMenu: before 3.33 the
-			// constructor takes the owner, after it the actor
-			try {
-				this._textMenuManager = new PopupMenu.PopupMenuManager(this);
-			} catch (e) {
-				this._textMenuManager = new PopupMenu.PopupMenuManager(this.actor);
-			}
+			this._textMenuManager = new PopupMenu.PopupMenuManager(this);
 			this._textMenuManager.addMenu(this._textMenu.super_menu);
 		}
 		this._textMenu.popup(stageX, stageY);
@@ -1327,7 +1323,7 @@ var NoteBox = class NoteBox {
 		this.actor.destroy();
 		this.actor = null;
 	}
-};
+}
 
 //------------------------------------------------------------------------------
 

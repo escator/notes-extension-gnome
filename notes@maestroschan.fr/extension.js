@@ -2,23 +2,23 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const { St, Shell, GLib, Gio, Meta, Clutter } = imports.gi;
-const PanelMenu = imports.ui.panelMenu;
-const Panel = imports.ui.panel;
-const Main = imports.ui.main;
-const Mainloop = imports.mainloop;
-const PopupMenu = imports.ui.popupMenu;
+import St from 'gi://St';
+import Shell from 'gi://Shell';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import Meta from 'gi://Meta';
+import Clutter from 'gi://Clutter';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import Gettext from 'gettext';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Util = imports.misc.util;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Common from './common.js';
+import * as Layouts from './layouts.js';
+import * as NoteBox from './noteBox.js';
 
-const Common = Me.imports.common;
-const Layouts = Me.imports.layouts;
-const NoteBox = Me.imports.noteBox;
-
-const Gettext = imports.gettext.domain('notes-extension');
-const _ = Gettext.gettext;
+const _ = Gettext.domain('notes-extension').gettext;
 
 //------------------------------------------------------------------------------
 
@@ -28,27 +28,32 @@ const PATH = Common.DATA_PATH;
 // once, after things settle, for the final configuration
 const MONITORS_DEBOUNCE_MS = 1000;
 
-var NOTES_MANAGER;
+export default class NotesExtension extends Extension {
 
-function init() {
-	ExtensionUtils.initTranslations();
-	try {
-		let a = Gio.file_new_for_path(PATH);
-		if (!a.query_exists(null)) {
-			a.make_directory(null);
+	constructor(...args) {
+		super(...args);
+		try {
+			let a = Gio.file_new_for_path(PATH);
+			if (!a.query_exists(null)) {
+				a.make_directory(null);
+			}
+		} catch (e) {
+			log(e.message);
 		}
-	} catch (e) {
-		log(e.message);
 	}
-}
 
-function enable() {
-	NOTES_MANAGER = new NotesManager(ExtensionUtils.getSettings());
-}
+	enable() {
+		this._manager = new NotesManager(
+			this.getSettings(),
+			this.dir,
+			() => this.openPreferences()
+		);
+	}
 
-function disable() {
-	NOTES_MANAGER.destroy();
-	NOTES_MANAGER = null;
+	disable() {
+		this._manager.destroy();
+		this._manager = null;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -60,10 +65,17 @@ function disable() {
  * If no note exists, it will create the first one itself, otherwise it serves
  * as a middleman between the note whose "new" button has been pressed and the
  * new one.
+ *
+ * Instead of the legacy global `Me`, the manager receives its dependencies
+ * explicitly: the settings (from Extension.getSettings()), the extension
+ * directory (the icons are bundled there), and a callback opening the
+ * preferences window.
  */
 class NotesManager {
-	constructor(settings) {
+	constructor(settings, extensionDir, openPrefs) {
 		this._settings = settings;
+		this._extensionDir = extensionDir;
+		this._openPrefs = openPrefs;
 		// The "Automatic focus" option is disabled for now (see noteBox.js)
 		//this._autoFocus = settings.get_boolean('auto-focus');
 
@@ -72,7 +84,7 @@ class NotesManager {
 		// Full-color bundled PNG (icons/notes.png): St downscales it to the
 		// panel size, which also keeps it crisp at HiDPI scale factors
 		let icon = new St.Icon({
-			gicon: Common.getCustomIcon(Me.dir, 'notes'),
+			gicon: Common.getCustomIcon(this._extensionDir, 'notes'),
 			style_class: 'system-status-icon'
 		});
 		// the color filter badge (task 004): a small dot shown next to the
@@ -129,6 +141,10 @@ class NotesManager {
 	// Read-only accessors for the NoteBox objects
 	get settings () {
 		return this._settings;
+	}
+
+	get extensionDir () {
+		return this._extensionDir;
 	}
 
 	/*
@@ -428,7 +444,7 @@ class NotesManager {
 			n.setEditMode(false);
 		});
 		this._onlyHideNotes();
-		this._timeout_id = Mainloop.timeout_add(10, () => {
+		this._timeout_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
 			this._timeout_id = null;
 			// saving to the disk is slightly delayed to give the illusion that
 			// the extension doesn't freeze the system
@@ -546,7 +562,8 @@ refreshFilterForNote (note) {
 			this._onButtonDoublePressed();
 			return;
 		}
-		this._pendingToggleId = Mainloop.timeout_add(
+		this._pendingToggleId = GLib.timeout_add(
+			GLib.PRIORITY_DEFAULT,
 			this._doubleClickTime(),
 			() => {
 				this._pendingToggleId = null;
@@ -579,7 +596,7 @@ refreshFilterForNote (note) {
 
 	_cancelPendingToggle () {
 		if (this._pendingToggleId) {
-			Mainloop.source_remove(this._pendingToggleId);
+			GLib.source_remove(this._pendingToggleId);
 			this._pendingToggleId = null;
 		}
 	}
@@ -617,17 +634,17 @@ refreshFilterForNote (note) {
 		Main.uiGroup.add_actor(this._menu.actor);
 		this._menu.actor.hide();
 
-		this._addIconAction(_("New note"), Common.getCustomIcon(Me.dir, 'new-note'),
+		this._addIconAction(_("New note"), Common.getCustomIcon(this._extensionDir, 'new-note'),
 			this._onMenuNewNote.bind(this));
 		// the clipboard content is only known asynchronously: the item starts
 		// insensitive, and gets enabled on each menu opening if there is some
 		// text to paste (see the 'open-state-changed' handler below)
 		this._newFromClipboardItem = this._addIconAction(_("New from Clipboard"),
-			Common.getCustomIcon(Me.dir, 'edit-paste'),
+			Common.getCustomIcon(this._extensionDir, 'edit-paste'),
 			this._onMenuNewFromClipboard.bind(this));
 		this._newFromClipboardItem.setSensitive(false);
 		this._buildFilterSection();
-		this._addIconAction(_("Settings"), Common.getCustomIcon(Me.dir, 'setting'),
+		this._addIconAction(_("Settings"), Common.getCustomIcon(this._extensionDir, 'setting'),
 			this._onMenuSettings.bind(this));
 
 		this._menuManager = new PopupMenu.PopupMenuManager(this.panel_button);
@@ -792,11 +809,7 @@ refreshFilterForNote (note) {
 
 	_onMenuSettings () {
 		this._menu.close();
-		if (typeof ExtensionUtils.openPrefs === 'function') {
-			ExtensionUtils.openPrefs();
-		} else {
-			Util.spawn(['gnome-shell-extension-prefs', Me.uuid]);
-		}
+		this._openPrefs();
 		this.hideNotes();
 	}
 
@@ -861,9 +874,10 @@ refreshFilterForNote (note) {
 	 */
 	_armMonitorDebounce () {
 		if (this._monitorsDebounceId) {
-			Mainloop.source_remove(this._monitorsDebounceId);
+			GLib.source_remove(this._monitorsDebounceId);
 		}
-		this._monitorsDebounceId = Mainloop.timeout_add(
+		this._monitorsDebounceId = GLib.timeout_add(
+			GLib.PRIORITY_DEFAULT,
 			MONITORS_DEBOUNCE_MS,
 			() => {
 				this._monitorsDebounceId = null;
@@ -927,13 +941,13 @@ refreshFilterForNote (note) {
 		this.panel_button.destroy();
 
 		if (this._timeout_id) {
-			Mainloop.source_remove(this._timeout_id);
+			GLib.source_remove(this._timeout_id);
 			this._timeout_id = null;
 		}
 
 		// a monitors-changed debounce may still be pending
 		if (this._monitorsDebounceId) {
-			Mainloop.source_remove(this._monitorsDebounceId);
+			GLib.source_remove(this._monitorsDebounceId);
 			this._monitorsDebounceId = null;
 		}
 

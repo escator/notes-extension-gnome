@@ -18,7 +18,7 @@
 const PORTION_WINDOW_MS = 800;
 const DEFAULT_MAX_DEPTH = 50;
 
-var TextHistory = class TextHistory {
+export class TextHistory {
 
 	/*
 	 * baseline: the state the note starts in, {text, cursor}. params (all
@@ -141,4 +141,4 @@ var TextHistory = class TextHistory {
 		}
 	}
 
-};
+}
