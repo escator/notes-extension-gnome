@@ -1,9 +1,9 @@
-// Unit tests for notes@maestroschan.fr/textHistory.js — plain gjs, no shell:
+// Unit tests for notes@escator/textHistory.js — plain gjs, no shell:
 //     gjs -m test/testTextHistory.js     (from the repository root)
 
 import System from 'system';
 
-import * as TextHistory from '../notes@maestroschan.fr/textHistory.js';
+import * as TextHistory from '../notes@escator/textHistory.js';
 
 //------------------------------------------------------------------------------
 

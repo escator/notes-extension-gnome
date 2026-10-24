@@ -1,11 +1,11 @@
-// Unit tests for notes@maestroschan.fr/layouts.js — plain gjs, no shell:
+// Unit tests for notes@escator/layouts.js — plain gjs, no shell:
 //     gjs -m test/testLayouts.js     (from the repository root)
 
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import System from 'system';
 
-import * as Layouts from '../notes@maestroschan.fr/layouts.js';
+import * as Layouts from '../notes@escator/layouts.js';
 
 //------------------------------------------------------------------------------
 
