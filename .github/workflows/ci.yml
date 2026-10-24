@@ -1,0 +1,62 @@
+name: CI
+
+# Task 008 F3: the port (ESM, GNOME 45+) is tested on the gnome-shell-pod
+# images — a real GNOME Shell session per version. The metadata declares
+# shell-version only for versions with a green run here (README scenario 4/5).
+# rawhide is informational (rolling, currently the newest GNOME): its failure
+# does not fail the workflow.
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  static:
+    name: Static gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gettext libglib2.0-bin
+      - name: Syntax check all modules
+        run: |
+          rc=0
+          for f in notes@escator/*.js; do
+            node --check "$f" || rc=1
+          done
+          exit $rc
+      - name: Build the zip
+        run: ./build-a-zip.sh
+      - name: ru locale must not degrade (no untranslated strings)
+        run: |
+          out=$(LC_ALL=C msgfmt --statistics -o /dev/null \
+            notes@escator/locale/ru/LC_MESSAGES/notes-extension.po)
+          echo "$out"
+          echo "$out" | grep -qE 'untranslated|untranslated message' \
+            && { echo 'FAIL: ru locale has untranslated strings'; exit 1; } || true
+
+  pod-test:
+    name: gnome-shell-pod-${{ matrix.pod }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pod: '39'   # GNOME Shell 45.10
+          - pod: '40'   # GNOME Shell 46.6
+          - pod: '41'   # GNOME Shell 47.1
+          - pod: 'rawhide'
+            continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gettext libglib2.0-bin
+      - name: Build the zip
+        run: ./build-a-zip.sh
+      - name: Test inside gnome-shell-pod-${{ matrix.pod }}
+        run: sudo .github/scripts/pod-test.sh ${{ matrix.pod }} ci-${{ matrix.pod }}
+      - name: Dump the container log on failure
+        if: failure()
+        run: sudo podman logs ci-${{ matrix.pod }} 2>&1 | tail -200 || true
