@@ -1,8 +1,8 @@
-// Unit tests for notes@maestroschan.fr/layouts.js — plain gjs, no shell:
+// Unit tests for notes@escator/layouts.js — plain gjs, no shell:
 //     gjs test/testLayouts.js     (from the repository root)
 
 const { GLib, Gio } = imports.gi;
-imports.searchPath.push(GLib.get_current_dir() + '/notes@maestroschan.fr');
+imports.searchPath.push(GLib.get_current_dir() + '/notes@escator');
 
 const Layouts = imports.layouts;
 const System = imports.system;

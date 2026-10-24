@@ -1,8 +1,8 @@
-// Unit tests for notes@maestroschan.fr/textHistory.js — plain gjs, no shell:
+// Unit tests for notes@escator/textHistory.js — plain gjs, no shell:
 //     gjs test/testTextHistory.js     (from the repository root)
 
 const { GLib } = imports.gi;
-imports.searchPath.push(GLib.get_current_dir() + '/notes@maestroschan.fr');
+imports.searchPath.push(GLib.get_current_dir() + '/notes@escator');
 
 const TextHistory = imports.textHistory;
 const System = imports.system;

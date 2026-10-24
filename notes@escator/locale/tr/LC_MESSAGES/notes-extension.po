@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 01:10+0700\n"
+"POT-Creation-Date: 2026-10-24 14:59+0700\n"
 "PO-Revision-Date: 2020-10-29 17:42+0300\n"
 "Last-Translator: Muha Aliss <muhaaliss@pm.me>\n"
 "Language-Team: Türkçe\n"
@@ -19,151 +19,151 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Show notes"
 msgstr "Notları göster"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Notes extension error: failed to load a note"
 msgstr "Notlar uzantısı hatası: not yüklenemedi"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 #, fuzzy
 #| msgid "Show notes"
 msgid "New note"
 msgstr "Notları göster"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "New from Clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/extension.js notes@escator/prefs.ui
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 #, fuzzy
 #| msgid "First note's color"
 msgid "Filter by color"
 msgstr "İlk notun rengi"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Reset filter"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Font size"
 msgstr "Yazı boyutu"
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Cut"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Copy"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Paste"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Undo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Redo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Select All"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Copy to clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Paste from clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete"
 msgstr "Sil"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Note options"
 msgstr "Not seçenekleri"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Resize"
 msgstr "Boyutlandır"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Type here…"
 msgstr "Notunuzu buraya yazın…"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Empty note"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete this note?"
 msgstr "Not silinsin mi ?"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit title"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/noteBox.js notes@escator/prefs.ui
 msgid "Apply"
 msgstr "Uygula"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 msgid "Modifications will be effective after reloading the extension."
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Default value is %s"
 msgstr "Öntanımlı değer %s"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Version %s"
 msgstr "Sürüm %s"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Use a keyboard shortcut"
 msgstr "Klavye kısayolu kullan"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Use a keyboard shortcut to toggle notes"
 msgid "Use a keyboard shortcut to toggle notes visibility"
 msgstr "Notları gösterip/gizlemek için klavye kısayolu kullan"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Help"
 msgstr "Yardım"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Hide the icon"
 msgstr "Simgeyi gizle"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "First note's color"
 msgstr "İlk notun rengi"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "The notes created afterwards will use the color of their parent"
 msgstr "Daha sonra oluşturulan notlar, ebeveynlerinin rengini kullanacaktır"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Your notes are saved to the disk on various occasions (mainly when you hide "
 "them). If you want to <b>get a copy of your notes</b>, this button opens the "
@@ -173,35 +173,35 @@ msgstr ""
 "yedeklenir) Gerekirse <b>notların bir kopyasını alabilirsiniz</b>, eklenen "
 "notlara aşağıdan ulaşabilirsiniz."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Open the storage directory"
 msgstr "Notların depolandığı dizini aç"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "The \"layouts.json\" file contains the color and position of your notes for "
 "each monitor configuration"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
 msgstr "\"_text\" ile biten dosyalar notlarınızda yazılan metni içerir"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Back"
 msgid "Backup"
 msgstr "Geri"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Explanations about how to use this extension can be found here:"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Online help manual"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Click on this button if you accidentally moved a note out of your primary "
 "monitor (example: if you had notes on a secondary monitor and unplugged it)."
@@ -210,17 +210,17 @@ msgstr ""
 "(örnek: Eğer ikinci bir monitörde notlarınız varsa ve bağlantısını "
 "kestiyseniz)."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Bring back to the primary monitor"
 msgstr "Birincil monitöre geri dön"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Sticky notes for the GNOME Shell desktop."
 msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "GNOME Kabuğu için masaüstü yapışkan notlar."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Reworked design and extended functionality:\n"
 "• Improved visual style and interface\n"
@@ -233,36 +233,36 @@ msgid ""
 "• Proper multi-monitor support"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Based on the original extension by Romain F. T. (maoschanz)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Developer: Pavel Chernyakov (escator)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Report bugs or ideas"
 msgstr "Hata raporla veya öneri gönder"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "About"
 msgstr "Hakkında"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "List of valid key names"
 msgstr ""
 
 #. Context for translation: modifier keys are ctrl/shift/super/alt
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Modifier keys must be between chevrons"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
 

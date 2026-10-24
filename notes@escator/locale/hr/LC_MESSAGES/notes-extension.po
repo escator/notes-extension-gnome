@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: notes-extension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 01:10+0700\n"
+"POT-Creation-Date: 2026-10-24 14:59+0700\n"
 "PO-Revision-Date: 2020-01-24 23:57+0100\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: \n"
@@ -19,153 +19,153 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Show notes"
 msgstr "Prikaži bilješke"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Notes extension error: failed to load a note"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 #, fuzzy
 #| msgid "Show notes"
 msgid "New note"
 msgstr "Prikaži bilješke"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "New from Clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/extension.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/extension.js notes@escator/prefs.ui
 msgid "Settings"
 msgstr "Postavke"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 #, fuzzy
 #| msgid "Custom color"
 msgid "Filter by color"
 msgstr "Prilagođena boja"
 
-#: notes@maestroschan.fr/extension.js
+#: notes@escator/extension.js
 msgid "Reset filter"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Font size"
 msgstr "Veličina fonta"
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Cut"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Copy"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Paste"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Undo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Redo"
 msgstr ""
 
-#: notes@maestroschan.fr/menus.js
+#: notes@escator/menus.js
 msgid "Select All"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Copy to clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Paste from clipboard"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete"
 msgstr "Izbriši"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Note options"
 msgstr "Opcije za bilješke"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Resize"
 msgstr "Promijeni veličinu"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Type here…"
 msgstr "Tipkaj ovdje …"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Empty note"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Delete this note?"
 msgstr "Izbrisati ovu bilješku?"
 
-#: notes@maestroschan.fr/noteBox.js
+#: notes@escator/noteBox.js
 msgid "Edit title"
 msgstr ""
 
-#: notes@maestroschan.fr/noteBox.js notes@maestroschan.fr/prefs.ui
+#: notes@escator/noteBox.js notes@escator/prefs.ui
 msgid "Apply"
 msgstr "Primijeni"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 msgid "Modifications will be effective after reloading the extension."
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Default value is %s"
 msgstr "Standardna vrijednost je %s"
 
-#: notes@maestroschan.fr/prefs.js
+#: notes@escator/prefs.js
 #, javascript-format
 msgid "Version %s"
 msgstr "Verzija %s"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Use a keyboard shortcut"
 msgstr "Koristi prečac na tipkovnici"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Use a keyboard shortcut to toggle notes"
 msgid "Use a keyboard shortcut to toggle notes visibility"
 msgstr "Koristi prečac na tipkovnici za uključivanje bilježaka"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Help"
 msgstr "Pomoć"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Hide the icon"
 msgstr "Sakrij ikonu"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Custom color"
 msgid "First note's color"
 msgstr "Prilagođena boja"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "The notes created afterwards will use the color of their parent"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Your notes are saved to the disk on various occasions (mainly when you hide "
 "them). If you want to <b>get a copy of your notes</b>, this button opens the "
@@ -175,35 +175,35 @@ msgstr ""
 "sakriješ). Ako želiš <b>dobiti kopiju svojih bilješki</b>, ovaj gumb otvara "
 "mapu gdje se one nalaze."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Open the storage directory"
 msgstr "Otvori mapu za spremanje"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "The \"layouts.json\" file contains the color and position of your notes for "
 "each monitor configuration"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Files ending with \"_text\" contain the text written in your notes"
 msgstr "Datoteke s nastavkom „_text” sadrže tekst tvojih bilježaka"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Back"
 msgid "Backup"
 msgstr "Natrag"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Explanations about how to use this extension can be found here:"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Online help manual"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Click on this button if you accidentally moved a note out of your primary "
 "monitor (example: if you had notes on a secondary monitor and unplugged it)."
@@ -212,18 +212,18 @@ msgstr ""
 "(primjer: ako si imao/la bilješke na sporednom monitoru kojeg si odspojio/"
 "la)."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 msgid "Bring back to the primary monitor"
 msgstr "Vrati sve bilješke na glavni monitor"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 #, fuzzy
 #| msgid "Sticky notes for the GNOME Shell desktop."
 msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
 msgstr "Bilješke za GNOME Shell desktop."
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid ""
 "Reworked design and extended functionality:\n"
 "• Improved visual style and interface\n"
@@ -236,36 +236,36 @@ msgid ""
 "• Proper multi-monitor support"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Based on the original extension by Romain F. T. (maoschanz)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Developer: Pavel Chernyakov (escator)"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Report bugs or ideas"
 msgstr "Prijavi greške ili ideje"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "About"
 msgstr "Informacije"
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "List of valid key names"
 msgstr ""
 
 #. Context for translation: modifier keys are ctrl/shift/super/alt
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Modifier keys must be between chevrons"
 msgstr ""
 
-#: notes@maestroschan.fr/prefs.ui
+#: notes@escator/prefs.ui
 msgid "Don't use a keyboard shortcut that already exists."
 msgstr ""
 
