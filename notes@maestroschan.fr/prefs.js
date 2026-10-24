@@ -113,7 +113,7 @@ const NotesSettingsWidget = new GObject.Class({
 				+ ' { border-color: ' + preset.ring + '; }\n';
 		}
 		let provider = new Gtk.CssProvider();
-		provider.load_from_data(css);
+		provider.load_from_data(css, -1);
 		Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
 			provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
