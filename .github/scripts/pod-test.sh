@@ -97,15 +97,15 @@ done
 if [ "$bus_ok" != 1 ]; then
 	# failure-proof: every command here may exit non-zero (systemctl
 	# is-active returns 3 for an inactive unit), and set -e must not mask
-	# the diagnostics with the ERR trap; focused on the user manager —
-	# the generic journal is only console-getty restart spam at this point
+	# the diagnostics with the ERR trap; the annotations are capped in
+	# size, so the user manager journal goes out line-by-line
 	podman exec "$NAME" bash -c \
-		'systemctl start user@1000.service 2>&1;
-		 systemctl status user@1000.service --no-pager 2>&1 | head -10;
-		 journalctl -u user@1000.service -u user-runtime-dir@1000.service --no-pager 2>&1 | tail -12;
-		 grep -E "PAMName|ExecStart" /usr/lib/systemd/system/user@.service;
+		'journalctl -u user@1000.service --no-pager 2>&1 | tail -8; exit 0' \
+		2>&1 | tr -d '\r' | sed 's/^/::error::u1000 /' || true
+	podman exec "$NAME" bash -c \
+		'grep -E "PAMName|ExecStart" /usr/lib/systemd/system/user@.service;
 		 getent passwd gnomeshell; exit 0' \
-		2>&1 | tr -d '\r' | sed 's/^/::error::diag /' || true
+		2>&1 | tr -d '\r' | sed 's/^/::error::extra /' || true
 	exit 1
 fi
 echo "::endgroup::"
