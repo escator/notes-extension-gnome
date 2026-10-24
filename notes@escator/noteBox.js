@@ -1,4 +1,4 @@
-// notes@maestroschan.fr/noteBox.js
+// notes@escator/noteBox.js
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 

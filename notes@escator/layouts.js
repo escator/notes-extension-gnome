@@ -1,4 +1,4 @@
-// notes@maestroschan.fr/layouts.js
+// notes@escator/layouts.js
 // GPL v3
 // Layout registry for multi-monitor configurations (task 001 / ADR-0001, see
 // docs/adr/0001-multi-monitor-layout-registry.md).

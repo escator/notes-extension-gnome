@@ -86,7 +86,7 @@ Wayland: log out and back in) and enable the extension with the *Extensions*
 application or:
 
 ```bash
-gnome-extensions enable notes@maestroschan.fr
+gnome-extensions enable notes@escator
 ```
 
 The extension installs into `~/.local/share/gnome-shell/extensions/`. Notes
@@ -160,8 +160,10 @@ last 8 configurations are remembered.
 ## Storage
 
 Notes are stored in `~/.local/share/notes@maestroschan.fr`: one text file per
-note plus the `layouts.json` registry of monitor layouts. Uninstalling the
-extension does not delete the data.
+note plus the `layouts.json` registry of monitor layouts. The directory keeps
+its historical name on purpose: the data is tied to this path, not to the
+extension uuid (`notes@escator`), so notes survive updates and uuid changes.
+Uninstalling the extension does not delete the data.
 
 ## Development and testing
 
@@ -267,7 +269,7 @@ Wayland: выйти и войти заново) и включите расшир
 *Расширения* или командой:
 
 ```bash
-gnome-extensions enable notes@maestroschan.fr
+gnome-extensions enable notes@escator
 ```
 
 Расширение устанавливается в `~/.local/share/gnome-shell/extensions/`.
@@ -342,8 +344,10 @@ gnome-extensions enable notes@maestroschan.fr
 ## Хранение данных
 
 Заметки хранятся в `~/.local/share/notes@maestroschan.fr`: по одному
-текстовому файлу на заметку плюс реестр раскладок `layouts.json`. Удаление
-расширения данные не затрагивает.
+текстовому файлу на заметку плюс реестр раскладок `layouts.json`. Каталог
+намеренно сохраняет историческое имя: данные привязаны к этому пути, а не
+к uuid расширения (`notes@escator`), поэтому заметки переживают обновления
+и смену uuid. Удаление расширения данные не затрагивает.
 
 ## Разработка и тестирование
 

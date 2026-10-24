@@ -1,4 +1,4 @@
-// notes@maestroschan.fr/menus.js
+// notes@escator/menus.js
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 

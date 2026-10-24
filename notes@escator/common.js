@@ -1,4 +1,4 @@
-// notes@maestroschan.fr/common.js
+// notes@escator/common.js
 // GPL v3
 
 import GLib from 'gi://GLib';
