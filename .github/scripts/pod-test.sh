@@ -80,10 +80,13 @@ for attempt in 1 2 3; do
 	sleep 10
 done
 if [ "$bus_ok" != 1 ]; then
+	# failure-proof: every command here may exit non-zero (systemctl
+	# is-active returns 3 for an inactive unit), and set -e must not mask
+	# the diagnostics with the ERR trap
 	diag=$(podman exec "$NAME" bash -c \
-		'journalctl -b --no-pager 2>&1 | tail -22; echo ===; ls /run/user/ 2>&1; systemctl is-active user@1000.service 2>&1' \
-		2>&1 | tr -d '\r' | tail -26 | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/%0A/g')
-	echo "::error::container diagnostics (user session never came up):%0A$diag"
+		'journalctl -b --no-pager 2>&1 | tail -22; echo ===; ls /run/user/ 2>&1; systemctl is-active user@1000.service 2>&1; exit 0' \
+		2>&1 | tr -d '\r' | tail -26 || true)
+	echo "$diag" | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/%0A/g' | sed "s/^/::error::diag /" || true
 	exit 1
 fi
 echo "::endgroup::"
