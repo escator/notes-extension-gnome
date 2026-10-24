@@ -1,6 +1,6 @@
 #!/bin/bash
 
-glib-compile-schemas ./notes@maestroschan.fr/schemas
+glib-compile-schemas ./notes@escator/schemas
 
 if (( $EUID == 0 )); then
 	INSTALL_DIR="/usr/share/gnome-shell/extensions"
@@ -9,8 +9,8 @@ else
 fi
 mkdir -p $INSTALL_DIR
 
-echo "Installing extension files in $INSTALL_DIR/notes@maestroschan.fr"
-cp -r notes@maestroschan.fr $INSTALL_DIR
+echo "Installing extension files in $INSTALL_DIR/notes@escator"
+cp -r notes@escator $INSTALL_DIR
 
 echo "Done."
 exit 0

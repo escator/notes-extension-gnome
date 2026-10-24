@@ -1,4 +1,4 @@
-// notes@maestroschan.fr/textHistory.js
+// notes@escator/textHistory.js
 // GPL v3
 // Undo/redo history for the text of a single note (task 002, see
 // docs/tasks/002-text-context-menu/02-architecture.md).

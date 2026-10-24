@@ -10,7 +10,7 @@ const { GLib, Gio } = imports.gi;
 const ByteArray = imports.byteArray;
 const System = imports.system;
 
-const EXT_DIR = GLib.get_current_dir() + '/notes@maestroschan.fr';
+const EXT_DIR = GLib.get_current_dir() + '/notes@escator';
 
 //------------------------------------------------------------------------------
 
@@ -54,6 +54,8 @@ function fileExists(path) {
 // XDG_DATA_HOME must be redirected before common.js is evaluated: DATA_PATH is
 // computed from GLib.get_user_data_dir() at import time and caches
 const tmpBase = GLib.dir_make_tmp('notes-ext-smoke-XXXXXX');
+// mirrors Common.DATA_PATH, which deliberately keeps the legacy directory
+// name (the uuid has moved to notes@escator, the data has not)
 const DATA_PATH = GLib.build_filenamev([tmpBase, 'notes@maestroschan.fr']);
 GLib.setenv('XDG_DATA_HOME', tmpBase, true);
 GLib.mkdir_with_parents(DATA_PATH, 0o755);
@@ -314,7 +316,7 @@ const layouts = loadModule(EXT_DIR + '/layouts.js',
 	'signature, clampRect, intersectsAnyMonitor, foldInto, LayoutStore, DEFAULT_FONT_SIZE, DEFAULT_WIDTH, DEFAULT_HEIGHT');
 
 const Me = {
-	uuid: 'notes@maestroschan.fr',
+	uuid: 'notes@escator',
 	dir: Gio.File.new_for_path(EXT_DIR),
 	imports: { common: common, layouts: layouts, noteBox: { NoteBox: FakeNoteBox } },
 };
