@@ -2,38 +2,60 @@
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
 
-const{ GObject, Gtk, Gdk, GdkPixbuf, GLib } = imports.gi;
-const Mainloop = imports.mainloop;
+import Adw from 'gi://Adw';
+import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import GLib from 'gi://GLib';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import Gettext from 'gettext';
 
-const Gettext = imports.gettext.domain('notes-extension');
-const _ = Gettext.gettext;
+import * as Common from './common.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-
-const Common = Me.imports.common;
-
-function init() {
-	ExtensionUtils.initTranslations();
-}
-
-let SETTINGS = ExtensionUtils.getSettings();
+const _ = Gettext.domain('notes-extension').gettext;
 
 //------------------------------------------------------------------------------
 
-const NotesSettingsWidget = new GObject.Class({
-	Name: 'NotesSettingsWidget',
-	GTypeName: 'NotesSettingsWidget',
+export default class NotesExtensionPreferences extends ExtensionPreferences {
 
-	_init () {
+	fillPreferencesWindow(window) {
+		let widget = new NotesSettingsWidget(
+			this.getSettings(), this.path, this.metadata.version.toString());
+
+		let page = new Adw.PreferencesPage();
+		let group = new Adw.PreferencesGroup();
+		group.add(widget.prefs_stack);
+		page.add(group);
+		window.add(page);
+
+		window.set_default_size(496, 405);
+	}
+}
+
+//------------------------------------------------------------------------------
+
+/*
+ * Assembles the widgets of the four tabs from prefs.ui, and wires them to the
+ * settings. Instead of the legacy global `Me`, it receives its dependencies
+ * explicitly: the settings (from ExtensionPreferences.getSettings()), the
+ * extension directory path (prefs.ui and the bundled icon live there) and the
+ * extension version (the About tab shows it).
+ */
+class NotesSettingsWidget {
+	constructor(settings, path, version) {
+		this._settings = settings;
+		this._path = path;
+		this._version = version;
+
 		let builder = new Gtk.Builder();
-		builder.add_from_file(Me.path+'/prefs.ui');
+		builder.set_translation_domain('notes-extension');
+		builder.add_from_file(this._path + '/prefs.ui');
 		this.prefs_stack = builder.get_object('prefs_stack');
 
 		this._buildSettingsPage(builder);
 		this._buildHelpPage(builder);
 		this._buildAboutPage(builder);
-	},
+	}
 
 	//--------------------------------------------------------------------------
 
@@ -44,18 +66,18 @@ const NotesSettingsWidget = new GObject.Class({
 
 		// The "Automatic focus" option is disabled for now (see prefs.ui)
 		//let focus_switch = builder.get_object('focus_switch');
-		//focus_switch.set_state(SETTINGS.get_boolean('auto-focus'));
+		//focus_switch.set_state(this._settings.get_boolean('auto-focus'));
 		//focus_switch.connect('notify::active', (widget) => {
-		//	SETTINGS.set_boolean('auto-focus', widget.active);
+		//	this._settings.set_boolean('auto-focus', widget.active);
 		//});
 
 		//----------------------------------------------------------------------
 
 		// The "hide icon" switch has to be build before the keybinding switch
 		this._hide_switch = builder.get_object('hide_switch');
-		this._hide_switch.set_state(SETTINGS.get_boolean('hide-icon'));
+		this._hide_switch.set_state(this._settings.get_boolean('hide-icon'));
 		this._hide_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('hide-icon', widget.active);
+			this._settings.set_boolean('hide-icon', widget.active);
 		});
 
 		//----------------------------------------------------------------------
@@ -66,30 +88,30 @@ const NotesSettingsWidget = new GObject.Class({
 
 		// Text entry
 		let keybinding_entry = builder.get_object('keybinding_entry');
-		keybinding_entry.set_sensitive(SETTINGS.get_boolean('use-shortcut'));
+		keybinding_entry.set_sensitive(this._settings.get_boolean('use-shortcut'));
 		keybinding_entry.set_tooltip_text(default_kbs_label);
 
 		builder.get_object('default-kbs-help-1').set_label(default_kbs_label);
 		builder.get_object('default-kbs-help-2').set_label(RELOAD_TEXT);
 
-		if (SETTINGS.get_strv('notes-kb-shortcut') != '') {
-			keybinding_entry.text = SETTINGS.get_strv('notes-kb-shortcut')[0];
+		if (this._settings.get_strv('notes-kb-shortcut') != '') {
+			keybinding_entry.text = this._settings.get_strv('notes-kb-shortcut')[0];
 		}
 
 		// "Apply" button
 		let keybinding_button = builder.get_object('keybinding_button');
-		keybinding_button.set_sensitive(SETTINGS.get_boolean('use-shortcut'));
+		keybinding_button.set_sensitive(this._settings.get_boolean('use-shortcut'));
 
 		keybinding_button.connect('clicked', (widget) => {
-			SETTINGS.set_strv('notes-kb-shortcut', [keybinding_entry.text]);
+			this._settings.set_strv('notes-kb-shortcut', [keybinding_entry.text]);
 		});
 
 		// "Enable shortcut" switch
 		let keybinding_switch = builder.get_object('keybinding_switch');
-		keybinding_switch.set_state(SETTINGS.get_boolean('use-shortcut'));
+		keybinding_switch.set_state(this._settings.get_boolean('use-shortcut'));
 
 		keybinding_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('use-shortcut', widget.active);
+			this._settings.set_boolean('use-shortcut', widget.active);
 			keybinding_entry.sensitive = widget.active;
 			keybinding_button.sensitive = widget.active;
 			this._hide_switch.sensitive = widget.active;
@@ -119,7 +141,7 @@ const NotesSettingsWidget = new GObject.Class({
 
 		// first-note-rgb stores the color as 0..1 values, as set_strv()ed
 		// here and read in noteBox.js
-		let stored = SETTINGS.get_strv('first-note-rgb');
+		let stored = this._settings.get_strv('first-note-rgb');
 		let storedRgb = stored.map((c) => Math.round(parseFloat(c) * 255)).join(',');
 		this._presetButtons = {};
 		for (let name in Common.PRESET_COLORS) {
@@ -130,7 +152,7 @@ const NotesSettingsWidget = new GObject.Class({
 			btn.add_css_class('notes-preset');
 			btn.add_css_class('notes-preset-' + name);
 			btn.connect('clicked', () => {
-				SETTINGS.set_strv('first-note-rgb', [
+				this._settings.set_strv('first-note-rgb', [
 					(preset.rgb[0] / 255).toString(),
 					(preset.rgb[1] / 255).toString(),
 					(preset.rgb[2] / 255).toString()
@@ -144,7 +166,7 @@ const NotesSettingsWidget = new GObject.Class({
 			}
 		}
 		this._selectPresetColor(this._selectedPreset);
-	},
+	}
 
 	_selectPresetColor (selectedName) {
 		for (let name in this._presetButtons) {
@@ -155,7 +177,7 @@ const NotesSettingsWidget = new GObject.Class({
 				btn.remove_css_class('notes-preset-selected');
 			}
 		}
-	},
+	}
 
 	//--------------------------------------------------------------------------
 
@@ -170,34 +192,23 @@ const NotesSettingsWidget = new GObject.Class({
 
 		let reset_button = builder.get_object('reset_btn');
 		reset_button.connect('clicked', (widget) => {
-			SETTINGS.set_boolean('ugly-hack', !SETTINGS.get_boolean('ugly-hack'));
+			this._settings.set_boolean('ugly-hack', !this._settings.get_boolean('ugly-hack'));
 		});
-	},
+	}
 
 	//--------------------------------------------------------------------------
 
 	_buildAboutPage(builder) {
 		builder.get_object('about_icon').set_from_pixbuf(
-			GdkPixbuf.Pixbuf.new_from_file_at_size(Me.path +
+			GdkPixbuf.Pixbuf.new_from_file_at_size(this._path +
 			                             '/icons/notes.png', 96, 96)
 		);
 
-		let ext_version = _("Version %s").replace('%s', Me.metadata.version.toString());
+		let ext_version = _("Version %s").replace('%s', this._version);
 		builder.get_object('label_version').set_label(ext_version)
 
 		builder.get_object('report_link_button').set_uri('https://github.com/escator/notes-extension-gnome');
 	}
-
-});
-
-//------------------------------------------------------------------------------
-
-// I guess this is like the "enable" in extension.js : something called each
-// time he user try to access the settings' window
-function buildPrefsWidget() {
-	let widget = new NotesSettingsWidget();
-	return widget.prefs_stack;
 }
 
 //------------------------------------------------------------------------------
-

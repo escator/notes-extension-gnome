@@ -313,8 +313,11 @@
 
     <!-- "About" page -->
     <child>
-      <object class="GtkBox">
-        <property name="spacing">8</property>
+      <object class="GtkScrolledWindow">
+        <property name="hscrollbar-policy">never</property>
+        <child>
+          <object class="GtkBox">
+            <property name="spacing">8</property>
         <property name="margin-start">12</property>
         <property name="margin-end">12</property>
         <property name="margin-top">12</property>
@@ -417,6 +420,8 @@
           <object class="GtkLinkButton" id="report_link_button">
             <property name="halign">start</property>
             <property name="label" translatable="yes">Report bugs or ideas</property>
+          </object>
+        </child>
           </object>
         </child>
       </object>
