@@ -56,7 +56,15 @@ jobs:
       - name: Build the zip
         run: ./build-a-zip.sh
       - name: Test inside gnome-shell-pod-${{ matrix.pod }}
-        run: sudo .github/scripts/pod-test.sh ${{ matrix.pod }} ci-${{ matrix.pod }}
+        run: |
+          set -o pipefail
+          sudo .github/scripts/pod-test.sh ${{ matrix.pod }} ci-${{ matrix.pod }} 2>&1 | tee /tmp/pod-test.log
       - name: Dump the container log on failure
         if: failure()
         run: sudo podman logs ci-${{ matrix.pod }} 2>&1 | tail -200 || true
+      - name: Save the full test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pod-test-${{ matrix.pod }}
+          path: /tmp/pod-test.log

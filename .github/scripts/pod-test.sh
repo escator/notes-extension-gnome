@@ -12,6 +12,10 @@
 # session, require state ENABLED/ACTIVE, require a clean journal, run the
 # three gjs suites under the container's gjs. The container is removed on
 # success and kept (named after <container-name>) on failure.
+#
+# Failure paths print "::error::" workflow annotations with context — those
+# stay readable through the public checks API even without repository
+# authentication.
 set -euo pipefail
 
 POD_TAG="$1"
@@ -19,19 +23,38 @@ NAME="$2"
 UUID=notes@escator
 IMAGE="ghcr.io/schneegans/gnome-shell-pod-$POD_TAG"
 
+trap 'echo "::error::pod-test.sh: unexpected failure at line $LINENO: $BASH_COMMAND"' ERR
+
+fail() { # fail <context>
+	echo "::error::$1"
+	exit 1
+}
+
 echo "::group::podman: $IMAGE"
-podman pull -q "$IMAGE"
+pulled=0
+for attempt in 1 2 3; do
+	if pull_out=$(podman pull -q "$IMAGE" 2>&1); then
+		pulled=1
+		break
+	fi
+	echo "podman pull failed (attempt $attempt): $pull_out"
+	sleep 15
+done
+[ "$pulled" = 1 ] || fail "podman pull $IMAGE failed after 3 attempts: $(echo "$pull_out" | tail -2)"
 podman rm -f "$NAME" >/dev/null 2>&1 || true
 # the images' default command is /usr/sbin/init: a full system boot; the
 # tty is REQUIRED — the autologin of the image is console-getty on
 # /dev/console, which is skipped without an allocated tty (no session then)
-podman run -dt --name "$NAME" \
+if ! run_out=$(podman run -dt --name "$NAME" \
 	--cap-add SYS_NICE --cap-add IPC_LOCK --cap-add CAP_SYS_ADMIN \
-	"$IMAGE"
+	"$IMAGE" 2>&1); then
+	fail "podman run failed: $(echo "$run_out" | tail -3)"
+fi
 echo "::endgroup::"
 
 echo "::group::waiting for the user session"
 bus_ok=0
+state=''
 for attempt in 1 2 3; do
 	for i in $(seq 1 30); do
 		state=$(podman exec --user gnomeshell -e XDG_RUNTIME_DIR=/run/user/1000 \
@@ -48,8 +71,11 @@ for attempt in 1 2 3; do
 	sleep 10
 done
 if [ "$bus_ok" != 1 ]; then
-	echo "FAIL: the user session never came up"
-	podman logs "$NAME" 2>&1 | tail -100 || true
+	{
+		echo "::error::user session never came up (is-system-running: '${state:-<none>}')"
+		podman exec "$NAME" systemctl --no-pager --failed 2>&1 | tail -8 | sed 's/^/::error::sys /'
+		podman logs "$NAME" 2>&1 | tail -8 | sed 's/^/::error::con /'
+	} || true
 	exit 1
 fi
 echo "::endgroup::"
@@ -66,14 +92,16 @@ echo "::group::install and enable"
 userexec systemctl --user reset-failed 'dbus*' 2>/dev/null || true
 userexec gsettings set org.gnome.shell disable-extension-version-validation true
 podman cp "notes@escator.zip" "$NAME:/tmp/notes@escator.zip"
-userexec gnome-extensions install --force /tmp/notes@escator.zip
-userexec gnome-extensions enable "$UUID"
+userexec gnome-extensions install --force /tmp/notes@escator.zip \
+	|| fail "gnome-extensions install failed"
+userexec gnome-extensions enable "$UUID" || fail "gnome-extensions enable failed"
 echo "::endgroup::"
 
 echo "::group::session restart"
 userexec systemctl --user stop gnome-xsession@:99
 sleep 2
-userexec systemctl --user start gnome-xsession@:99
+userexec systemctl --user start gnome-xsession@:99 \
+	|| fail "could not start gnome-xsession@:99"
 sleep 12
 echo "::endgroup::"
 
@@ -83,9 +111,9 @@ state=$(userexec gnome-extensions info "$UUID" | awk '/State:/{print $2}')
 case "$state" in
 	ENABLED|ACTIVE) echo "state: $state" ;;
 	*)
-		echo "FAIL: extension state is $state"
-		podman logs "$NAME" 2>&1 | tail -100 || true
-		exit 1
+		userexec journalctl --user --no-pager 2>/dev/null \
+			| tail -12 | sed 's/^/::error::jrnl /' || true
+		fail "extension state is $state"
 		;;
 esac
 echo "::endgroup::"
@@ -94,7 +122,7 @@ echo "::group::journal"
 if userexec journalctl --user --since '-3 min ago' --no-pager 2>/dev/null \
 		| grep -iE "$UUID|JS ERROR|Extension Error" \
 		| grep -v 'GNOME Shell started'; then
-	echo "FAIL: the journal mentions the extension or JS errors"
+	echo "::error::the journal mentions the extension or JS errors (see the lines above)"
 	exit 1
 else
 	echo "journal clean"
@@ -109,8 +137,11 @@ podman cp "notes@escator/." "$NAME:/home/gnomeshell/smoketree/notes@escator/"
 podman exec "$NAME" chown -R gnomeshell:gnomeshell /home/gnomeshell/smoketree
 for suite in test/testLayouts.js test/testTextHistory.js test/smokeExtension.js; do
 	echo "--- $suite"
-	podman exec --user gnomeshell --workdir /home/gnomeshell/smoketree \
-		"$NAME" gjs -m "$suite" | tail -1
+	if ! out=$(podman exec --user gnomeshell \
+			--workdir /home/gnomeshell/smoketree "$NAME" gjs -m "$suite" 2>&1); then
+		fail "$suite failed: $(echo "$out" | tail -4)"
+	fi
+	echo "$out" | tail -1
 done
 echo "::endgroup::"
 
