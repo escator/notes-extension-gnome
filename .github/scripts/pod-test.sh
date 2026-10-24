@@ -75,9 +75,24 @@ for attempt in 1 2 3; do
 		sleep 2
 	done
 	if [ "$bus_ok" = 1 ]; then break; fi
-	echo "user session did not come up (attempt $attempt), restarting the autologin getty"
-	podman exec "$NAME" systemctl restart getty@tty1 || true
-	sleep 10
+	if [ "$attempt" = 1 ]; then
+		# the F40+ images: the console autologin dies at PAM on the runner
+		# hosts (unix_chkpwd "could not obtain user info"), while F39 logs
+		# in fine — so, past the first wait, start the user manager and the
+		# session directly, without a logind login: enough for the extension
+		# (the shell runs on Xvfb, not on a seat)
+		echo "autologin did not bring the session up, starting it manually"
+		podman exec "$NAME" systemctl start user-runtime-dir@1000.service || true
+		podman exec "$NAME" systemctl start user@1000.service || true
+		sleep 5
+		podman exec --user gnomeshell -e XDG_RUNTIME_DIR=/run/user/1000 \
+			"$NAME" systemctl --user start gnome-xsession@:99 || true
+		sleep 12
+	else
+		echo "user session did not come up (attempt $attempt), restarting the autologin getty"
+		podman exec "$NAME" systemctl restart getty@tty1 || true
+		sleep 10
+	fi
 done
 if [ "$bus_ok" != 1 ]; then
 	# failure-proof: every command here may exit non-zero (systemctl
