@@ -12,7 +12,7 @@ name: CI
 # live acceptance on 45.10/47.1). These versions are verified by the local
 # podman matrix and live VirtualBox sessions instead; if a future runner or
 # image update turns them green, they graduate to gating by removing the
-# continue-on-error lines.
+# informational flag.
 
 on:
   push:
@@ -48,6 +48,9 @@ jobs:
   pod-test:
     name: gnome-shell-pod-${{ matrix.pod }}
     runs-on: ubuntu-24.04
+    # informational matrix jobs are allowed to fail (the documented job-level
+    # mapping — continue-on-error inside include entries is not honored)
+    continue-on-error: ${{ matrix.informational == true }}
     # pinned: the ubuntu-latest pool migrates to Ubuntu 26 (kernel 6.17),
     # where the container user session does not come up after the image's
     # console autologin (run 40099035889: pod-39 green on the 24.04 pool,
@@ -58,11 +61,11 @@ jobs:
         include:
           - pod: '39'   # GNOME Shell 45.10 (gates)
           - pod: '40'   # GNOME Shell 46.6 — informational, see the header
-            continue-on-error: true
+            informational: true
           - pod: '41'   # GNOME Shell 47.1 — informational, see the header
-            continue-on-error: true
+            informational: true
           - pod: 'rawhide'
-            continue-on-error: true
+            informational: true
     steps:
       - uses: actions/checkout@v4
       - name: Install build tools
