@@ -1,0 +1,313 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Romain F. T. <rrroschan@gmail.com>, 2018-2021
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-24 18:59+0700\n"
+"PO-Revision-Date: 2019-03-21 00:03+0100\n"
+"Last-Translator: Romain F. T. <rrroschan@gmail.com>\n"
+"Language-Team: French <none>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"X-Generator: Gtranslator 3.32.0\n"
+
+#: notes@escator/manager.js
+msgid "Show notes"
+msgstr "Montrer les notes"
+
+#: notes@escator/manager.js
+msgid "Notes extension error: failed to load a note"
+msgstr "Erreur de l'extension notes : échec de chargement d'une note"
+
+#: notes@escator/manager.js
+#, fuzzy
+#| msgid "Show notes"
+msgid "New note"
+msgstr "Montrer les notes"
+
+#: notes@escator/manager.js
+msgid "New from Clipboard"
+msgstr ""
+
+#: notes@escator/manager.js notes@escator/prefs.ui
+msgid "Settings"
+msgstr "Paramètres"
+
+#: notes@escator/manager.js
+#, fuzzy
+#| msgid "First note's color"
+msgid "Filter by color"
+msgstr "Couleur de la première note"
+
+#: notes@escator/manager.js
+msgid "Reset filter"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Font size"
+msgstr "Taille du texte"
+
+#: notes@escator/menus.js
+msgid "Cut"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Copy"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Paste"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Undo"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Redo"
+msgstr ""
+
+#: notes@escator/menus.js
+msgid "Select All"
+msgstr ""
+
+#: notes@escator/noteBox.js
+msgid "Edit"
+msgstr ""
+
+#: notes@escator/noteBox.js
+msgid "Copy to clipboard"
+msgstr ""
+
+#: notes@escator/noteBox.js
+msgid "Paste from clipboard"
+msgstr ""
+
+#: notes@escator/noteBox.js
+msgid "Delete"
+msgstr "Supprimer"
+
+#: notes@escator/noteBox.js
+msgid "Note options"
+msgstr "Options de la note"
+
+#: notes@escator/noteBox.js
+msgid "Resize"
+msgstr "Redimensionner"
+
+#: notes@escator/noteBox.js
+msgid "Type here…"
+msgstr "Tapez ici…"
+
+#: notes@escator/noteBox.js
+msgid "Empty note"
+msgstr "Note vide"
+
+#: notes@escator/noteBox.js
+msgid "Delete this note?"
+msgstr "Supprimer cette note?"
+
+#: notes@escator/noteBox.js
+msgid "Edit title"
+msgstr "Éditer le titre"
+
+#: notes@escator/noteBox.js notes@escator/prefs.ui
+msgid "Apply"
+msgstr "Appliquer"
+
+#: notes@escator/prefs.js
+msgid "Modifications will be effective after reloading the extension."
+msgstr "Les modifications prendront effet après redémarrage de l'extension."
+
+#: notes@escator/prefs.js
+#, javascript-format
+msgid "Default value is %s"
+msgstr "La valeur par défaut est %s"
+
+#: notes@escator/prefs.js
+#, javascript-format
+msgid "Version %s"
+msgstr "Version %s"
+
+#: notes@escator/prefs.ui
+msgid "Use a keyboard shortcut"
+msgstr "Utiliser un raccourci clavier"
+
+#: notes@escator/prefs.ui
+msgid "Use a keyboard shortcut to toggle notes visibility"
+msgstr "Utiliser un raccourci clavier pour afficher/masquer les notes"
+
+#: notes@escator/prefs.ui
+msgid "Help"
+msgstr "Aide"
+
+#: notes@escator/prefs.ui
+msgid "Hide the icon"
+msgstr "Masquer l'icône"
+
+#: notes@escator/prefs.ui
+msgid "First note's color"
+msgstr "Couleur de la première note"
+
+#: notes@escator/prefs.ui
+msgid "The notes created afterwards will use the color of their parent"
+msgstr "Les notes créées par la suite prendront la couleur de leur parent"
+
+#: notes@escator/prefs.ui
+msgid ""
+"Your notes are saved to the disk on various occasions (mainly when you hide "
+"them). If you want to <b>get a copy of your notes</b>, this button opens the "
+"folder where they are."
+msgstr ""
+"Vos notes sont enregistrées sur le disque en diverses occasions "
+"(principalement  quand vous les masquez. Si vous voulez <b>faire une copie "
+"de vos notes</b>, ce bouton ouvre le dossier où elles se trouvent."
+
+#: notes@escator/prefs.ui
+msgid "Open the storage directory"
+msgstr "Ouvrir le dossier de stockage des notes"
+
+#: notes@escator/prefs.ui
+msgid ""
+"The \"layouts.json\" file contains the color and position of your notes for "
+"each monitor configuration"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Files ending with \"_text\" contain the text written in your notes"
+msgstr ""
+"Les fichiers aux noms terminant par \"_text\" contiennent le texte écrit "
+"dans vos notes"
+
+#: notes@escator/prefs.ui
+msgid "Backup"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Explanations about how to use this extension can be found here:"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Online help manual"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid ""
+"Click on this button if you accidentally moved a note out of your primary "
+"monitor (example: if you had notes on a secondary monitor and unplugged it)."
+msgstr ""
+"Cliquez sur ce bouton si vous avez accidentellement déplacé une note hors de "
+"votre écran principal (exemple : si vous aviez des notes sur un écran "
+"secondaire maintenant débranché)."
+
+#: notes@escator/prefs.ui
+msgid "Bring back to the primary monitor"
+msgstr "Ramener sur le moniteur principal"
+
+#: notes@escator/prefs.ui
+#, fuzzy
+#| msgid "Sticky notes for the GNOME Shell desktop."
+msgid "(fork of the sticky notes extension for the GNOME Shell desktop)"
+msgstr "Post-its pour le bureau GNOME Shell."
+
+#: notes@escator/prefs.ui
+msgid ""
+"Reworked design and extended functionality:\n"
+"• Improved visual style and interface\n"
+"• Better sticky notes on the screen\n"
+"• Text context menu with edit history\n"
+"• New notes from the clipboard\n"
+"• Note expanding for long texts\n"
+"• New notes with a double click on the panel icon\n"
+"• Color filter in the panel menu\n"
+"• Proper multi-monitor support"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Based on the original extension by Romain F. T. (maoschanz)"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Fork  https://github.com/maoschanz/notes-extension-gnome"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Developer: Pavel Chernyakov (escator)"
+msgstr ""
+
+#: notes@escator/prefs.ui
+msgid "Report bugs or ideas"
+msgstr "Rapporter des bugs ou des idées"
+
+#: notes@escator/prefs.ui
+msgid "About"
+msgstr "À propos"
+
+#: notes@escator/prefs.ui
+msgid "List of valid key names"
+msgstr "Liste de noms de touches valides"
+
+#. Context for translation: modifier keys are ctrl/shift/super/alt
+#: notes@escator/prefs.ui
+msgid "Modifier keys must be between chevrons"
+msgstr "Les touches modificatrices doivent être entre chevrons"
+
+#: notes@escator/prefs.ui
+msgid "Don't use a keyboard shortcut that already exists."
+msgstr "Ne pas utiliser un raccourci clavier qui existe déjà."
+
+#~ msgid "Notes"
+#~ msgstr "Notes"
+
+#~ msgid "Author:"
+#~ msgstr "Auteur :"
+
+#~ msgid "Translation:"
+#~ msgstr "Traduction :"
+
+#~ msgid "translator-credits"
+#~ msgstr "Romain F. T."
+
+#~ msgid "Restart the extension to apply the changes"
+#~ msgstr "Redémarrer l'extension pour appliquer les changements"
+
+#~ msgid "Custom color"
+#~ msgstr "Couleur personnalisée"
+
+#~ msgid "New"
+#~ msgstr "Nouveau"
+
+#~ msgid "Position of notes"
+#~ msgstr "Position des notes"
+
+#~ msgid "Above everything"
+#~ msgstr "Au-dessus de tout"
+
+#~ msgid "On the background"
+#~ msgstr "Sur le bureau"
+
+#~ msgid "Incompatible with desktop icons"
+#~ msgstr "Incompatible avec les icônes sur le bureau"
+
+#~ msgid "Cycle through 3 states"
+#~ msgstr "Alterner entre 3 états"
+
+#~ msgid "Send to background, send to foreground, hide"
+#~ msgstr "Au 1er plan, sur le bureau, masquer"
+
+#~ msgid "Automatic focus"
+#~ msgstr "Focus automatique"
+
+#~ msgid ""
+#~ "Files ending with \"_state\" contain the color and position of your notes"
+#~ msgstr ""
+#~ "Les fichiers aux noms terminant par \"_state\" contiennent la couleur et "
+#~ "la position de vos notes"

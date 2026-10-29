@@ -1,0 +1,14 @@
+{
+	"description": "Sticky notes for the GNOME Shell desktop.",
+	"gettext-domain": "notes-extension",
+	"name": "Notes",
+	"shell-version": [
+		"45",
+		"46",
+		"47"
+	],
+	"url": "https://github.com/escator/notes-extension-gnome",
+	"uuid": "notes@escator",
+	"settings-schema": "org.gnome.shell.extensions.notes-extension",
+	"version": 3
+}
