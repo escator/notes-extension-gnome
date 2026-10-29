@@ -69,11 +69,25 @@ Compared to the original extension:
 
 ## Compatibility
 
-The upstream extension declares GNOME Shell 40–44. This fork is developed and
-verified on **GNOME Shell 42 under X11**; other versions and Wayland are not
-tested by the fork.
+The upstream extension declares GNOME Shell 40–44. The fork is published on
+[extensions.gnome.org](https://extensions.gnome.org/) under its own uuid
+`notes@escator`, as two releases served from the same page:
+
+- **Legacy (EGO version 2)** — the frozen pre-ESM code for **GNOME Shell
+  42–44**, live-verified on GNOME Shell 42.9 under X11;
+- **Notes 3.0 (EGO version 3)** — the port to the GNOME Shell 45+ extension
+  format (ESM), declared for **GNOME Shell 45–47** and verified in
+  [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) containers
+  (install → enable → clean journal, the full test suite 239/239 under each
+  container's gjs) and on GitHub Actions CI (45 gates the build).
+
+Wayland is not tested by the fork: the container sessions are X11.
 
 ## Installation
+
+The easiest way is to install from
+[extensions.gnome.org](https://extensions.gnome.org/) (search for *Notes* by
+Pavel Chernyakov). To install from source:
 
 ```bash
 git clone https://github.com/<fork-owner>/notes-extension-gnome.git
@@ -171,9 +185,9 @@ Plain-gjs test suites run from the repository root without a GNOME Shell
 session:
 
 ```bash
-gjs test/testLayouts.js       # layout registry
-gjs test/testTextHistory.js   # undo/redo history
-gjs test/smokeExtension.js    # extension.js against stubbed shell imports
+gjs -m test/testLayouts.js       # layout registry
+gjs -m test/testTextHistory.js   # undo/redo history
+gjs -m test/smokeExtension.js    # extension.js against stubbed shell imports
 ```
 
 Design documents (ADRs and task journals) live in `docs/`.
@@ -253,10 +267,25 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 
 ## Совместимость
 
-Апстрим заявляет GNOME Shell 40–44. Форк разрабатывался и проверялся на
-**GNOME Shell 42 под X11**; остальные версии и Wayland форком не проверялись.
+Апстрим заявляет GNOME Shell 40–44. Форк опубликован на
+[extensions.gnome.org](https://extensions.gnome.org/) под собственным uuid
+`notes@escator` — двумя релизами с одной страницы:
+
+- **Legacy (EGO-версия 2)** — замороженный код до-ESM для **GNOME Shell
+  42–44**, проверен живьём на GNOME Shell 42.9 под X11;
+- **Notes 3.0 (EGO-версия 3)** — порт в формат расширений GNOME Shell 45+
+  (ESM), заявлен на **GNOME Shell 45–47** и проверен в контейнерах
+  [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod)
+  (установка → включение → чистый журнал, полный набор тестов 239/239 под
+  gjs каждого контейнера) и в GitHub Actions CI (45 гейтит сборку).
+
+Wayland форком не проверялся: контейнерные сессии — X11.
 
 ## Установка
+
+Проще всего установить с
+[extensions.gnome.org](https://extensions.gnome.org/) (ищите *Notes* от
+Pavel Chernyakov). Установка из исходников:
 
 ```bash
 git clone https://github.com/<fork-owner>/notes-extension-gnome.git
@@ -354,9 +383,9 @@ gnome-extensions enable notes@escator
 Тесты на чистом gjs запускаются из корня репозитория без сессии GNOME Shell:
 
 ```bash
-gjs test/testLayouts.js       # реестр раскладок
-gjs test/testTextHistory.js   # история отмен/повторов
-gjs test/smokeExtension.js    # extension.js на стабах импортов shell
+gjs -m test/testLayouts.js       # реестр раскладок
+gjs -m test/testTextHistory.js   # история отмен/повторов
+gjs -m test/smokeExtension.js    # extension.js на стабах импортов shell
 ```
 
 Проектные документы (ADR и журналы задач) лежат в `docs/`.

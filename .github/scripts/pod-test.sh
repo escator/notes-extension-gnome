@@ -117,8 +117,8 @@ userexec() {
 }
 
 echo "::group::install and enable"
-# the port's metadata declares 45+ only at release (task 008 F4); version
-# validation is switched off for these pre-release runs
+# version validation is switched off so the suite also runs in images whose
+# shell version is outside the declared 45–47 (e.g. rawhide)
 userexec systemctl --user reset-failed 'dbus*' 2>/dev/null || true
 userexec gsettings set org.gnome.shell disable-extension-version-validation true
 podman cp "notes@escator.zip" "$NAME:/tmp/notes@escator.zip"

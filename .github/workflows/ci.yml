@@ -1,8 +1,9 @@
 name: CI
 
 # Task 008 F3: the port (ESM, GNOME 45+) is tested on the gnome-shell-pod
-# images — a real GNOME Shell session per version. The metadata declares
-# shell-version only for versions with a green run here (README scenario 4/5).
+# images — a real GNOME Shell session per version. The release metadata
+# declares 45–47 (task 008 F4): 45 gates here, 46/47 are verified by the
+# local podman matrix and live VirtualBox sessions (below).
 #
 # Gating: Static gates + pod-39 (GNOME 45.10). pod-40/41/rawhide are
 # informational (continue-on-error): their F40+ user session does not come up

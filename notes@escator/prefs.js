@@ -19,8 +19,10 @@ const _ = Gettext.domain('notes-extension').gettext;
 export default class NotesExtensionPreferences extends ExtensionPreferences {
 
 	fillPreferencesWindow(window) {
+		// EGO versions are integers; the About tab shows the marketing
+		// form ("3" -> "3.0") — the translated "Version %s" is unchanged.
 		let widget = new NotesSettingsWidget(
-			this.getSettings(), this.path, this.metadata.version.toString());
+			this.getSettings(), this.path, this.metadata.version + '.0');
 
 		let page = new Adw.PreferencesPage();
 		let group = new Adw.PreferencesGroup();
