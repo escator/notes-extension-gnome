@@ -10,5 +10,5 @@
 	"url": "https://github.com/escator/notes-extension-gnome",
 	"uuid": "notes@escator",
 	"settings-schema": "org.gnome.shell.extensions.notes-extension",
-	"version": "2.1"
+	"version": 2
 }
