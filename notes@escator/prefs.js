@@ -30,7 +30,12 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
 		page.add(group);
 		window.add(page);
 
-		window.set_default_size(496, 405);
+		// The legacy 496x405 (the About tab's design size on GNOME 42) clips
+		// on 45+: the notebook lives in an Adw.PreferencesPage whose side
+		// margins and clamp eat ~50px, and the ru tab labels alone need ~560px.
+		// 640x500 keeps every tab fully visible; the About page scrolls
+		// internally if a locale runs taller than that.
+		window.set_default_size(640, 500);
 	}
 }
 
