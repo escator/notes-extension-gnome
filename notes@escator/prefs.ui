@@ -315,6 +315,10 @@
     <child>
       <object class="GtkScrolledWindow">
         <property name="hscrollbar-policy">never</property>
+        <!-- Report the real content height to the notebook, so the Adw
+             preferences page sizes the group to fit instead of squeezing
+             the About viewport to the child's minimum height -->
+        <property name="propagate-natural-height">True</property>
         <child>
           <object class="GtkBox">
             <property name="spacing">8</property>
