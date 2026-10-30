@@ -76,12 +76,14 @@ The upstream extension declares GNOME Shell 40–44. The fork is published on
 - **Legacy (EGO version 2)** — the frozen pre-ESM code for **GNOME Shell
   42–44**, live-verified on GNOME Shell 42.9 under X11;
 - **Notes 3.0 (EGO version 3)** — the port to the GNOME Shell 45+ extension
-  format (ESM), declared for **GNOME Shell 45–47** and verified in
+  format (ESM), declared for **GNOME Shell 45–47** and verified live on
+  GNOME Shell 46 (Ubuntu 24.04) under both X11 and Wayland, in
   [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) containers
   (install → enable → clean journal, the full test suite 239/239 under each
   container's gjs) and on GitHub Actions CI (45 gates the build).
 
-Wayland is not tested by the fork: the container sessions are X11.
+Wayland is verified for the 45+ release only: the legacy 42–44 release is
+live-tested under X11, and the container sessions are X11 too.
 
 ## Installation
 
@@ -274,12 +276,14 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 - **Legacy (EGO-версия 2)** — замороженный код до-ESM для **GNOME Shell
   42–44**, проверен живьём на GNOME Shell 42.9 под X11;
 - **Notes 3.0 (EGO-версия 3)** — порт в формат расширений GNOME Shell 45+
-  (ESM), заявлен на **GNOME Shell 45–47** и проверен в контейнерах
+  (ESM), заявлен на **GNOME Shell 45–47** и проверен живьём на GNOME Shell 46
+  (Ubuntu 24.04) под X11 и Wayland, в контейнерах
   [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod)
   (установка → включение → чистый журнал, полный набор тестов 239/239 под
   gjs каждого контейнера) и в GitHub Actions CI (45 гейтит сборку).
 
-Wayland форком не проверялся: контейнерные сессии — X11.
+Wayland проверен только для релиза 45+: legacy 42–44 живьём проверен лишь
+под X11, и контейнерные сессии тоже X11.
 
 ## Установка
 
