@@ -3,7 +3,6 @@
 // Copyright 2018-2021 Romain F. T.
 
 const{ GObject, Gtk, Gdk, GdkPixbuf, GLib } = imports.gi;
-const Mainloop = imports.mainloop;
 
 const Gettext = imports.gettext.domain('notes-extension');
 const _ = Gettext.gettext;
