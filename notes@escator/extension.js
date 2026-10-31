@@ -6,7 +6,6 @@ const { St, Shell, GLib, Gio, Meta, Clutter } = imports.gi;
 const PanelMenu = imports.ui.panelMenu;
 const Panel = imports.ui.panel;
 const Main = imports.ui.main;
-const Mainloop = imports.mainloop;
 const PopupMenu = imports.ui.popupMenu;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -428,7 +427,7 @@ class NotesManager {
 			n.setEditMode(false);
 		});
 		this._onlyHideNotes();
-		this._timeout_id = Mainloop.timeout_add(10, () => {
+		this._timeout_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
 			this._timeout_id = null;
 			// saving to the disk is slightly delayed to give the illusion that
 			// the extension doesn't freeze the system
@@ -546,7 +545,7 @@ refreshFilterForNote (note) {
 			this._onButtonDoublePressed();
 			return;
 		}
-		this._pendingToggleId = Mainloop.timeout_add(
+		this._pendingToggleId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
 			this._doubleClickTime(),
 			() => {
 				this._pendingToggleId = null;
@@ -579,7 +578,7 @@ refreshFilterForNote (note) {
 
 	_cancelPendingToggle () {
 		if (this._pendingToggleId) {
-			Mainloop.source_remove(this._pendingToggleId);
+			GLib.source_remove(this._pendingToggleId);
 			this._pendingToggleId = null;
 		}
 	}
@@ -861,9 +860,9 @@ refreshFilterForNote (note) {
 	 */
 	_armMonitorDebounce () {
 		if (this._monitorsDebounceId) {
-			Mainloop.source_remove(this._monitorsDebounceId);
+			GLib.source_remove(this._monitorsDebounceId);
 		}
-		this._monitorsDebounceId = Mainloop.timeout_add(
+		this._monitorsDebounceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
 			MONITORS_DEBOUNCE_MS,
 			() => {
 				this._monitorsDebounceId = null;
@@ -927,13 +926,13 @@ refreshFilterForNote (note) {
 		this.panel_button.destroy();
 
 		if (this._timeout_id) {
-			Mainloop.source_remove(this._timeout_id);
+			GLib.source_remove(this._timeout_id);
 			this._timeout_id = null;
 		}
 
 		// a monitors-changed debounce may still be pending
 		if (this._monitorsDebounceId) {
-			Mainloop.source_remove(this._monitorsDebounceId);
+			GLib.source_remove(this._monitorsDebounceId);
 			this._monitorsDebounceId = null;
 		}
 

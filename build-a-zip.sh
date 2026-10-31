@@ -18,7 +18,6 @@ zip ../$EXT_ID.zip *.css
 zip -r ../$EXT_ID.zip icons
 zip -r ../$EXT_ID.zip schemas
 zip -r ../$EXT_ID.zip locale
-zip -r ../$EXT_ID.zip screenshots
 
 zip ../$EXT_ID.zip LICENSE
 

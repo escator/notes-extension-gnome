@@ -9,8 +9,6 @@
 
 const { GLib } = imports.gi;
 
-const ByteArray = imports.byteArray;
-
 const REGISTRY_VERSION = 1;
 // Defaults mirror the legacy behavior: createNote('', 16) in extension.js and
 // the former _createDefaultState in noteBox.js. Exported as vars: the manager
@@ -335,7 +333,7 @@ function _readString(path) {
 	if (!ok) {
 		return null;
 	}
-	return typeof raw === 'string' ? raw : ByteArray.toString(raw);
+	return typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
 }
 
 /*

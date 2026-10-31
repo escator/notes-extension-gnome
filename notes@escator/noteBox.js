@@ -58,7 +58,7 @@ const EVDEV_INSERT = 118;
 
 function stringFromArray(data){
 	if (data instanceof Uint8Array) {
-		return imports.byteArray.toString(data);
+		return new TextDecoder().decode(data);
 	} else {
 		return data.toString();
 	}
