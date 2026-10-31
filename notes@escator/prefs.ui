@@ -359,7 +359,7 @@
                 <child>
                   <object class="GtkLabel">
                     <property name="halign">start</property>
-                    <property name="label">Sticky Notes 2</property>
+                    <property name="label">Sticky Notes Plus</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                       <attribute name="scale" value="2"/>

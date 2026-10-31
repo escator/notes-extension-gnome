@@ -1,7 +1,7 @@
 {
-	"description": "Sticky notes for the GNOME Shell desktop.",
+	"description": "Fork of Notes by Maoschanz (https://github.com/maoschanz/notes-extension-gnome): sticky notes for the GNOME Shell desktop, with multi-monitor layouts, color filter, text history and double-click to expand. Git repository of this fork: https://github.com/escator/notes-extension-gnome",
 	"gettext-domain": "notes-extension",
-	"name": "Notes",
+	"name": "Sticky Notes Plus",
 	"shell-version": [
 		"45",
 		"46",
@@ -10,5 +10,5 @@
 	"url": "https://github.com/escator/notes-extension-gnome",
 	"uuid": "notes@escator",
 	"settings-schema": "org.gnome.shell.extensions.notes-extension",
-	"version": 3
+	"version": 4
 }
