@@ -16,9 +16,9 @@ zip ../$EXT_ID.zip *.json
 zip ../$EXT_ID.zip *.css
 
 zip -r ../$EXT_ID.zip icons
-zip -r ../$EXT_ID.zip schemas
+# EGO builds the schemas for 45+ packages itself: ship the XML, not the binary
+zip -r ../$EXT_ID.zip schemas -x schemas/gschemas.compiled
 zip -r ../$EXT_ID.zip locale
-zip -r ../$EXT_ID.zip screenshots
 
 zip ../$EXT_ID.zip LICENSE
 
