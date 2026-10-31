@@ -1,4 +1,4 @@
-# Notes — sticky notes for GNOME Shell
+# Sticky Notes Plus — sticky notes for GNOME Shell
 
 A GNOME Shell extension providing customizable sticky notes on your desktop.
 
@@ -25,6 +25,10 @@ filter. The fork is developed and maintained by
 **Pavel Chernyakov (escator)** (2026);
 the whole work remains free software under the **GNU GPL v3**, same as the
 original.
+
+On extensions.gnome.org this fork appears as **Sticky Notes Plus**
+(uuid `notes@escator`); forks must have a name distinct from the original,
+which keeps the name "Notes".
 
 ## What's changed in this fork
 
@@ -206,6 +210,10 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 обмена, мультимониторными раскладками и цветовым фильтром. Форк развивает
 **Павел Черняков (escator)** (2026); вся работа остаётся свободным ПО под
 лицензией **GNU GPL v3**, как и оригинал.
+
+На extensions.gnome.org форк публикуется под именем **Sticky Notes Plus**
+(uuid `notes@escator`); форки обязаны отличаться по имени от оригинала,
+имя «Notes» остаётся за ним.
 
 ## Что изменено в этом форке
 
