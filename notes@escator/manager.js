@@ -110,6 +110,13 @@ export class NotesManager {
 		this._currentKey = null;
 		this._monitorsDebounceId = null;
 
+		// the registry reads are asynchronous (EGO-X-004): the first load
+		// queues every callback handed over in the meantime, and destroy()
+		// during an in-flight load must not restore notes afterwards
+		this._loadingNotes = false;
+		this._afterLoadCallbacks = [];
+		this._destroyed = false;
+
 		// the single click of the panel button is delayed to stay
 		// distinguishable from a double click (task 006 / ADR-0005)
 		this._pendingToggleId = null;
@@ -131,20 +138,27 @@ export class NotesManager {
 	/*
 	 * Creates the layout registry and loads it; a missing (or unusable)
 	 * registry triggers the one-time migration from the legacy per-note
-	 * `N_state` files, whose coordinates were relative to the primary monitor.
+	 * `N_state` files, whose coordinates were relative to the primary
+	 * monitor. The reads are asynchronous: callback runs once the store is
+	 * usable (or the migration has completed).
 	 */
-	_ensureStore () {
-		if (this._store) { return; }
+	_ensureStore (callback) {
+		if (this._store) { callback(); return; }
 		this._store = new Layouts.LayoutStore(
 			GLib.build_filenamev([PATH, 'layouts.json']), Common.MAX_LAYOUTS
 		);
-		if (!this._store.load()) {
+		this._store.load((ok) => {
+			if (ok) {
+				callback();
+				return;
+			}
 			let primary = this._main.layoutManager.primaryMonitor;
 			this._store.migrateFromStateFiles(PATH,
 				{ x: primary.x, y: primary.y },
-				Layouts.signature(this._monitorRects())
+				Layouts.signature(this._monitorRects()),
+				() => callback()
 			);
-		}
+		});
 	}
 
 	/* Logical monitor geometries, in the shape layouts.js expects. */
@@ -171,9 +185,34 @@ export class NotesManager {
 		}
 	}
 
-	_loadAllNotes () {
-		this._ensureStore();
+	/*
+	 * The asynchronous first load: restores the notes from the registry, then
+	 * runs every callback queued in the meantime (toggle, create note…). When
+	 * the notes are already loaded the callback runs synchronously, so the
+	 * callers may always go through this method.
+	 */
+	_loadAllNotes (callback = () => {}) {
+		if (this._notesLoaded) {
+			callback();
+			return;
+		}
+		this._afterLoadCallbacks.push(callback);
+		if (this._loadingNotes) { return; }
+		this._loadingNotes = true;
+		this._ensureStore(() => {
+			if (this._destroyed) { return; }
+			this._restoreNotes();
+			this._notesLoaded = true;
+			// the folded/clamped positions become the saved layout of this
+			// configuration (this also refreshes its LRU recency)
+			this.saveLayout();
+			let queue = this._afterLoadCallbacks;
+			this._afterLoadCallbacks = [];
+			queue.forEach(function (cb) { cb(); });
+		});
+	}
 
+	_restoreNotes () {
 		this._currentKey = Layouts.signature(this._monitorRects());
 		let layout = this._store.layoutFor(this._currentKey);
 		let positions = layout ? layout.positions : {};
@@ -212,17 +251,20 @@ export class NotesManager {
 		});
 
 		this._onlyHideNotes();
-		this._notesLoaded = true;
-		// the folded/clamped positions become the saved layout of this
-		// configuration (this also refreshes its LRU recency)
-		this.saveLayout();
 	}
 
 	//--------------------------------------------------------------------------
 	// "Public" methods, accessed by the NoteBox objects -----------------------
 
 	createNote (colorString, fontSize, startInEditMode = false) {
-		this._ensureStore();
+		if (!this._notesLoaded) {
+			// the registry may still be loading (a few milliseconds at first
+			// use): queue behind the load so the stable ids stay correct
+			this._loadAllNotes(
+				() => this.createNote(colorString, fontSize, startInEditMode)
+			);
+			return null;
+		}
 		let id = this._store.nextId();
 		// brand-new notes go into a fold slot avoiding the existing notes'
 		// rectangles (the deterministic replacement of the former random
@@ -566,13 +608,12 @@ refreshFilterForNote (note) {
 	 * doesn't blink during the pair of clicks.
 	 */
 	_onButtonDoublePressed () {
-		if (!this._notesLoaded) {
-			this._loadAllNotes();
-		}
-		this.createNote(this._filterColorString(), 16, true);
-		if (!this._notesAreVisible) {
-			this._showNotes();
-		}
+		this._loadAllNotes(() => {
+			this.createNote(this._filterColorString(), 16, true);
+			if (!this._notesAreVisible) {
+				this._showNotes();
+			}
+		});
 	}
 
 	_cancelPendingToggle () {
@@ -584,18 +625,16 @@ refreshFilterForNote (note) {
 
 	_toggleNotes () {
 		this._cancelPendingToggle();
-		if(!this._notesLoaded) {
-			this._loadAllNotes();
-		}
-
-		if(this._allNotes.length == 0) {
-			this.createNote(this._filterColorString(), 16, true);
-			this._showNotes();
-		} else if (this._notesAreVisible) {
-			this._hideNotes();
-		} else {
-			this._showNotes();
-		}
+		this._loadAllNotes(() => {
+			if(this._allNotes.length == 0) {
+				this.createNote(this._filterColorString(), 16, true);
+				this._showNotes();
+			} else if (this._notesAreVisible) {
+				this._hideNotes();
+			} else {
+				this._showNotes();
+			}
+		});
 	}
 
 	//--------------------------------------------------------------------------
@@ -759,10 +798,9 @@ refreshFilterForNote (note) {
 
 	_onMenuNewNote () {
 		this._menu.close();
-		if(!this._notesLoaded) {
-			this._loadAllNotes();
-		}
-		this.createNote(this._filterColorString(), 16, true);
+		this._loadAllNotes(() => {
+			this.createNote(this._filterColorString(), 16, true);
+		});
 	}
 
 	/*
@@ -773,19 +811,18 @@ refreshFilterForNote (note) {
 	 */
 	_onMenuNewFromClipboard () {
 		this._menu.close();
-		if(!this._notesLoaded) {
-			this._loadAllNotes();
-		}
-		this._st.Clipboard.get_default().get_text(
-			this._st.ClipboardType.CLIPBOARD,
-			(clipboard, text) => {
-				if (!text) { return; }
-				let note = this.createNote(this._filterColorString(), 16, false);
-				if (note != null) {
-					note.appendClipboardText(text);
+		this._loadAllNotes(() => {
+			this._st.Clipboard.get_default().get_text(
+				this._st.ClipboardType.CLIPBOARD,
+				(clipboard, text) => {
+					if (!text) { return; }
+					let note = this.createNote(this._filterColorString(), 16, false);
+					if (note != null) {
+						note.appendClipboardText(text);
+					}
 				}
-			}
-		);
+			);
+		});
 	}
 
 	_onMenuSettings () {
@@ -897,6 +934,9 @@ refreshFilterForNote (note) {
 	//--------------------------------------------------------------------------
 
 	destroy() {
+		// an in-flight load must not restore notes or run its queued
+		// callbacks after the teardown
+		this._destroyed = true;
 		this._settings.disconnect(this._settingsSignals['bring-back']);
 		this._settings.disconnect(this._settingsSignals['hide-icon']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
@@ -910,16 +950,24 @@ refreshFilterForNote (note) {
 		});
 
 		// the texts were saved just above; this flushes the registry itself
-		if (this._store) {
+		// (only for a completed load: a store still being read holds an empty
+		// registry that must not clobber the file)
+		if (this._store && this._notesLoaded) {
 			this._store.save();
 		}
+		this._store = null;
+		this._notesLoaded = false;
 
 		if(this._useKeyboardShortcut) {
 			this._main.wm.removeKeybinding('notes-kb-shortcut');
 		}
 
 		this._menu.destroy();
+		this._menu = null;
+		this._menuManager = null;
 		this.panel_button.destroy();
+		this.panel_button = null;
+		this._filterDot = null;
 
 		if (this._timeout_id) {
 			this._timers.source_remove(this._timeout_id);

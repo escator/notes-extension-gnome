@@ -1276,21 +1276,31 @@ export class NoteBox {
 			GLib.file_set_contents(file2, '');
 		}
 
-		let file = Gio.file_new_for_path(PATH + '/' + this.id.toString() + '_text');
-		let [result, contents] = file.load_contents(null);
-		if (!result) {
-			log('Could not read file: ' + PATH);
-		}
-		let content = stringFromArray(contents);
+		// asynchronous read (EGO-X-004): the text lands in the entry a few
+		// main-loop iterations later; a destroyed note must not be touched
+		// by the callback
+		let file = Gio.File.new_for_path(PATH + '/' + this.id.toString() + '_text');
+		file.load_contents_async(null, (source, res) => {
+			if (this.actor == null) { return; }
+			let content = '';
+			try {
+				let [ok, contents] = source.load_contents_finish(res);
+				if (ok) {
+					content = stringFromArray(contents);
+				}
+			} catch (e) {
+				log('Could not read file: ' + e.message);
+			}
 
-		// the loaded text is the baseline: the initial set_text fires
-		// 'text-changed' (the connection predates this method), so it runs
-		// under suspend and opens no undo step
-		this._history = new TextHistory({ text: content, cursor: 0 });
-		this._history.suspend(() => {
-			this.noteEntry.set_text(content);
+			// the loaded text is the baseline: the initial set_text fires
+			// 'text-changed' (the connection predates this method), so it runs
+			// under suspend and opens no undo step
+			this._history = new TextHistory({ text: content, cursor: 0 });
+			this._history.suspend(() => {
+				this.noteEntry.set_text(content);
+			});
+			this._textLoaded = true;
 		});
-		this._textLoaded = true;
 	}
 
 	_saveText () {
@@ -1319,6 +1329,14 @@ export class NoteBox {
 		if (focus != null && this.actor.contains(focus)) {
 			global.stage.set_key_focus(null);
 		}
+		// the context menu lives in the uiGroup, outside this actor tree:
+		// destroy it explicitly (its destroy also drops the handlers it
+		// connected on this.actor), then release the references
+		if (this._textMenu) {
+			this._textMenu.destroy();
+			this._textMenu = null;
+		}
+		this._textMenuManager = null;
 		this.actor.destroy_all_children();
 		this.actor.destroy();
 		this.actor = null;

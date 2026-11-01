@@ -61,6 +61,32 @@ function readFile(path) {
 	return new TextDecoder().decode(data);
 }
 
+/*
+ * The registry reads are asynchronous now (EGO-X-004): local files complete
+ * through the I/O thread pool followed by a main-context idle, so the tests
+ * spin the default main context until the callback fired.
+ */
+function pumpUntil(ready) {
+	const ctx = GLib.MainContext.default();
+	let guard = 0;
+	while (!ready()) {
+		ctx.iteration(false);
+		if (!ctx.pending()) {
+			GLib.usleep(1000);
+		}
+		if (++guard > 100000) {
+			throw new Error('pumpUntil: condition never met');
+		}
+	}
+}
+
+function pumpStore(store) {
+	let result = null;
+	store.load(function (ok) { result = ok; });
+	pumpUntil(function () { return result !== null; });
+	return result;
+}
+
 //------------------------------------------------------------------------------
 
 // XDG_DATA_HOME must be redirected before ANY notes@escator module is
@@ -372,11 +398,12 @@ const SIG = Layouts.signature(MONITORS);
 
 const manager = makeManager();
 manager._loadAllNotes();
+pumpUntil(function () { return manager._notesLoaded; });
 
 check('registry file created at ' + DATA_PATH, fileExists(DATA_PATH + '/layouts.json'));
 
 let store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
-check('registry loads back', store.load());
+check('registry loads back', pumpStore(store));
 eq('migrated note ids', store.noteIds(), [0, 1]);
 eq('note 0 attributes migrated', store.getNoteAttrs('0'),
 	{ color: '184,217,242', fontSize: 16 });
@@ -416,7 +443,7 @@ check('0_text deleted', !fileExists(DATA_PATH + '/0_text'));
 check('legacy 0_state still kept', fileExists(DATA_PATH + '/0_state'));
 
 store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
-store.load();
+pumpStore(store);
 eq('deleted note left the registry', store.noteIds(), [1, 2]);
 lay = store.layoutFor(SIG);
 check('deleted note left the layout', !lay.positions['0']);
@@ -433,9 +460,10 @@ manager.destroy();
 createdSpecs = [];
 const manager2 = makeManager();
 manager2._loadAllNotes();
+pumpUntil(function () { return manager2._notesLoaded; });
 
 store = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
-store.load();
+pumpStore(store);
 lay = store.layoutFor(SIG);
 [1, 2, 3].forEach(function (id) {
 	let spec = createdSpecs.find(function (s) { return s.id === id; });
@@ -471,7 +499,7 @@ function inMonitorA(p) {
 }
 function savedPositions(key) {
 	let s = new Layouts.LayoutStore(DATA_PATH + '/layouts.json', Common.MAX_LAYOUTS);
-	s.load();
+	pumpStore(s);
 	let l = s.layoutFor(key);
 	return l ? l.positions : null;
 }
@@ -498,6 +526,7 @@ managerIdle.destroy();
 createdSpecs = [];
 const manager3 = makeManager();
 manager3._loadAllNotes();
+pumpUntil(function () { return manager3._notesLoaded; });
 
 let twoPos = savedPositions(SIG_TWO);
 let n1 = noteById(1), n2 = noteById(2), n3 = noteById(3);
@@ -573,6 +602,7 @@ print('== phase 4: color filter ==');
 
 const manager4 = makeManager();
 manager4._loadAllNotes();
+pumpUntil(function () { return manager4._notesLoaded; });
 
 function m4note(id) {
 	return manager4._allNotes.find(function (n) { return n.id === id; });
@@ -700,6 +730,7 @@ print('== phase 5: expanded notes keep the home geometry on disk ==');
 
 const manager5 = makeManager();
 manager5._loadAllNotes();
+pumpUntil(function () { return manager5._notesLoaded; });
 
 function m5note(id) {
 	return manager5._allNotes.find(function (n) { return n.id === id; });
@@ -740,6 +771,7 @@ print('== phase 6: panel button single vs double click ==');
 
 const manager6 = makeManager();
 manager6._loadAllNotes();
+pumpUntil(function () { return manager6._notesLoaded; });
 
 function leftClick6() {
 	manager6._onButtonPressed(null, { get_button: function () { return 1; } });
