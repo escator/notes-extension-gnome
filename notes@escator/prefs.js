@@ -30,6 +30,11 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
 		page.add(group);
 		window.add(page);
 
+		// GTK would drop the handlers with the widgets themselves, but the
+		// teardown is done explicitly before the widgets get disposed (the
+		// EGO review pairs every connect() with a disconnect(), EGO015)
+		window.connect('destroy', () => widget.destroy());
+
 		// The legacy 496x405 (the About tab's design size on GNOME 42) clips
 		// on 45+: the notebook lives in an Adw.PreferencesPage whose side
 		// margins and clamp eat ~50px, and the ru tab labels alone need ~560px.
@@ -85,7 +90,7 @@ class NotesSettingsWidget {
 		// The "hide icon" switch has to be build before the keybinding switch
 		this._hide_switch = builder.get_object('hide_switch');
 		this._hide_switch.set_state(this._settings.get_boolean('hide-icon'));
-		this._hide_switch.connect('notify::active', (widget) => {
+		this._hideSwitchSignal = this._hide_switch.connect('notify::active', (widget) => {
 			this._settings.set_boolean('hide-icon', widget.active);
 		});
 
@@ -108,21 +113,21 @@ class NotesSettingsWidget {
 		}
 
 		// "Apply" button
-		let keybinding_button = builder.get_object('keybinding_button');
-		keybinding_button.set_sensitive(this._settings.get_boolean('use-shortcut'));
+		this._keybindingButton = builder.get_object('keybinding_button');
+		this._keybindingButton.set_sensitive(this._settings.get_boolean('use-shortcut'));
 
-		keybinding_button.connect('clicked', (widget) => {
+		this._keybindingButtonSignal = this._keybindingButton.connect('clicked', (widget) => {
 			this._settings.set_strv('notes-kb-shortcut', [keybinding_entry.text]);
 		});
 
 		// "Enable shortcut" switch
-		let keybinding_switch = builder.get_object('keybinding_switch');
-		keybinding_switch.set_state(this._settings.get_boolean('use-shortcut'));
+		this._keybindingSwitch = builder.get_object('keybinding_switch');
+		this._keybindingSwitch.set_state(this._settings.get_boolean('use-shortcut'));
 
-		keybinding_switch.connect('notify::active', (widget) => {
+		this._keybindingSwitchSignal = this._keybindingSwitch.connect('notify::active', (widget) => {
 			this._settings.set_boolean('use-shortcut', widget.active);
 			keybinding_entry.sensitive = widget.active;
-			keybinding_button.sensitive = widget.active;
+			this._keybindingButton.sensitive = widget.active;
 			this._hide_switch.sensitive = widget.active;
 		});
 
@@ -153,6 +158,7 @@ class NotesSettingsWidget {
 		let stored = this._settings.get_strv('first-note-rgb');
 		let storedRgb = stored.map((c) => Math.round(parseFloat(c) * 255)).join(',');
 		this._presetButtons = {};
+		this._presetSignalIds = {};
 		for (let name in Common.PRESET_COLORS) {
 			let preset = Common.PRESET_COLORS[name];
 			let btn = new Gtk.Button();
@@ -160,7 +166,7 @@ class NotesSettingsWidget {
 			btn.set_tooltip_text(name);
 			btn.add_css_class('notes-preset');
 			btn.add_css_class('notes-preset-' + name);
-			btn.connect('clicked', () => {
+			this._presetSignalIds[name] = btn.connect('clicked', () => {
 				this._settings.set_strv('first-note-rgb', [
 					(preset.rgb[0] / 255).toString(),
 					(preset.rgb[1] / 255).toString(),
@@ -194,15 +200,33 @@ class NotesSettingsWidget {
 		let help_url = 'https://github.com/escator/notes-extension-gnome/blob/master/README.md';
 		builder.get_object('help_btn').set_uri(help_url);
 
-		let data_button = builder.get_object('backup_btn');
-		data_button.connect('clicked', (widget) => {
+		this._dataButton = builder.get_object('backup_btn');
+		this._dataButtonSignal = this._dataButton.connect('clicked', (widget) => {
 			GLib.spawn_command_line_async('xdg-open ' + Common.DATA_PATH);
 		});
 
-		let reset_button = builder.get_object('reset_btn');
-		reset_button.connect('clicked', (widget) => {
+		this._resetButton = builder.get_object('reset_btn');
+		this._resetButtonSignal = this._resetButton.connect('clicked', (widget) => {
 			this._settings.set_boolean('ugly-hack', !this._settings.get_boolean('ugly-hack'));
 		});
+	}
+
+	//--------------------------------------------------------------------------
+
+	/*
+	 * Runs when the prefs window is destroyed (wired in
+	 * fillPreferencesWindow): disconnects every handler the build methods
+	 * connected, releasing the references so nothing outlives the window.
+	 */
+	destroy () {
+		this._hide_switch.disconnect(this._hideSwitchSignal);
+		this._keybindingButton.disconnect(this._keybindingButtonSignal);
+		this._keybindingSwitch.disconnect(this._keybindingSwitchSignal);
+		for (let name in this._presetButtons) {
+			this._presetButtons[name].disconnect(this._presetSignalIds[name]);
+		}
+		this._dataButton.disconnect(this._dataButtonSignal);
+		this._resetButton.disconnect(this._resetButtonSignal);
 	}
 
 	//--------------------------------------------------------------------------

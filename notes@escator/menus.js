@@ -24,15 +24,30 @@ class NoteOptionsMenu {
 		this._source = source;
 		this.super_menu.actor.add_style_class_name('app-well-menu');
 
-		// Chain our visibility and lifecycle to that of the source
-		source.actor.connect('notify::mapped', () => {
+		// Chain our visibility and lifecycle to that of the source; the handler
+		// ids are kept so destroy() can drop the connections explicitly (the
+		// EGO review pairs every connect() with a disconnect(), EGO015)
+		this._mappedSignal = source.actor.connect('notify::mapped', () => {
 			if (!source.actor.mapped) {
 				this.super_menu.close();
 			}
 		});
-		source.actor.connect('destroy', this.super_menu.destroy.bind(this.super_menu));
+		this._destroySignal = source.actor.connect('destroy', this.destroy.bind(this));
 
 		Main.uiGroup.add_child(this.super_menu.actor);
+	}
+
+	/*
+	 * Runs when the source actor is destroyed (note deletion, disable()):
+	 * disconnects what the constructor connected, destroys the menu, and
+	 * releases the references so nothing outlives the note (EGO014, EGO027).
+	 */
+	destroy () {
+		this._source.actor.disconnect(this._mappedSignal);
+		this._source.actor.disconnect(this._destroySignal);
+		this.super_menu.destroy();
+		this.super_menu = null;
+		this._source = null;
 	}
 
 	_redisplay () {
