@@ -199,13 +199,24 @@ export class NoteBox {
 		// edited is never touched.
 		this._textMenu = null;
 		this._textMenuManager = null;
-		// The press/motion/release live on the ENTRY, not on the text actor:
-		// ClutterText is only as wide as its longest line (live-verified on
-		// 46.2 — clicks past that x never reached the text), while the entry
-		// spans the whole text area. The events on the text itself bubble up
-		// to the entry, and the index mapping goes through
-		// transform_stage_point, so the wider hit area changes nothing else
-		this.noteEntry.connect('button-press-event', (actor, event) => {
+		// The press/motion/release handlers live on BOTH the text actor and
+		// the entry — the two picks never overlap: a press over the glyphs
+		// is emitted on the ClutterText (reactive, bound to the entry's
+		// reactive flag), a press in the dead zone past the longest line on
+		// the entry itself. And the ordering matters: 'button-press-event'
+		// is G_SIGNAL_RUN_LAST, so a normal handler runs BEFORE the class
+		// closure — which for ClutterText is clutter_text_press: it grabs
+		// the key focus and returns CLUTTER_EVENT_STOP for ANY button on a
+		// selectable text, so an event that reaches it never bubbles to the
+		// entry (live-verified on 46.2: with handlers only on the entry the
+		// native closure ate every press on the text — the f051d89 focus
+		// theft regression plus assertion pairs; its click handling produced
+		// a NATIVE word selection the user mistook for this engine, and the
+		// context menu never opened). On the text our handlers therefore run
+		// first and swallow in the read-only mode; on the entry they cover
+		// the dead zone. The index mapping goes through
+		// transform_stage_point, so the same handler serves both actors
+		let pressHandler = (actor, event) => {
 			let button = event.get_button();
 			if (button == 3) {
 				if (this._textMenu && this._textMenu.super_menu.isOpen) {
@@ -226,11 +237,13 @@ export class NoteBox {
 				return Clutter.EVENT_STOP;
 			}
 			return Clutter.EVENT_PROPAGATE;
-		});
+		};
 		// the drag part of the read-only selection (task 009): after the
 		// swallowed press the pointer is under the implicit grab, so the
-		// motion/release keep arriving on the text wherever the pointer goes
-		this.noteEntry.connect('motion-event', (actor, event) => {
+		// motion/release keep arriving on the same actor chain wherever the
+		// pointer goes; propagating in edit mode lets the native drag of
+		// ClutterText (its class closure) work as before
+		let motionHandler = (actor, event) => {
 			if (!this._selDragging || this._editing) {
 				return Clutter.EVENT_PROPAGATE;
 			}
@@ -242,15 +255,21 @@ export class NoteBox {
 			clutterText.set_selection(this._selAnchor, idx);
 			this._updateSelOverlay();
 			return Clutter.EVENT_STOP;
-		});
-		this.noteEntry.connect('button-release-event', (actor, event) => {
+		};
+		let releaseHandler = (actor, event) => {
 			if (!this._selDragging) {
 				return Clutter.EVENT_PROPAGATE;
 			}
 			this._selDragging = false;
 			this._updateSelOverlay();
 			return this._editing ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP;
-		});
+		};
+		clutterText.connect('button-press-event', pressHandler);
+		clutterText.connect('motion-event', motionHandler);
+		clutterText.connect('button-release-event', releaseHandler);
+		this.noteEntry.connect('button-press-event', pressHandler);
+		this.noteEntry.connect('motion-event', motionHandler);
+		this.noteEntry.connect('button-release-event', releaseHandler);
 		// Shift+F10 / Menu key: the menu is anchored at the text cursor
 		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
 
