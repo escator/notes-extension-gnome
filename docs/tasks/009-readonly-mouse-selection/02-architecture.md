@@ -94,18 +94,23 @@ idx = inText ? Math.min(index + trailing, text.length) : text.length
 (системный double-click time, DBL_CLICK_DIST_PX). Двойной клик по тексту
 по-прежнему **не** трогает expand (задача 005 не задета).
 
-## 6. Границы слова — textSelection.js (чистый модуль)
+## 6. Единицы индексов и textSelection.js (чистый модуль)
 
-`wordRange(text, index)` → `null | [start, end]`:
+**Важно:** pango `xy_to_index` возвращает **байтовый** offset в UTF-8, а API
+выделения ClutterText (`set_selection`, cursor/selection_bound) считает
+**символы** (code points). Конверсия — `byteOffsetToCharIndex(text,
+byteOffset)` (итерация по code points, суммирование UTF-8-длин; mid-character
+offset, которого pango не даёт, округляется «вперёд»).
+
+`wordRange(text, index)` → `null | [start, end]` (индексы — code points):
 
 - слово-символы: `/[\p{L}\p{N}_]/u` — буквы (в т.ч. кириллица), цифры,
   подчёркивание; дефис/пунктуация — граница;
 - клик на не-слове или за пределами текста → `null` (выделения нет) —
-  сознательно проще натива, решение п. 3 приёмки;
-- кластеры: итерация по `for...of` (code points, не UTF-16-юниты) —
-  индексы pango тоже в code points, форматы совпадают.
+  сознательно проще натива, решение п. 3 приёмки.
 
-Тестируется офлайн (gjs -m test/testTextSelection.js), как TextHistory.
+Обе функции чистые, тестируются офлайн (gjs -m test/testTextSelection.js),
+как TextHistory.
 
 ## 7. Не поддерживается (сознательно, не дефекты)
 
