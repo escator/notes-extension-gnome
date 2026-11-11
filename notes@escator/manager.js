@@ -297,9 +297,13 @@ export class NotesManager {
 			this._allNotes.push(note);
 			return note;
 		} catch (e) {
-			this._main.notify(_("Notes extension error: failed to load a note"));
+			// the error is journaled first: Main.notify with a missing body
+			// throws in GNOME 45+ (Notification requires both arguments) and
+			// would mask the original failure otherwise (seen live on 46)
 			log('failed to create note n°' + id.toString());
 			log(e);
+			this._main.notify(_("Notes extension error: failed to load a note"),
+				e.toString());
 			return null;
 		}
 	}
