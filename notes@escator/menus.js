@@ -224,6 +224,14 @@ export class NoteRoundButton {
 			reactive: true,
 			can_focus: true,
 			track_hover: true,
+			// x_expand must be explicitly false: when it is unset, Clutter
+			// computes the button's horizontal expand by recursing into the
+			// child, and the icon's x_expand leaks into the button itself.
+			// All the header buttons then count as expanding, the header's
+			// extra width is split between them instead of going to the drag
+			// area, and they stretch with the note instead of staying
+			// 28px circles.
+			x_expand: false,
 			y_expand: false,
 		});
 	}
