@@ -111,9 +111,12 @@ export class NoteBox {
 		this._gestureDistance = 0;
 		// the read-only mouse selection (task 009): _selAnchor is the fixed
 		// end of the live gesture (-1 = none), _selDragging is armed by the
-		// press and cleared by the release
+		// press and cleared by the release; the offsets translate the
+		// layout-derived rects into the overlay's coordinates
 		this._selAnchor = -1;
 		this._selDragging = false;
+		this._selRectOffsetX = 0;
+		this._selRectOffsetY = 0;
 		if (spec.color && spec.color.split(',').length == 3) {
 			this.customColor = spec.color;
 		} else {
@@ -248,7 +251,18 @@ export class NoteBox {
 			y_expand: true,
 		});
 
-		this._entryBox.add_child(this.noteEntry);
+		// the entry and the selection overlay must OCCUPY THE SAME RECT, not
+		// stack: a bin keeps them over each other (a BoxLayout would put the
+		// overlay below the entry, outside the visible note). The entry keeps
+		// its current geometry: natural height, pinned to the top
+		this._textStack = new Clutter.Actor({
+			layout_manager: new Clutter.BinLayout(),
+			x_expand: true,
+			y_expand: true,
+		});
+		this.noteEntry.set_y_align(Clutter.ActorAlign.START);
+		this._textStack.add_child(this.noteEntry);
+		this._entryBox.add_child(this._textStack);
 		this._scrollView.add_child(this._entryBox);
 
 		// The selection highlight (task 009): native ClutterText painting is
@@ -256,13 +270,17 @@ export class NoteBox {
 		// && cursor_visible && has_focus — and never runs in the read-only
 		// mode: the cursor is hidden and the key focus is never granted
 		// (ADR-0007), so no CSS color would ever be drawn. The overlay is a
-		// non-reactive DrawingArea stacked over the text inside the entry box
-		// (after the entry — painted above it), it scrolls together with the
-		// entry and gets the text's position/size on every repaint — see
-		// _updateSelOverlay. Adding it to ClutterText itself is not an option:
-		// clutter-text.c keeps the legacy paint vfunc, which paints nothing
-		// but its own layout and cursor/selection
-		this._selOverlay = new St.DrawingArea({ reactive: false });
+		// non-reactive DrawingArea in the bin above the entry (added after it
+		// — painted last), it scrolls together with the text and gets the
+		// text's offset on every repaint — see _updateSelOverlay. Adding it
+		// to ClutterText itself is not an option: clutter-text.c keeps the
+		// legacy paint vfunc, which paints nothing but its own layout and
+		// cursor/selection
+		this._selOverlay = new St.DrawingArea({
+			reactive: false,
+			x_expand: true,
+			y_expand: true,
+		});
 		this._selOverlay.hide();
 		// St.DrawingArea paints through its 'repaint' signal (the only signal
 		// it registers, no cairo_t argument — gnome-shell 46
@@ -272,12 +290,14 @@ export class NoteBox {
 			let cr = area.get_context();
 			cr.setSourceRGBA(...SELECTION_COLOR);
 			for (let rect of (this._selRectsForPaint || [])) {
-				cr.rectangle(rect[0], rect[1], rect[2], rect[3]);
+				cr.rectangle(rect[0] + this._selRectOffsetX,
+					rect[1] + this._selRectOffsetY,
+					rect[2], rect[3]);
 			}
 			cr.fill();
 			cr.$dispose();
 		});
-		this._entryBox.add_child(this._selOverlay);
+		this._textStack.add_child(this._selOverlay);
 		clutterText.connect('notify::allocation', () => {
 			this._updateSelOverlay();
 		});
@@ -1297,14 +1317,14 @@ export class NoteBox {
 			return;
 		}
 		this._selRectsForPaint = rects;
-		// the overlay sits exactly over the text area: the text's stage
-		// position minus the entry box's one is the text's offset inside the
-		// box — their common translations (the scrolling) cancel out, so the
-		// layout-derived rectangles apply without any further conversion
+		// the rects are in the text actor's coordinates (position_to_coords),
+		// the overlay covers the whole entry: the text's offset inside it is
+		// added at draw time — the transformed positions cancel the common
+		// translations (the scrolling included)
 		let [tx, ty] = clutterText.get_transformed_position();
-		let [bx, by] = this._entryBox.get_transformed_position();
-		this._selOverlay.set_position(tx - bx, ty - by);
-		this._selOverlay.set_size(clutterText.width, clutterText.height);
+		let [ox, oy] = this._selOverlay.get_transformed_position();
+		this._selRectOffsetX = tx - ox;
+		this._selRectOffsetY = ty - oy;
 		this._selOverlay.show();
 		this._selOverlay.queue_repaint();
 	}
