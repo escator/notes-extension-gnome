@@ -230,6 +230,9 @@ export class NoteBox {
 			}
 			let idx = this._indexAtStagePoint(event.get_coords()[0],
 				event.get_coords()[1]);
+			// the mapped index must never collapse the selection (a live
+			// guard: clamp into the buffer bounds)
+			idx = Math.max(0, Math.min(idx, clutterText.get_text().length));
 			clutterText.set_selection(this._selAnchor, idx);
 			this._updateSelOverlay();
 			return Clutter.EVENT_STOP;
@@ -1303,10 +1306,16 @@ export class NoteBox {
 			return;
 		}
 		let clutterText = this.noteEntry.get_clutter_text();
+		let text = clutterText.get_text();
 		let bound = clutterText.get_selection_bound();
 		let cursor = clutterText.get_cursor_position();
-		if (bound < 0 || cursor < 0 || bound == cursor
-				|| !clutterText.get_text()) {
+		// ClutterText represents "the end of the buffer" as -1 in both
+		// properties: a drag clamped past the last character (its live guard)
+		// lands exactly there, and the selection is as real as ever —
+		// normalize before the emptiness checks
+		if (bound < 0) { bound = text.length; }
+		if (cursor < 0) { cursor = text.length; }
+		if (bound == cursor || !text) {
 			this._selOverlay.hide();
 			return;
 		}
