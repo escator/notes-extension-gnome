@@ -57,6 +57,14 @@ const EVDEV_Z = 52;
 const EVDEV_A = 38;
 const EVDEV_INSERT = 118;
 
+// The read-only selection highlight (task 009): the GNOME accent blue at
+// 40% opacity, painted on top of the glyphs — readable on light and dark
+// note colors alike. ClutterText's own selection painting is gated by
+// clutter_text_should_draw_cursor — (editable || selectable) &&
+// cursor_visible && has_focus — and never runs here: the read-only mode
+// hides the cursor and never holds the key focus (ADR-0007)
+const SELECTION_COLOR = [53 / 255, 132 / 255, 228 / 255, 0.4];
+
 //------------------------------------------------------------------------------
 
 function stringFromArray(data){
@@ -204,6 +212,7 @@ export class NoteBox {
 				this._redraw();
 				if (button == 1) {
 					this._readonlySelectionPress(event);
+					this._updateSelOverlay();
 				}
 				return Clutter.EVENT_STOP;
 			}
@@ -219,6 +228,7 @@ export class NoteBox {
 			let idx = this._indexAtStagePoint(event.get_coords()[0],
 				event.get_coords()[1]);
 			clutterText.set_selection(this._selAnchor, idx);
+			this._updateSelOverlay();
 			return Clutter.EVENT_STOP;
 		});
 		clutterText.connect('button-release-event', (actor, event) => {
@@ -226,6 +236,7 @@ export class NoteBox {
 				return Clutter.EVENT_PROPAGATE;
 			}
 			this._selDragging = false;
+			this._updateSelOverlay();
 			return this._editing ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP;
 		});
 		// Shift+F10 / Menu key: the menu is anchored at the text cursor
@@ -239,6 +250,31 @@ export class NoteBox {
 
 		this._entryBox.add_child(this.noteEntry);
 		this._scrollView.add_child(this._entryBox);
+
+		// The selection highlight (task 009): native ClutterText painting is
+		// gated by clutter_text_should_draw_cursor — (editable || selectable)
+		// && cursor_visible && has_focus — and never runs in the read-only
+		// mode: the cursor is hidden and the key focus is never granted
+		// (ADR-0007), so no CSS color would ever be drawn. The overlay is a
+		// non-reactive DrawingArea stacked over the text inside the entry box
+		// (after the entry — painted above it), it scrolls together with the
+		// entry and gets the text's position/size on every repaint — see
+		// _updateSelOverlay. Adding it to ClutterText itself is not an option:
+		// clutter-text.c keeps the legacy paint vfunc, which paints nothing
+		// but its own layout and cursor/selection
+		this._selOverlay = new St.DrawingArea({ reactive: false });
+		this._selOverlay.hide();
+		this._selOverlay.connect('draw', (area, cr) => {
+			cr.setSourceRGBA(...SELECTION_COLOR);
+			for (let rect of (this._selRectsForPaint || [])) {
+				cr.rectangle(rect[0], rect[1], rect[2], rect[3]);
+			}
+			cr.fill();
+		});
+		this._entryBox.add_child(this._selOverlay);
+		clutterText.connect('notify::allocation', () => {
+			this._updateSelOverlay();
+		});
 		this.actor.add_child(this._scrollView);
 
 		//----------------------------------------------------------------------
@@ -405,6 +441,7 @@ export class NoteBox {
 		// an in-flight read-only selection drag ends with the mode switch
 		this._selDragging = false;
 		this._selAnchor = -1;
+		this._updateSelOverlay();
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
 		clutterText.set_cursor_visible(editing);
@@ -450,6 +487,9 @@ export class NoteBox {
 		if (this._expanded) {
 			this._expandNote(false);
 		}
+		// undo/redo in the read-only mode replaces the text: the selection is
+		// collapsed by set_text, the highlight follows (a no-op while editing)
+		this._updateSelOverlay();
 	}
 
 	/*
@@ -1217,6 +1257,74 @@ export class NoteBox {
 			Math.round(ax * Pango.SCALE), Math.round(ay * Pango.SCALE));
 		if (!inText) { return text.length; }
 		return TextSelection.byteOffsetToCharIndex(text, index + trailing);
+	}
+
+	/*
+	 * Repaints the selection highlight (task 009): native ClutterText
+	 * painting is gated by clutter_text_should_draw_cursor —
+	 * (editable || selectable) && cursor_visible && has_focus — and in the
+	 * read-only mode the cursor is hidden and the key focus is never
+	 * granted, so mutter paints nothing no matter what the CSS says. The
+	 * selected range is mapped to rectangles through position_to_coords and
+	 * painted by the overlay in a translucent accent color on top of the
+	 * glyphs (readable on light and dark note colors alike). In the editing
+	 * mode the native painter owns the visuals and the overlay stays hidden.
+	 */
+	_updateSelOverlay () {
+		if (this._selOverlay == null || this.actor == null) { return; }
+		if (this._editing) {
+			this._selOverlay.hide();
+			return;
+		}
+		let clutterText = this.noteEntry.get_clutter_text();
+		let bound = clutterText.get_selection_bound();
+		let cursor = clutterText.get_cursor_position();
+		if (bound < 0 || cursor < 0 || bound == cursor
+				|| !clutterText.get_text()) {
+			this._selOverlay.hide();
+			return;
+		}
+		let rects = this._selectionRects(Math.min(bound, cursor),
+			Math.max(bound, cursor));
+		if (!rects.length) {
+			this._selOverlay.hide();
+			return;
+		}
+		this._selRectsForPaint = rects;
+		// the overlay sits exactly over the text area: the text's stage
+		// position minus the entry box's one is the text's offset inside the
+		// box — their common translations (the scrolling) cancel out, so the
+		// layout-derived rectangles apply without any further conversion
+		let [tx, ty] = clutterText.get_transformed_position();
+		let [bx, by] = this._entryBox.get_transformed_position();
+		this._selOverlay.set_position(tx - bx, ty - by);
+		this._selOverlay.set_size(clutterText.width, clutterText.height);
+		this._selOverlay.show();
+		this._selOverlay.queue_repaint();
+	}
+
+	/*
+	 * The selected range [start, end) as rectangles in the text actor's
+	 * coordinates: position_to_coords per range end yields (x, y, line
+	 * height) — one line: a single rect between the ends; several lines: a
+	 * tail of the first line, the full-width middle block, a head of the
+	 * last one. Line heights are assumed uniform across the wrapped
+	 * paragraph, which holds for a single font size.
+	 */
+	_selectionRects (start, end) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let [ok1, x1, y1, lh1] = clutterText.position_to_coords(start);
+		let [ok2, x2, y2, lh2] = clutterText.position_to_coords(end);
+		if (!ok1 || !ok2) { return []; }
+		if (y1 == y2) {
+			return [[x1, y1, Math.max(2, x2 - x1), lh1]];
+		}
+		let width = clutterText.width;
+		return [
+			[x1, y1, width - x1, lh1],
+			[0, y1 + lh1, width, Math.max(0, y2 - (y1 + lh1))],
+			[0, y2, x2, lh2],
+		];
 	}
 
 	_onMovePress (actor, event) {
