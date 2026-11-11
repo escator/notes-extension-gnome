@@ -63,6 +63,41 @@ function writeFile(path, contents) {
 	GLib.file_set_contents(path, contents);
 }
 
+/*
+ * The LayoutStore reads are asynchronous now (EGO-X-004): local files
+ * complete through the I/O thread pool followed by a main-context idle, so
+ * these helpers spin the default main context until the callback fired.
+ */
+function pumpUntil(ready) {
+	const ctx = GLib.MainContext.default();
+	let guard = 0;
+	while (!ready()) {
+		ctx.iteration(false);
+		if (!ctx.pending()) {
+			GLib.usleep(1000);
+		}
+		if (++guard > 100000) {
+			throw new Error('pumpUntil: condition never met');
+		}
+	}
+}
+
+function storeLoad(store) {
+	let result = null;
+	store.load(function (ok) { result = ok; });
+	pumpUntil(function () { return result !== null; });
+	return result;
+}
+
+function migrateFromStateFiles(store, dir, origin, key) {
+	let result = null;
+	store.migrateFromStateFiles(dir, origin, key, function (count) {
+		result = count;
+	});
+	pumpUntil(function () { return result !== null; });
+	return result;
+}
+
 const MONITOR_A = { x: 0, y: 0, width: 1920, height: 1080 };
 const MONITOR_B = { x: 1920, y: 0, width: 2560, height: 1440 };
 
@@ -365,7 +400,7 @@ withTempDir(function (dir) {
 	const path = GLib.build_filenamev([dir, 'layouts.json']);
 	const store = new Layouts.LayoutStore(path, 8);
 
-	check('fresh store loads nothing', store.load() === false);
+	check('fresh store loads nothing', storeLoad(store) === false);
 	eq('empty note ids', store.noteIds(), []);
 
 	eq('nextId never reuses values', [store.nextId(), store.nextId(), store.nextId()], [0, 1, 2]);
@@ -387,7 +422,7 @@ withTempDir(function (dir) {
 
 	// roundtrip through a second instance reading the file
 	const store2 = new Layouts.LayoutStore(path, 8);
-	check('second instance loads', store2.load() === true);
+	check('second instance loads', storeLoad(store2) === true);
 	eq('note ids survive reload', store2.noteIds(), [0]);
 	eq('positions survive reload', store2.layoutFor('K1').positions, { 0: { x: 10, y: 20, w: 250, h: 180 } });
 
@@ -404,7 +439,7 @@ withTempDir(function (dir) {
 	eq('removeNote: layout K1', store.layoutFor('K1').positions, {});
 	eq('removeNote: layout K2', store.layoutFor('K2').positions, {});
 	const store3 = new Layouts.LayoutStore(path, 8);
-	store3.load();
+	storeLoad(store3);
 	eq('removeNote persisted', store3.noteIds(), []);
 });
 
@@ -441,7 +476,8 @@ withTempDir(function (dir) {
 	writeFile(GLib.build_filenamev([dir, '2_state']), 'abc;def;sky;300;150;20;');
 
 	const store = new Layouts.LayoutStore(GLib.build_filenamev([dir, 'layouts.json']), 8);
-	const count = store.migrateFromStateFiles(dir, { x: 1920, y: 0 }, '1920x1080+0+0,2560x1440+1920+0');
+	const count = migrateFromStateFiles(store, dir, { x: 1920, y: 0 },
+		'1920x1080+0+0,2560x1440+1920+0');
 
 	eq('migrated count', count, 3);
 	eq('note ids from file numbers', store.noteIds(), [0, 1, 2]);
@@ -465,7 +501,7 @@ withTempDir(function (dir) {
 
 	// persisted and re-readable; _state files left in place
 	const store2 = new Layouts.LayoutStore(GLib.build_filenamev([dir, 'layouts.json']), 8);
-	check('migration persisted', store2.load() === true && store2.noteIds().length === 3);
+	check('migration persisted', storeLoad(store2) === true && store2.noteIds().length === 3);
 	check(
 		'_state files untouched',
 		GLib.file_test(GLib.build_filenamev([dir, '0_state']), GLib.FileTest.EXISTS)
@@ -488,20 +524,20 @@ withTempDir(function (dir) {
 	writeFile(path, '{ this is not json');
 
 	store = new Layouts.LayoutStore(path, 8);
-	check('corrupt main file falls back to .bak', store.load() === true);
+	check('corrupt main file falls back to .bak', storeLoad(store) === true);
 	eq('data from .bak', store.layoutFor('K1').positions, { 0: { x: 5, y: 6, w: 250, h: 180 } });
 
 	// no usable file at all: empty registry, no crash
 	writeFile(path, '###');
 	GLib.file_set_contents(path + '.bak', 'also broken');
 	store = new Layouts.LayoutStore(path, 8);
-	check('everything corrupt: empty registry', store.load() === false);
+	check('everything corrupt: empty registry', storeLoad(store) === false);
 	eq('empty: no notes', store.noteIds(), []);
 
 	// wrong version is rejected rather than mis-read
 	writeFile(path, JSON.stringify({ version: 99, seq: 5, notes: {}, layouts: {} }));
 	store = new Layouts.LayoutStore(path, 8);
-	check('wrong version rejected', store.load() === false);
+	check('wrong version rejected', storeLoad(store) === false);
 
 	// per-note garbage degrades instead of rejecting the file
 	store = new Layouts.LayoutStore(path, 8);
@@ -526,7 +562,7 @@ withTempDir(function (dir) {
 	};
 	store.save();
 	const store2 = new Layouts.LayoutStore(path, 8);
-	check('sanitized file loads', store2.load() === true);
+	check('sanitized file loads', storeLoad(store2) === true);
 	eq('garbage attrs get defaults', store2.getNoteAttrs(1), { color: '', fontSize: 16 });
 	eq('non-numeric id dropped', store2.noteIds(), [0, 1]);
 	eq(

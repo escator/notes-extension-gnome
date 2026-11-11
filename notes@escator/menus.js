@@ -17,22 +17,43 @@ const _ = Gettext.domain('notes-extension').gettext;
 
 class NoteOptionsMenu {
 	constructor (source) {
+		this._source = source;
+		this._isDestroyed = false;
 		this.super_menu = new PopupMenu.PopupMenu(source.actor, 0.2, St.Side.LEFT);
 
 		// We want to keep the item hovered while the menu is up
 		this.super_menu.blockSourceEvents = true;
-		this._source = source;
 		this.super_menu.actor.add_style_class_name('app-well-menu');
 
-		// Chain our visibility and lifecycle to that of the source
-		source.actor.connect('notify::mapped', () => {
+		// Chain our visibility and lifecycle to that of the source; the ids
+		// are kept so destroy() can disconnect both handlers explicitly
+		this._mappedId = source.actor.connect('notify::mapped', () => {
 			if (!source.actor.mapped) {
 				this.super_menu.close();
 			}
 		});
-		source.actor.connect('destroy', this.super_menu.destroy.bind(this.super_menu));
+		this._destroyId = source.actor.connect('destroy', this.destroy.bind(this));
 
 		Main.uiGroup.add_child(this.super_menu.actor);
+	}
+
+	/*
+	 * Explicit teardown (EGO-L-002/003/005): the menu actor lives in the
+	 * uiGroup, outside the source's actor tree, so it must be destroyed by
+	 * hand — which happens with the source actor (the note header button),
+	 * i.e. for every note when manager.destroy() tears the notes down in
+	 * disable(). Both handlers are disconnected and the reference dropped.
+	 */
+	destroy () {
+		if (this._isDestroyed) { return; }
+		this._isDestroyed = true;
+		let sourceActor = this._source.actor;
+		if (sourceActor) {
+			sourceActor.disconnect(this._mappedId);
+			sourceActor.disconnect(this._destroyId);
+		}
+		this.super_menu.destroy();
+		this.super_menu = null;
 	}
 
 	_redisplay () {
@@ -221,6 +242,18 @@ export class NoteRoundButton {
 		this._menu = null;
 		this._menuManager = new PopupMenu.PopupMenuManager(this);
 		this.actor.connect('button-press-event', this.popupMenu.bind(this));
+		// the menu (NoteOptionsMenu) lives in the uiGroup, outside this
+		// button's actor tree: destroy it and release the references when
+		// the button itself is destroyed (EGO-L-002/005)
+		this.actor.connect('destroy', this._destroyMenu.bind(this));
+	}
+
+	_destroyMenu () {
+		if (this._menu) {
+			this._menu.destroy();
+			this._menu = null;
+		}
+		this._menuManager = null;
 	}
 
 	popupMenu () {
@@ -295,13 +328,14 @@ export class NoteTextContextMenu {
 
 		// Chain the menu's lifecycle to that of the note (pattern of
 		// NoteOptionsMenu): hiding the note closes the menu, destroying it
-		// destroys the menu (and the anchor with it)
-		note.actor.connect('notify::mapped', () => {
+		// destroys the menu (and the anchor with it). The ids are kept so
+		// destroy() can disconnect both handlers explicitly.
+		this._mappedId = note.actor.connect('notify::mapped', () => {
 			if (!note.actor.mapped) {
 				this.super_menu.close();
 			}
 		});
-		note.actor.connect('destroy', this.destroy.bind(this));
+		this._destroyId = note.actor.connect('destroy', this.destroy.bind(this));
 	}
 
 	/*
@@ -320,8 +354,13 @@ export class NoteTextContextMenu {
 	destroy () {
 		if (this._isDestroyed) { return; }
 		this._isDestroyed = true;
+		if (this._note.actor) {
+			this._note.actor.disconnect(this._mappedId);
+			this._note.actor.disconnect(this._destroyId);
+		}
 		this._anchor.destroy();
 		this.super_menu.destroy();
+		this.super_menu = null;
 	}
 
 	//-------------------------- internals --------------------------------------

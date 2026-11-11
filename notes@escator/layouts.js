@@ -8,6 +8,7 @@
 // run from the repository root).
 
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 const REGISTRY_VERSION = 1;
 // Defaults mirror the legacy behavior: createNote('', 16) in extension.js and
@@ -328,12 +329,22 @@ function _validate(parsed) {
 	return data;
 }
 
-function _readString(path) {
-	const [ok, raw] = GLib.file_get_contents(path);
-	if (!ok) {
-		return null;
-	}
-	return typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
+/*
+ * Asynchronous single-file read (EGO-X-004: no synchronous file IO in shell
+ * code); callback receives the decoded string, or null when the file is
+ * missing or unreadable.
+ */
+function _readString(path, callback) {
+	Gio.File.new_for_path(path).load_contents_async(null, function (source, res) {
+		try {
+			const [ok, raw] = source.load_contents_finish(res);
+			callback(ok
+				? (typeof raw === 'string' ? raw : new TextDecoder().decode(raw))
+				: null);
+		} catch (e) {
+			callback(null);
+		}
+	});
 }
 
 /*
@@ -348,46 +359,69 @@ export class LayoutStore {
 		this._bakPath = filePath + '.bak';
 		this._maxLayouts = maxLayouts || 8;
 		this._data = _emptyRegistry();
+		// what the registry file currently holds on disk (the bytes read at
+		// load time, then the bytes written at every save): the .bak rotation
+		// replays it without re-reading the file
+		this._rawOnDisk = null;
 	}
 
 	//--------------------------------------------------------------------------
 	// IO
 
-	/* Returns true if a registry (or its backup) was found and loaded. */
-	load() {
-		let data = this._readFile(this._path);
-		if (data === null) {
-			data = this._readFile(this._bakPath);
-		}
-		if (data !== null) {
-			this._data = data;
-			return true;
-		}
-		return false;
+	/*
+	 * Loads the registry (or, failing that, its backup) and reports the
+	 * outcome to callback(true/false): the reads are asynchronous, nothing
+	 * below the callback may assume the store is filled yet.
+	 */
+	load(callback) {
+		this._readFile(this._path, (data) => {
+			if (data !== null) {
+				this._data = data;
+				callback(true);
+				return;
+			}
+			this._readFile(this._bakPath, (bakData) => {
+				if (bakData !== null) {
+					this._data = bakData;
+				}
+				callback(bakData !== null);
+			});
+		});
 	}
 
-	_readFile(path) {
-		try {
-			if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
-				return null;
-			}
-			return _validate(JSON.parse(_readString(path)));
-		} catch (e) {
-			log('LayoutStore: could not read ' + path + ': ' + e.message);
-			return null;
+	_readFile(path, callback) {
+		if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
+			callback(null);
+			return;
 		}
+		_readString(path, (raw) => {
+			this._rawOnDisk = raw;
+			if (raw === null) {
+				callback(null);
+				return;
+			}
+			try {
+				callback(_validate(JSON.parse(raw)));
+			} catch (e) {
+				log('LayoutStore: could not read ' + path + ': ' + e.message);
+				callback(null);
+			}
+		});
 	}
 
 	save() {
 		try {
-			if (GLib.file_test(this._path, GLib.FileTest.EXISTS)) {
+			// rotate the previous good version into .bak: the snapshot taken
+			// at load time (and kept fresh at every save) is exactly what the
+			// file holds, so no re-read is needed
+			if (this._rawOnDisk !== null) {
 				try {
-					// rotate the previous good version into .bak; if reading
-					// fails, keep the old .bak rather than aborting the save
-					GLib.file_set_contents(this._bakPath, _readString(this._path));
-				} catch (e) { /* see above */ }
+					GLib.file_set_contents(this._bakPath, this._rawOnDisk);
+				} catch (e) { /* a failed rotation only loses one generation */ }
 			}
-			GLib.file_set_contents(this._path, JSON.stringify(this._data, null, 1));
+			const json = JSON.stringify(this._data, null, 1);
+			GLib.file_set_contents(this._path, json);
+			this._rawOnDisk = json;
 		} catch (e) {
 			log('LayoutStore: could not save ' + this._path + ': ' + e.message);
 		}
@@ -480,43 +514,49 @@ export class LayoutStore {
 	 * (legacy coordinates were relative to it), `currentKey` the signature of
 	 * the configuration active right now. Ids keep the file numbers, so the
 	 * `N_text` file names stay valid. The `_state` files are left on disk as
-	 * a natural backup. Returns the number of migrated notes.
+	 * a natural backup. The number of migrated notes is reported to the
+	 * callback (the reads are asynchronous).
 	 */
-	migrateFromStateFiles(dir, origin, currentKey) {
+	migrateFromStateFiles(dir, origin, currentKey, callback) {
 		const positions = {};
 		let count = 0;
-		while (GLib.file_test(
-			GLib.build_filenamev([dir, count + '_state']),
-			GLib.FileTest.EXISTS
-		)) {
-			const fields = this._readStateFile(
-				GLib.build_filenamev([dir, count + '_state'])
-			);
-			this._data.notes[count] = {
-				color: fields.color,
-				fontSize: fields.fontSize,
-			};
-			positions[count] = {
-				x: origin.x + fields.x,
-				y: origin.y + fields.y,
-				w: fields.w,
-				h: fields.h,
-			};
-			count++;
-		}
-		this._data.seq = count;
-		this._data.layouts[currentKey] = {
-			savedAt: Date.now(),
-			positions: positions,
+		const next = () => {
+			const path = GLib.build_filenamev([dir, count + '_state']);
+			if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
+				this._data.seq = count;
+				this._data.layouts[currentKey] = {
+					savedAt: Date.now(),
+					positions: positions,
+				};
+				this.save();
+				callback(count);
+				return;
+			}
+			_readString(path, (raw) => {
+				const fields = this._parseStateFields(raw);
+				this._data.notes[count] = {
+					color: fields.color,
+					fontSize: fields.fontSize,
+				};
+				positions[count] = {
+					x: origin.x + fields.x,
+					y: origin.y + fields.y,
+					w: fields.w,
+					h: fields.h,
+				};
+				count++;
+				next();
+			});
 		};
-		this.save();
-		return count;
+		next();
 	}
 
-	_readStateFile(path) {
-		// NaN/missing fields degrade to the defaults instead of producing
-		// off-screen notes; the legacy 7th field ('entry_is_visible') is
-		// ignored
+	/*
+	 * Pure parser of one legacy `N_state` line: NaN/missing fields degrade to
+	 * the defaults instead of producing off-screen notes; the legacy 7th
+	 * field ('entry_is_visible') is ignored.
+	 */
+	_parseStateFields(raw) {
 		const fields = {
 			x: 10,
 			y: 10,
@@ -525,11 +565,11 @@ export class LayoutStore {
 			w: DEFAULT_WIDTH,
 			h: DEFAULT_HEIGHT,
 		};
+		if (raw === null) {
+			return fields;
+		}
 		try {
-			if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
-				return fields;
-			}
-			const state = _readString(path).split(';');
+			const state = raw.split(';');
 			const x = Number(state[0]);
 			const y = Number(state[1]);
 			const w = Number(state[3]);
@@ -542,7 +582,7 @@ export class LayoutStore {
 			if (Number.isFinite(fontSize) && fontSize > 0) { fields.fontSize = fontSize; }
 			if (state[2] !== undefined) { fields.color = state[2]; }
 		} catch (e) {
-			log('LayoutStore: could not read ' + path + ': ' + e.message);
+			log('LayoutStore: could not parse a state file: ' + e.message);
 		}
 		return fields;
 	}
