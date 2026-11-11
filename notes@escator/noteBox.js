@@ -199,7 +199,13 @@ export class NoteBox {
 		// edited is never touched.
 		this._textMenu = null;
 		this._textMenuManager = null;
-		clutterText.connect('button-press-event', (actor, event) => {
+		// The press/motion/release live on the ENTRY, not on the text actor:
+		// ClutterText is only as wide as its longest line (live-verified on
+		// 46.2 — clicks past that x never reached the text), while the entry
+		// spans the whole text area. The events on the text itself bubble up
+		// to the entry, and the index mapping goes through
+		// transform_stage_point, so the wider hit area changes nothing else
+		this.noteEntry.connect('button-press-event', (actor, event) => {
 			let button = event.get_button();
 			if (button == 3) {
 				if (this._textMenu && this._textMenu.super_menu.isOpen) {
@@ -211,7 +217,7 @@ export class NoteBox {
 			}
 			if (!this._editing) {
 				// the note still raises above its siblings: EVENT_STOP keeps
-				// the event from reaching noteEntry's own press handler
+				// the event from reaching StEntry's own press handling
 				this._redraw();
 				if (button == 1) {
 					this._readonlySelectionPress(event);
@@ -224,7 +230,7 @@ export class NoteBox {
 		// the drag part of the read-only selection (task 009): after the
 		// swallowed press the pointer is under the implicit grab, so the
 		// motion/release keep arriving on the text wherever the pointer goes
-		clutterText.connect('motion-event', (actor, event) => {
+		this.noteEntry.connect('motion-event', (actor, event) => {
 			if (!this._selDragging || this._editing) {
 				return Clutter.EVENT_PROPAGATE;
 			}
@@ -237,7 +243,7 @@ export class NoteBox {
 			this._updateSelOverlay();
 			return Clutter.EVENT_STOP;
 		});
-		clutterText.connect('button-release-event', (actor, event) => {
+		this.noteEntry.connect('button-release-event', (actor, event) => {
 			if (!this._selDragging) {
 				return Clutter.EVENT_PROPAGATE;
 			}
