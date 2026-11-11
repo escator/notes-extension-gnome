@@ -79,7 +79,7 @@ The upstream extension declares GNOME Shell 40–44. The fork is published on
 
 - **Legacy (EGO version 2)** — the frozen pre-ESM code for **GNOME Shell
   42–44**, live-verified on GNOME Shell 42.9 under X11;
-- **Notes 3.0 (EGO version 3)** — the port to the GNOME Shell 45+ extension
+- **Sticky Notes Plus (EGO version 5)** — the port to the GNOME Shell 45+ extension
   format (ESM), declared for **GNOME Shell 45–47** and verified live on
   GNOME Shell 46 (Ubuntu 24.04) under both X11 and Wayland, in
   [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) containers
@@ -283,7 +283,7 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 
 - **Legacy (EGO-версия 2)** — замороженный код до-ESM для **GNOME Shell
   42–44**, проверен живьём на GNOME Shell 42.9 под X11;
-- **Notes 3.0 (EGO-версия 3)** — порт в формат расширений GNOME Shell 45+
+- **Sticky Notes Plus (EGO-версия 5)** — порт в формат расширений GNOME Shell 45+
   (ESM), заявлен на **GNOME Shell 45–47** и проверен живьём на GNOME Shell 46
   (Ubuntu 24.04) под X11 и Wayland, в контейнерах
   [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod)
