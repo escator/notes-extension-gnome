@@ -264,12 +264,18 @@ export class NoteBox {
 		// but its own layout and cursor/selection
 		this._selOverlay = new St.DrawingArea({ reactive: false });
 		this._selOverlay.hide();
-		this._selOverlay.connect('draw', (area, cr) => {
+		// St.DrawingArea paints through its 'repaint' signal (the only signal
+		// it registers, no cairo_t argument — gnome-shell 46
+		// st-drawing-area.c): the context comes from get_context() and must
+		// be disposed by hand
+		this._selOverlay.connect('repaint', (area) => {
+			let cr = area.get_context();
 			cr.setSourceRGBA(...SELECTION_COLOR);
 			for (let rect of (this._selRectsForPaint || [])) {
 				cr.rectangle(rect[0], rect[1], rect[2], rect[3]);
 			}
 			cr.fill();
+			cr.$dispose();
 		});
 		this._entryBox.add_child(this._selOverlay);
 		clutterText.connect('notify::allocation', () => {
