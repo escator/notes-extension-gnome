@@ -17,6 +17,7 @@ import * as Layouts from './layouts.js';
 import * as Menus from './menus.js';
 import * as Dialog from './dialog.js';
 import { TextHistory } from './textHistory.js';
+import * as TextSelection from './textSelection.js';
 
 const _ = Gettext.domain('notes-extension').gettext;
 
@@ -56,6 +57,14 @@ const EVDEV_Z = 52;
 const EVDEV_A = 38;
 const EVDEV_INSERT = 118;
 
+// The read-only selection highlight (task 009): the GNOME accent blue at
+// 40% opacity, painted on top of the glyphs — readable on light and dark
+// note colors alike. ClutterText's own selection painting is gated by
+// clutter_text_should_draw_cursor — (editable || selectable) &&
+// cursor_visible && has_focus — and never runs here: the read-only mode
+// hides the cursor and never holds the key focus (ADR-0007)
+const SELECTION_COLOR = [53 / 255, 132 / 255, 228 / 255, 0.4];
+
 //------------------------------------------------------------------------------
 
 function stringFromArray(data){
@@ -93,10 +102,21 @@ export class NoteBox {
 		this._rectAnimating = false;
 		this._targetW = 0;
 		this._targetH = 0;
-		this._lastPressTime = 0;
-		this._lastPressX = 0;
-		this._lastPressY = 0;
+		// double-click trackers (task 009, 02-architecture §5): one shared by
+		// the header's move/resize gestures (task 005), a separate one for
+		// the text — a shared state would cross-trigger double clicks
+		// happening in different places
+		this._dblTracker = { time: 0, x: 0, y: 0 };
+		this._textDblTracker = { time: 0, x: 0, y: 0 };
 		this._gestureDistance = 0;
+		// the read-only mouse selection (task 009): _selAnchor is the fixed
+		// end of the live gesture (-1 = none), _selDragging is armed by the
+		// press and cleared by the release; the offsets translate the
+		// layout-derived rects into the overlay's coordinates
+		this._selAnchor = -1;
+		this._selDragging = false;
+		this._selRectOffsetX = 0;
+		this._selRectOffsetY = 0;
 		if (spec.color && spec.color.split(',').length == 3) {
 			this.customColor = spec.color;
 		} else {
@@ -168,17 +188,37 @@ export class NoteBox {
 		// In the read-only mode every press is swallowed as well: mutter's
 		// press handler (clutter_text_press) runs for any button on a
 		// selectable text and starts with an unconditional grab_key_focus,
-		// so a click on a read-only note silently stole the key focus from
-		// the note being edited (Ctrl+V then landed here and was swallowed
-		// by the matrix, and each click left two clutter_input_focus
-		// assertion warnings in the journal). Stopping the press before the
-		// class handler also means no drag selection in the read-only mode —
-		// selection there goes through the context menu instead
-		// (decision 2026-10-21).
+		// so a click on a read-only note would silently steal the key focus
+		// from the note being edited (Ctrl+V then landed here and was
+		// swallowed by the matrix, and each click left two
+		// clutter_input_focus assertion warnings in the journal)
+		// (decision 2026-10-21). Task 009 builds the read-only drag
+		// selection on top of that swallow instead of lifting it (ADR-0007):
+		// the selection is computed by the extension itself, with no
+		// grab_key_focus on any mouse path — the focus of the note being
+		// edited is never touched.
 		this._textMenu = null;
 		this._textMenuManager = null;
-		clutterText.connect('button-press-event', (actor, event) => {
-			if (event.get_button() == 3) {
+		// The press/motion/release handlers live on BOTH the text actor and
+		// the entry — the two picks never overlap: a press over the glyphs
+		// is emitted on the ClutterText (reactive, bound to the entry's
+		// reactive flag), a press in the dead zone past the longest line on
+		// the entry itself. And the ordering matters: 'button-press-event'
+		// is G_SIGNAL_RUN_LAST, so a normal handler runs BEFORE the class
+		// closure — which for ClutterText is clutter_text_press: it grabs
+		// the key focus and returns CLUTTER_EVENT_STOP for ANY button on a
+		// selectable text, so an event that reaches it never bubbles to the
+		// entry (live-verified on 46.2: with handlers only on the entry the
+		// native closure ate every press on the text — the f051d89 focus
+		// theft regression plus assertion pairs; its click handling produced
+		// a NATIVE word selection the user mistook for this engine, and the
+		// context menu never opened). On the text our handlers therefore run
+		// first and swallow in the read-only mode; on the entry they cover
+		// the dead zone. The index mapping goes through
+		// transform_stage_point, so the same handler serves both actors
+		let pressHandler = (actor, event) => {
+			let button = event.get_button();
+			if (button == 3) {
 				if (this._textMenu && this._textMenu.super_menu.isOpen) {
 					this._textMenu.super_menu.close();
 					return Clutter.EVENT_STOP;
@@ -188,12 +228,48 @@ export class NoteBox {
 			}
 			if (!this._editing) {
 				// the note still raises above its siblings: EVENT_STOP keeps
-				// the event from reaching noteEntry's own press handler
+				// the event from reaching StEntry's own press handling
 				this._redraw();
+				if (button == 1) {
+					this._readonlySelectionPress(event);
+					this._updateSelOverlay();
+				}
 				return Clutter.EVENT_STOP;
 			}
 			return Clutter.EVENT_PROPAGATE;
-		});
+		};
+		// the drag part of the read-only selection (task 009): after the
+		// swallowed press the pointer is under the implicit grab, so the
+		// motion/release keep arriving on the same actor chain wherever the
+		// pointer goes; propagating in edit mode lets the native drag of
+		// ClutterText (its class closure) work as before
+		let motionHandler = (actor, event) => {
+			if (!this._selDragging || this._editing) {
+				return Clutter.EVENT_PROPAGATE;
+			}
+			let idx = this._indexAtStagePoint(event.get_coords()[0],
+				event.get_coords()[1]);
+			// the mapped index must never collapse the selection (a live
+			// guard: clamp into the buffer bounds)
+			idx = Math.max(0, Math.min(idx, clutterText.get_text().length));
+			clutterText.set_selection(this._selAnchor, idx);
+			this._updateSelOverlay();
+			return Clutter.EVENT_STOP;
+		};
+		let releaseHandler = (actor, event) => {
+			if (!this._selDragging) {
+				return Clutter.EVENT_PROPAGATE;
+			}
+			this._selDragging = false;
+			this._updateSelOverlay();
+			return this._editing ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP;
+		};
+		clutterText.connect('button-press-event', pressHandler);
+		clutterText.connect('motion-event', motionHandler);
+		clutterText.connect('button-release-event', releaseHandler);
+		this.noteEntry.connect('button-press-event', pressHandler);
+		this.noteEntry.connect('motion-event', motionHandler);
+		this.noteEntry.connect('button-release-event', releaseHandler);
 		// Shift+F10 / Menu key: the menu is anchored at the text cursor
 		this.noteEntry.connect('popup-menu', this._onTextPopupMenu.bind(this));
 
@@ -203,8 +279,56 @@ export class NoteBox {
 			y_expand: true,
 		});
 
-		this._entryBox.add_child(this.noteEntry);
+		// the entry and the selection overlay must OCCUPY THE SAME RECT, not
+		// stack: a bin keeps them over each other (a BoxLayout would put the
+		// overlay below the entry, outside the visible note). The entry keeps
+		// its current geometry: natural height, pinned to the top
+		this._textStack = new Clutter.Actor({
+			layout_manager: new Clutter.BinLayout(),
+			x_expand: true,
+			y_expand: true,
+		});
+		this.noteEntry.set_y_align(Clutter.ActorAlign.START);
+		this._textStack.add_child(this.noteEntry);
+		this._entryBox.add_child(this._textStack);
 		this._scrollView.add_child(this._entryBox);
+
+		// The selection highlight (task 009): native ClutterText painting is
+		// gated by clutter_text_should_draw_cursor — (editable || selectable)
+		// && cursor_visible && has_focus — and never runs in the read-only
+		// mode: the cursor is hidden and the key focus is never granted
+		// (ADR-0007), so no CSS color would ever be drawn. The overlay is a
+		// non-reactive DrawingArea in the bin above the entry (added after it
+		// — painted last), it scrolls together with the text and gets the
+		// text's offset on every repaint — see _updateSelOverlay. Adding it
+		// to ClutterText itself is not an option: clutter-text.c keeps the
+		// legacy paint vfunc, which paints nothing but its own layout and
+		// cursor/selection
+		this._selOverlay = new St.DrawingArea({
+			reactive: false,
+			x_expand: true,
+			y_expand: true,
+		});
+		this._selOverlay.hide();
+		// St.DrawingArea paints through its 'repaint' signal (the only signal
+		// it registers, no cairo_t argument — gnome-shell 46
+		// st-drawing-area.c): the context comes from get_context() and must
+		// be disposed by hand
+		this._selOverlay.connect('repaint', (area) => {
+			let cr = area.get_context();
+			cr.setSourceRGBA(...SELECTION_COLOR);
+			for (let rect of (this._selRectsForPaint || [])) {
+				cr.rectangle(rect[0] + this._selRectOffsetX,
+					rect[1] + this._selRectOffsetY,
+					rect[2], rect[3]);
+			}
+			cr.fill();
+			cr.$dispose();
+		});
+		this._textStack.add_child(this._selOverlay);
+		clutterText.connect('notify::allocation', () => {
+			this._updateSelOverlay();
+		});
 		this.actor.add_child(this._scrollView);
 
 		//----------------------------------------------------------------------
@@ -368,6 +492,10 @@ export class NoteBox {
 		// the initial calls from _buildNote)
 		this.boundary();
 		this._editing = editing;
+		// an in-flight read-only selection drag ends with the mode switch
+		this._selDragging = false;
+		this._selAnchor = -1;
+		this._updateSelOverlay();
 		let clutterText = this.noteEntry.get_clutter_text();
 		clutterText.set_editable(editing);
 		clutterText.set_cursor_visible(editing);
@@ -413,6 +541,9 @@ export class NoteBox {
 		if (this._expanded) {
 			this._expandNote(false);
 		}
+		// undo/redo in the read-only mode replaces the text: the selection is
+		// collapsed by set_text, the highlight follows (a no-op while editing)
+		this._updateSelOverlay();
 	}
 
 	/*
@@ -1079,8 +1210,13 @@ export class NoteBox {
 	 * after another, each completes exactly one toggle (without this, the
 	 * first click of the second pair lands within the window of the click
 	 * that toggled the first pair and re-toggles it back).
+	 *
+	 * The press history lives in the `tracker` object passed by the caller
+	 * ({time, x, y}): one tracker is shared by the header's move/resize
+	 * gestures, the text keeps its own (task 009) — mixing them would make
+	 * double clicks in different places cross-trigger.
 	 */
-	_isDoubleClick (event) {
+	_isDoubleClick (event, tracker) {
 		if (event.get_button() != 1) { return false; }
 		let [x, y] = event.get_coords();
 		let now = event.get_time();
@@ -1088,18 +1224,167 @@ export class NoteBox {
 		try {
 			dblTime = Clutter.Settings.get_default().double_click_time;
 		} catch (e) { /* older shell: constant fallback */ }
-		let isDouble = this._lastPressTime > 0
-			&& (now - this._lastPressTime) <= dblTime
-			&& Math.abs(x - this._lastPressX) <= DBL_CLICK_DIST_PX
-			&& Math.abs(y - this._lastPressY) <= DBL_CLICK_DIST_PX;
+		let isDouble = tracker.time > 0
+			&& (now - tracker.time) <= dblTime
+			&& Math.abs(x - tracker.x) <= DBL_CLICK_DIST_PX
+			&& Math.abs(y - tracker.y) <= DBL_CLICK_DIST_PX;
 		if (isDouble) {
-			this._lastPressTime = 0;
+			tracker.time = 0;
 			return true;
 		}
-		this._lastPressTime = now;
-		this._lastPressX = x;
-		this._lastPressY = y;
+		tracker.time = now;
+		tracker.x = x;
+		tracker.y = y;
 		return false;
+	}
+
+	//-------------------------- read-only mouse selection -----------------------
+
+	/*
+	 * The read-only selection engine (task 009, 02-architecture §2–§6,
+	 * ADR-0007). The press has already been swallowed before ClutterText's
+	 * class handler — no grab_key_focus happens on this path at all;
+	 * everything works through public APIs only: transform_stage_point →
+	 * pango xy_to_index → set_selection.
+	 */
+	_readonlySelectionPress (event) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let idx = this._indexAtStagePoint(event.get_coords()[0],
+			event.get_coords()[1]);
+
+		// double click: the whole word, or nothing on a non-word character
+		// (02-architecture §6); the gesture stays armed, so continuing to
+		// move extends the selection from the word's start
+		if (this._isDoubleClick(event, this._textDblTracker)) {
+			let range = TextSelection.wordRange(clutterText.get_text(), idx);
+			if (range) {
+				this._selAnchor = range[0];
+				clutterText.set_selection(range[0], range[1]);
+				this._selDragging = true;
+			}
+			return;
+		}
+
+		// shift-click: extend the existing selection from its edge — the one
+		// farther from the click (a click on the right keeps the left edge,
+		// 02-architecture §4); with no selection — from the cursor position
+		if (event.get_state() & Clutter.ModifierType.SHIFT_MASK) {
+			let bound = clutterText.get_selection_bound();
+			let cursor = clutterText.get_cursor_position();
+			if (bound < 0 || cursor < 0 || bound == cursor) {
+				this._selAnchor = Math.max(0, cursor);
+			} else {
+				this._selAnchor = (idx >= (bound + cursor) / 2)
+					? Math.min(bound, cursor)
+					: Math.max(bound, cursor);
+			}
+			clutterText.set_selection(this._selAnchor, idx);
+			this._selDragging = true;
+			return;
+		}
+
+		// plain press: collapse at the click point (which also clears any
+		// previous selection — the native click behavior) and arm the drag
+		this._selAnchor = idx;
+		clutterText.set_selection(idx, idx);
+		this._selDragging = true;
+	}
+
+	/*
+	 * Stage point → code-point index into the text (02-architecture §3):
+	 * transform_stage_point accounts for the whole nesting (entry, entry
+	 * box, scroll view and the scrolling itself), and pango's xy_to_index
+	 * works on the full layout — the clipping in the scroll view is visual
+	 * only. A point outside the layout (below the last line, past the end
+	 * of a line) clamps to the text's end. pango reports a UTF-8 byte
+	 * offset, the ClutterText selection API counts characters: converted in
+	 * textSelection.js.
+	 */
+	_indexAtStagePoint (stageX, stageY) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let text = clutterText.get_text();
+		if (!text) { return 0; }
+		let [mapped, ax, ay] =
+			clutterText.transform_stage_point(stageX, stageY);
+		if (!mapped) { return text.length; }
+		let [inText, index, trailing] = clutterText.get_layout().xy_to_index(
+			Math.round(ax * Pango.SCALE), Math.round(ay * Pango.SCALE));
+		if (!inText) { return text.length; }
+		return TextSelection.byteOffsetToCharIndex(text, index + trailing);
+	}
+
+	/*
+	 * Repaints the selection highlight (task 009): native ClutterText
+	 * painting is gated by clutter_text_should_draw_cursor —
+	 * (editable || selectable) && cursor_visible && has_focus — and in the
+	 * read-only mode the cursor is hidden and the key focus is never
+	 * granted, so mutter paints nothing no matter what the CSS says. The
+	 * selected range is mapped to rectangles through position_to_coords and
+	 * painted by the overlay in a translucent accent color on top of the
+	 * glyphs (readable on light and dark note colors alike). In the editing
+	 * mode the native painter owns the visuals and the overlay stays hidden.
+	 */
+	_updateSelOverlay () {
+		if (this._selOverlay == null || this.actor == null) { return; }
+		if (this._editing) {
+			this._selOverlay.hide();
+			return;
+		}
+		let clutterText = this.noteEntry.get_clutter_text();
+		let text = clutterText.get_text();
+		let bound = clutterText.get_selection_bound();
+		let cursor = clutterText.get_cursor_position();
+		// ClutterText represents "the end of the buffer" as -1 in both
+		// properties: a drag clamped past the last character (its live guard)
+		// lands exactly there, and the selection is as real as ever —
+		// normalize before the emptiness checks
+		if (bound < 0) { bound = text.length; }
+		if (cursor < 0) { cursor = text.length; }
+		if (bound == cursor || !text) {
+			this._selOverlay.hide();
+			return;
+		}
+		let rects = this._selectionRects(Math.min(bound, cursor),
+			Math.max(bound, cursor));
+		if (!rects.length) {
+			this._selOverlay.hide();
+			return;
+		}
+		this._selRectsForPaint = rects;
+		// the rects are in the text actor's coordinates (position_to_coords),
+		// the overlay covers the whole entry: the text's offset inside it is
+		// added at draw time — the transformed positions cancel the common
+		// translations (the scrolling included)
+		let [tx, ty] = clutterText.get_transformed_position();
+		let [ox, oy] = this._selOverlay.get_transformed_position();
+		this._selRectOffsetX = tx - ox;
+		this._selRectOffsetY = ty - oy;
+		this._selOverlay.show();
+		this._selOverlay.queue_repaint();
+	}
+
+	/*
+	 * The selected range [start, end) as rectangles in the text actor's
+	 * coordinates: position_to_coords per range end yields (x, y, line
+	 * height) — one line: a single rect between the ends; several lines: a
+	 * tail of the first line, the full-width middle block, a head of the
+	 * last one. Line heights are assumed uniform across the wrapped
+	 * paragraph, which holds for a single font size.
+	 */
+	_selectionRects (start, end) {
+		let clutterText = this.noteEntry.get_clutter_text();
+		let [ok1, x1, y1, lh1] = clutterText.position_to_coords(start);
+		let [ok2, x2, y2, lh2] = clutterText.position_to_coords(end);
+		if (!ok1 || !ok2) { return []; }
+		if (y1 == y2) {
+			return [[x1, y1, Math.max(2, x2 - x1), lh1]];
+		}
+		let width = clutterText.width;
+		return [
+			[x1, y1, width - x1, lh1],
+			[0, y1 + lh1, width, Math.max(0, y2 - (y1 + lh1))],
+			[0, y2, x2, lh2],
+		];
 	}
 
 	_onMovePress (actor, event) {
@@ -1107,7 +1392,7 @@ export class NoteBox {
 		// of starting a drag (task 005): stopped here, so neither the drag
 		// state (the first press of the pair may have armed it) nor the
 		// common press bookkeeping run
-		if (this._isDoubleClick(event)) {
+		if (this._isDoubleClick(event, this._dblTracker)) {
 			this._isMoving = false;
 			this._isResizing = false;
 			this._gestureDistance = 0;
@@ -1124,7 +1409,7 @@ export class NoteBox {
 		// a double click on the resize button resets the note to its
 		// starting size — the quick way to shrink a grown note (task 005,
 		// 02-architecture §8): stopped here, so no resize gesture arms
-		if (this._isDoubleClick(event)) {
+		if (this._isDoubleClick(event, this._dblTracker)) {
 			this._isResizing = false;
 			this._isMoving = false;
 			this._gestureDistance = 0;
