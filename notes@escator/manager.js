@@ -472,6 +472,12 @@ export class NotesManager {
 			n.setEditMode(false);
 		});
 		this._onlyHideNotes();
+		// the previous source is removed right before the new one is created
+		// (EGO review: keep timeout removal next to creation)
+		if (this._timeout_id) {
+			this._timers.source_remove(this._timeout_id);
+			this._timeout_id = null;
+		}
 		this._timeout_id = this._timers.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
 			this._timeout_id = null;
 			// saving to the disk is slightly delayed to give the illusion that
