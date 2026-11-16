@@ -219,7 +219,8 @@ export class NoteBox {
 		let pressHandler = (actor, event) => {
 			let button = event.get_button();
 			if (button == 3) {
-				if (this._textMenu && this._textMenu.super_menu.isOpen) {
+				if (this._textMenu && this._textMenu.super_menu
+						&& this._textMenu.super_menu.isOpen) {
 					this._textMenu.super_menu.close();
 					return Clutter.EVENT_STOP;
 				}

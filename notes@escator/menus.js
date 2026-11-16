@@ -287,7 +287,6 @@ export class NoteRoundButton {
 export class NoteTextContextMenu {
 	constructor (note) {
 		this._note = note;
-		this._isDestroyed = false;
 
 		this._anchor = new St.Bin({
 			reactive: false,
@@ -320,7 +319,9 @@ export class NoteTextContextMenu {
 		// NoteOptionsMenu): hiding the note closes the menu, destroying it
 		// destroys the menu (and the anchor with it)
 		note.actor.connect('notify::mapped', () => {
-			if (!note.actor.mapped) {
+			// the menu may already be destroyed: NoteBox.destroy() destroys
+			// it before the note actor gets unmapped
+			if (this.super_menu && !note.actor.mapped) {
 				this.super_menu.close();
 			}
 		});
@@ -341,10 +342,19 @@ export class NoteTextContextMenu {
 	}
 
 	destroy () {
-		if (this._isDestroyed) { return; }
-		this._isDestroyed = true;
-		this._anchor.destroy();
-		this.super_menu.destroy();
+		// the resources are released and nulled instead of tracking a
+		// lifecycle state flag (EGO best practices): destroy() runs twice
+		// (explicitly from NoteBox.destroy(), then through the note's
+		// 'destroy' signal) and must be a no-op the second time
+		if (this._anchor) {
+			this._anchor.destroy();
+			this._anchor = null;
+		}
+		if (this.super_menu) {
+			this.super_menu.destroy();
+			this.super_menu = null;
+		}
+		this._note = null;
 	}
 
 	//-------------------------- internals --------------------------------------
@@ -368,7 +378,9 @@ export class NoteTextContextMenu {
 			St.Clipboard.get_default().get_text(
 				St.ClipboardType.CLIPBOARD,
 				(clipboard, text) => {
-					if (this._isDestroyed) { return; }
+					// the menu may have been destroyed while the clipboard
+					// content was being read
+					if (!this.super_menu) { return; }
 					this._pasteItem.setSensitive(text && text != '');
 				}
 			);
