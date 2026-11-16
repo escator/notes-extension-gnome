@@ -115,7 +115,6 @@ export class NotesManager {
 		// during an in-flight load must not restore notes afterwards
 		this._loadingNotes = false;
 		this._afterLoadCallbacks = [];
-		this._destroyed = false;
 
 		// the single click of the panel button is delayed to stay
 		// distinguishable from a double click (task 006 / ADR-0005)
@@ -200,7 +199,9 @@ export class NotesManager {
 		if (this._loadingNotes) { return; }
 		this._loadingNotes = true;
 		this._ensureStore(() => {
-			if (this._destroyed) { return; }
+			// destroy() nulls the store: an in-flight load must not restore
+			// the notes or run the queued callbacks after the teardown
+			if (!this._store) { return; }
 			this._restoreNotes();
 			this._notesLoaded = true;
 			// the folded/clamped positions become the saved layout of this
@@ -938,9 +939,6 @@ refreshFilterForNote (note) {
 	//--------------------------------------------------------------------------
 
 	destroy() {
-		// an in-flight load must not restore notes or run its queued
-		// callbacks after the teardown
-		this._destroyed = true;
 		this._settings.disconnect(this._settingsSignals['bring-back']);
 		this._settings.disconnect(this._settingsSignals['hide-icon']);
 		this._settings.disconnect(this._settingsSignals['kb-shortcut-1']);
@@ -959,6 +957,8 @@ refreshFilterForNote (note) {
 		if (this._store && this._notesLoaded) {
 			this._store.save();
 		}
+		// nulled also so that an in-flight load callback bails out (see the
+		// guard in _loadAllNotes)
 		this._store = null;
 		this._notesLoaded = false;
 
