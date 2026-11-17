@@ -27,7 +27,8 @@ the whole work remains free software under the **GNU GPL v3**, same as the
 original.
 
 On extensions.gnome.org this fork appears as **Sticky Notes Plus**
-(uuid `notes@escator`); forks must have a name distinct from the original,
+(uuid `notes@escator`, [its EGO page](https://extensions.gnome.org/extension/11557/));
+forks must have a name distinct from the original,
 which keeps the name "Notes".
 
 ## What's changed in this fork
@@ -74,26 +75,25 @@ Compared to the original extension:
 ## Compatibility
 
 The upstream extension declares GNOME Shell 40–44. The fork is published on
-[extensions.gnome.org](https://extensions.gnome.org/) under its own uuid
-`notes@escator`, as two releases served from the same page:
+[extensions.gnome.org](https://extensions.gnome.org/extension/11557/) under its own uuid
+`notes@escator` as **Sticky Notes Plus**: the port to the GNOME Shell 45+ extension
+format (ESM), declared for **GNOME Shell 45–47** and verified live on
+GNOME Shell 46 (Ubuntu 24.04) under both X11 and Wayland, in
+[gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) containers
+(install → enable → clean journal, the full test suite 239/239 under each
+container's gjs) and on GitHub Actions CI (45 gates the build).
 
-- **Legacy (EGO version 2)** — the frozen pre-ESM code for **GNOME Shell
-  42–44**, live-verified on GNOME Shell 42.9 under X11;
-- **Sticky Notes Plus (EGO version 5)** — the port to the GNOME Shell 45+ extension
-  format (ESM), declared for **GNOME Shell 45–47** and verified live on
-  GNOME Shell 46 (Ubuntu 24.04) under both X11 and Wayland, in
-  [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) containers
-  (install → enable → clean journal, the full test suite 239/239 under each
-  container's gjs) and on GitHub Actions CI (45 gates the build).
-
-Wayland is verified for the 45+ release only: the legacy 42–44 release is
+The frozen pre-ESM package for **GNOME Shell 42–44** (live-verified on GNOME
+Shell 42.9 under X11) is not uploaded to extensions.gnome.org: download
+`notes@escator.zip` from the master branch of this repository and install it
+manually. Wayland is verified for the 45+ release only: the legacy package is
 live-tested under X11, and the container sessions are X11 too.
 
 ## Installation
 
 The easiest way is to install from
-[extensions.gnome.org](https://extensions.gnome.org/) (search for *Notes* by
-Pavel Chernyakov). To install from source:
+[its extensions.gnome.org page](https://extensions.gnome.org/extension/11557/).
+To install from source:
 
 ```bash
 git clone https://github.com/<fork-owner>/notes-extension-gnome.git
@@ -228,7 +228,8 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 лицензией **GNU GPL v3**, как и оригинал.
 
 На extensions.gnome.org форк публикуется под именем **Sticky Notes Plus**
-(uuid `notes@escator`); форки обязаны отличаться по имени от оригинала,
+(uuid `notes@escator`, [страница на EGO](https://extensions.gnome.org/extension/11557/));
+форки обязаны отличаться по имени от оригинала,
 имя «Notes» остаётся за ним.
 
 ## Что изменено в этом форке
@@ -278,26 +279,25 @@ Free Software Foundation, see [LICENSE](./LICENSE).
 ## Совместимость
 
 Апстрим заявляет GNOME Shell 40–44. Форк опубликован на
-[extensions.gnome.org](https://extensions.gnome.org/) под собственным uuid
-`notes@escator` — двумя релизами с одной страницы:
+[extensions.gnome.org](https://extensions.gnome.org/extension/11557/) под
+собственным uuid `notes@escator` как **Sticky Notes Plus** — порт в формат
+расширений GNOME Shell 45+ (ESM), заявлен на **GNOME Shell 45–47** и проверен
+живьём на GNOME Shell 46 (Ubuntu 24.04) под X11 и Wayland, в контейнерах
+[gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod)
+(установка → включение → чистый журнал, полный набор тестов 239/239 под
+gjs каждого контейнера) и в GitHub Actions CI (45 гейтит сборку).
 
-- **Legacy (EGO-версия 2)** — замороженный код до-ESM для **GNOME Shell
-  42–44**, проверен живьём на GNOME Shell 42.9 под X11;
-- **Sticky Notes Plus (EGO-версия 5)** — порт в формат расширений GNOME Shell 45+
-  (ESM), заявлен на **GNOME Shell 45–47** и проверен живьём на GNOME Shell 46
-  (Ubuntu 24.04) под X11 и Wayland, в контейнерах
-  [gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod)
-  (установка → включение → чистый журнал, полный набор тестов 239/239 под
-  gjs каждого контейнера) и в GitHub Actions CI (45 гейтит сборку).
-
-Wayland проверен только для релиза 45+: legacy 42–44 живьём проверен лишь
+Замороженный до-ESM пакет для **GNOME Shell 42–44** (проверен живьём на
+GNOME Shell 42.9 под X11) на extensions.gnome.org не загружается: скачайте
+`notes@escator.zip` из ветки master этого репозитория и установите вручную.
+Wayland проверен только для релиза 45+: legacy-пакет живьём проверен лишь
 под X11, и контейнерные сессии тоже X11.
 
 ## Установка
 
-Проще всего установить с
-[extensions.gnome.org](https://extensions.gnome.org/) (ищите *Notes* от
-Pavel Chernyakov). Установка из исходников:
+Проще всего установить со
+[страницы расширения на extensions.gnome.org](https://extensions.gnome.org/extension/11557/).
+Установка из исходников:
 
 ```bash
 git clone https://github.com/<fork-owner>/notes-extension-gnome.git
